@@ -1,0 +1,468 @@
+.messengerContainer {
+  display: flex;
+  gap: 0;
+  height: calc(100vh - 180px);
+  background: #fff;
+}
+
+.messagesList {
+  width: 35%;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.messagesHeader {
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.messagesHeader h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.badge {
+  background: #d32f2f;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.messageThreads {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.messageThread {
+  padding: 15px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.messageThread:hover {
+  background: #f9f9f9;
+}
+
+.messageThread.active {
+  background: #ecf0f7;
+  border-left: 4px solid #0d47a1;
+  padding-left: 16px;
+}
+
+.threadName {
+  font-weight: 600;
+  color: #000;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.threadInfo {
+  font-size: 0.8rem;
+  color: #546e7a;
+  margin-bottom: 6px;
+}
+
+.threadSubject {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.threadTime {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.unreadDot {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  background: #2196f3;
+  border-radius: 50%;
+}
+
+.messageDetail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 30px;
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 15px;
+}
+
+.detailHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.statusBadge {
+  background: #d91e63;
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.detailMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #546e7a;
+  margin-bottom: 20px;
+}
+
+.messageContent {
+  flex: 1;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 30px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.replySection {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 20px;
+}
+
+.replySection h4 {
+  margin: 0 0 15px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.replyText {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  font-size: 0.9rem;
+  color: #333;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.replyText::placeholder {
+  color: #999;
+}
+
+.replyText:focus {
+  outline: none;
+  border-color: #0d47a1;
+  box-shadow: 0 0 0 2px rgba(13, 71, 161, 0.1);
+}
+
+.replyButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.sendBtn {
+  background: #000;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.sendBtn:hover {
+  background: #333;
+}
+
+.markBtn {
+  background: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.markBtn:hover {
+  background: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+  .messengerContainer {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .messagesList {
+    width: 100%;
+    height: 35%;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    max-height: 250px;
+  }
+
+  .messagesHeader {
+    padding: 1rem;
+  }
+
+  .messagesHeader h2 {
+    font-size: 1rem;
+  }
+
+  .messageThread {
+    padding: 0.75rem 1rem;
+  }
+
+  .threadName {
+    font-size: 0.9rem;
+  }
+
+  .threadInfo {
+    font-size: 0.75rem;
+  }
+
+  .threadSubject {
+    font-size: 0.8rem;
+  }
+
+  .messageDetail {
+    width: 100%;
+    height: auto;
+    padding: 1.25rem;
+  }
+
+  .detailHeader {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .detailHeader h3 {
+    font-size: 1.1rem;
+  }
+
+  .detailMeta {
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .messageContent {
+    font-size: 0.9rem;
+  }
+
+  .replySection {
+    padding-top: 1rem;
+  }
+
+  .replySection h4 {
+    font-size: 0.9rem;
+  }
+
+  .replyText {
+    min-height: 80px;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .replyButtons {
+    gap: 0.75rem;
+  }
+
+  .sendBtn,
+  .markBtn {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Extra Small Devices (320px - 480px) */
+@media (max-width: 480px) {
+  .messengerContainer {
+    flex-direction: column;
+    height: auto;
+    background: white;
+  }
+
+  .messagesList {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 0;
+  }
+
+  .messagesHeader {
+    padding: 0.75rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .messagesHeader h2 {
+    font-size: 0.95rem;
+    flex: 1;
+  }
+
+  .badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .messageThreads {
+    gap: 0;
+  }
+
+  .messageThread {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .messageThread.active {
+    padding-left: 0.75rem;
+    border-left: 3px solid #0d47a1;
+  }
+
+  .threadName {
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .threadInfo {
+    font-size: 0.7rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .threadSubject {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .threadTime {
+    font-size: 0.65rem;
+  }
+
+  .unreadDot {
+    width: 8px;
+    height: 8px;
+    right: 0.75rem;
+  }
+
+  .messageDetail {
+    width: 100%;
+    height: auto;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .detailHeader {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .detailHeader h3 {
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .statusBadge {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.7rem;
+    align-self: flex-start;
+  }
+
+  .detailMeta {
+    gap: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .messageContent {
+    max-height: 150px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    padding-right: 0.5rem;
+  }
+
+  .replySection {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 1rem;
+  }
+
+  .replySection h4 {
+    font-size: 0.85rem;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .replyText {
+    min-height: 70px;
+    padding: 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    margin-bottom: 0.75rem;
+  }
+
+  .replyText::placeholder {
+    color: #999;
+    font-size: 0.75rem;
+  }
+
+  .replyButtons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sendBtn,
+  .markBtn {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 3px;
+  }
+
+  .sendBtn {
+    background: #000;
+    color: white;
+    border: none;
+  }
+
+  .markBtn {
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
+  }
+}

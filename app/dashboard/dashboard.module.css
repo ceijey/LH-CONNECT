@@ -1,0 +1,578 @@
+.container {
+  min-height: 100vh;
+  background: #ecf0f7;
+  padding: 0;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #ecf0f7;
+  font-size: 1.2rem;
+  color: #0d47a1;
+}
+
+/* Header */
+.header {
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(13, 71, 161, 0.08);
+  padding: 1.5rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerContent {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logoIcon {
+  font-size: 2rem;
+}
+
+.logoText {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0d47a1;
+  margin: 0;
+}
+
+.logoSubtext {
+  font-size: 0.75rem;
+  color: #546e7a;
+  margin: 0;
+}
+
+.logoutBtn {
+  background: transparent;
+  border: none;
+  color: #546e7a;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.logoutBtn:hover {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+/* Main Content */
+.main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.welcomeSection {
+  margin-bottom: 3rem;
+}
+
+.welcomeTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0d47a1;
+  margin: 0 0 0.5rem 0;
+}
+
+.residentInfo {
+  color: #1976d2;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Info Grid */
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.infoCard {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(13, 71, 161, 0.06);
+  border: 1px solid #e3f2fd;
+  transition: all 0.3s ease;
+}
+
+.infoCard:hover {
+  box-shadow: 0 8px 24px rgba(13, 71, 161, 0.12);
+  transform: translateY(-2px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cardTitle {
+  color: #546e7a;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.infoIcon,
+.dateIcon,
+.qrIcon {
+  font-size: 1.5rem;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.amount {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #0d47a1;
+}
+
+.dueDate {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0d47a1;
+}
+
+.cardSubtext {
+  color: #1976d2;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* QR Code Card */
+.qrCodeContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.qrCodeWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 2px solid #e3f2fd;
+  border-radius: 8px;
+}
+
+.qrPlaceholder {
+  width: 150px;
+  height: 150px;
+  background: #f8f9fa;
+  border: 2px dashed #bbdefb;
+  border-radius: 8px;
+}
+
+.qrText {
+  color: #546e7a;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* Action Grid */
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.actionCard {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(13, 71, 161, 0.06);
+  border: 1px solid #e3f2fd;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.actionCard:hover {
+  box-shadow: 0 8px 24px rgba(13, 71, 161, 0.12);
+  transform: translateY(-4px);
+  border-color: #1976d2;
+}
+
+.actionIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.actionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0d47a1;
+  margin: 0.5rem 0;
+}
+
+.actionDesc {
+  color: #546e7a;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Payment Section */
+.paymentSection {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(13, 71, 161, 0.06);
+  border: 1px solid #e3f2fd;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0d47a1;
+  margin: 0 0 1.5rem 0;
+}
+
+.paymentList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.paymentItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+  transition: all 0.3s ease;
+}
+
+.paymentItem:hover {
+  background: #ecf0f7;
+}
+
+.paymentInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.paymentMonth {
+  font-weight: 600;
+  color: #0d47a1;
+  font-size: 0.95rem;
+}
+
+.paymentDate {
+  color: #546e7a;
+  font-size: 0.85rem;
+}
+
+.paymentAmount {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status {
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.paid {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.pending {
+  background: #fff9c4;
+  color: #f57f17;
+}
+
+.viewAllBtn {
+  width: 100%;
+  padding: 1rem;
+  background: transparent;
+  border: 2px solid #1976d2;
+  color: #1976d2;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.viewAllBtn:hover {
+  background: #e3f2fd;
+  border-color: #0d47a1;
+  color: #0d47a1;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .main {
+    padding: 1.5rem;
+  }
+
+  .infoGrid,
+  .actionGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .welcomeTitle {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: 1rem;
+  }
+
+  .header {
+    padding: 1.25rem;
+  }
+
+  .welcomeTitle {
+    font-size: 1.5rem;
+  }
+
+  .headerContent {
+    padding: 0 1rem;
+  }
+
+  .amount {
+    font-size: 2rem;
+  }
+
+  .dueDate {
+    font-size: 1.2rem;
+  }
+
+  .infoGrid,
+  .actionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .paymentAmount {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .actionCard {
+    padding: 1rem;
+  }
+
+  .actionIcon {
+    font-size: 2rem;
+  }
+
+  .actionTitle {
+    font-size: 1rem;
+  }
+
+  .actionDesc {
+    font-size: 0.85rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.25rem;
+  }
+
+  .infoCard {
+    padding: 1rem;
+  }
+
+  .cardHeader {
+    margin-bottom: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    min-height: 100vh;
+    background: #ecf0f7;
+  }
+
+  .header {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .logo {
+    gap: 0.5rem;
+  }
+
+  .logoText {
+    font-size: 1rem;
+  }
+
+  .logoSubtext {
+    font-size: 0.6rem;
+  }
+
+  .logoutBtn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .main {
+    max-width: 100%;
+    margin: 0;
+    padding: 0.75rem;
+  }
+
+  .welcomeSection {
+    margin-bottom: 1.5rem;
+  }
+
+  .welcomeTitle {
+    font-size: 1.25rem;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .residentInfo {
+    font-size: 0.85rem;
+  }
+
+  .infoGrid,
+  .actionGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .infoCard,
+  .actionCard,
+  .paymentSection {
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .amount {
+    font-size: 1.5rem;
+  }
+
+  .dueDate {
+    font-size: 1rem;
+  }
+
+  .cardTitle {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .cardHeader {
+    margin-bottom: 0.5rem;
+  }
+
+  .infoIcon,
+  .dateIcon,
+  .qrIcon {
+    font-size: 1.25rem;
+  }
+
+  .qrCodeWrapper {
+    padding: 0.75rem;
+  }
+
+  .qrPlaceholder {
+    width: 120px;
+    height: 120px;
+  }
+
+  .qrText {
+    font-size: 0.8rem;
+  }
+
+  .actionIcon {
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .actionTitle {
+    font-size: 0.95rem;
+    margin: 0.25rem 0;
+  }
+
+  .actionDesc {
+    font-size: 0.8rem;
+    margin: 0;
+  }
+
+  .paymentSection {
+    padding: 1rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.1rem;
+    margin: 0 0 1rem 0;
+  }
+
+  .paymentList {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .paymentItem {
+    padding: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .paymentInfo {
+    gap: 0.2rem;
+  }
+
+  .paymentMonth {
+    font-size: 0.85rem;
+  }
+
+  .paymentDate {
+    font-size: 0.75rem;
+  }
+
+  .status {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  .viewAllBtn {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+}

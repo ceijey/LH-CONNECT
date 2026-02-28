@@ -1,0 +1,828 @@
+.container {
+  min-height: 100vh;
+  background: #ecf0f7;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(13, 71, 161, 0.08);
+  padding: 1.5rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerContent {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerLefty {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.backBtn {
+  background: transparent;
+  border: none;
+  color: #546e7a;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.backBtn:hover {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.headerBrand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.headerIcon {
+  font-size: 2rem;
+}
+
+.headerTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0d47a1;
+  margin: 0;
+}
+
+.headerSubtitle {
+  font-size: 0.75rem;
+  color: #546e7a;
+  margin: 0;
+}
+
+/* Main Content */
+.main {
+  flex: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 2rem;
+}
+
+.contentWrapper {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+}
+
+/* Scanner Section */
+.scannerSection {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(13, 71, 161, 0.06);
+  border: 1px solid #e3f2fd;
+}
+
+.scanPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.promptIcon {
+  font-size: 4rem;
+}
+
+.promptTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0d47a1;
+  margin: 0;
+}
+
+.promptText {
+  color: #546e7a;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.scanBtn {
+  background: #0d47a1;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.scanBtn:hover:not(:disabled) {
+  background: #0a3d8a;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(13, 71, 161, 0.3);
+}
+
+.scanBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.errorText {
+  color: #c62828;
+  font-size: 0.9rem;
+  margin: 0;
+  margin-top: 1rem;
+}
+
+/* Scanner */
+.scanner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.qrReader {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #1976d2;
+}
+
+.qrReader > div {
+  border-radius: 8px !important;
+}
+
+.stopBtn {
+  background: #c62828;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stopBtn:hover {
+  background: #b71c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(198, 40, 40, 0.3);
+}
+
+.errorBox {
+  background: #ffebee;
+  border: 2px solid #c62828;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.closeError {
+  background: transparent;
+  border: none;
+  color: #c62828;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Result Section */
+.resultSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.successMessage {
+  background: #e8f5e9;
+  border: 2px solid #2e7d32;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #2e7d32;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Resident Card */
+.residentCard {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid #bbdefb;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e3f2fd;
+}
+
+.residentName {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0d47a1;
+  margin: 0;
+}
+
+.statusBadge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+/* Sections */
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0d47a1;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #1976d2;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.infoLabel {
+  font-weight: 600;
+  color: #546e7a;
+  font-size: 0.85rem;
+}
+
+.infoValue {
+  color: #0d47a1;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Billing Grid */
+.billingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.billingCard {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(13, 71, 161, 0.1);
+  border-left: 4px solid #1976d2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.billingLabel {
+  color: #546e7a;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.billingAmount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0d47a1;
+}
+
+.billingValue {
+  color: #1976d2;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Action Buttons */
+.actionButtons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e3f2fd;
+}
+
+.rescanBtn,
+.viewDetailsBtn {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  text-align: center;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.rescanBtn {
+  background: #1976d2;
+  color: white;
+}
+
+.rescanBtn:hover {
+  background: #1565c0;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(25, 118, 210, 0.3);
+}
+
+.viewDetailsBtn {
+  background: #0d47a1;
+  color: white;
+}
+
+.viewDetailsBtn:hover {
+  background: #0a3d8a;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(13, 71, 161, 0.3);
+}
+
+/* Info Sidebar */
+.infoSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.infoCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(13, 71, 161, 0.06);
+  border: 1px solid #e3f2fd;
+}
+
+.infoCardTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0d47a1;
+  margin: 0 0 1rem 0;
+}
+
+.instructionsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.instructionsList li {
+  color: #546e7a;
+  font-size: 0.9rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.instructionsList li::before {
+  content: counter(item);
+  counter-increment: item;
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #e3f2fd;
+  border-radius: 50%;
+  color: #0d47a1;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.testText {
+  color: #546e7a;
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem 0;
+  font-weight: 500;
+}
+
+.testList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.testList li {
+  color: #1976d2;
+  font-size: 0.85rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.testList li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: #1976d2;
+}
+
+.testNote {
+  color: #546e7a;
+  font-size: 0.8rem;
+  margin: 0;
+  font-style: italic;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.featureList li {
+  color: #2e7d32;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .main {
+    padding: 1.5rem;
+  }
+
+  .contentWrapper {
+    grid-template-columns: 1fr 280px;
+    gap: 1.5rem;
+  }
+
+  .scannerSection {
+    padding: 1.5rem;
+  }
+
+  .residentCard {
+    padding: 1.5rem;
+  }
+
+  .infoGrid,
+  .billingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+  }
+}
+
+/* Small Tablets (481px - 768px) */
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem 1.5rem;
+  }
+
+  .headerTitle {
+    font-size: 1.2rem;
+  }
+
+  .main {
+    padding: 1rem;
+  }
+
+  .contentWrapper {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .scannerSection {
+    padding: 1rem;
+  }
+
+  .scanPrompt {
+    padding: 2rem 1rem;
+  }
+
+  .promptIcon {
+    font-size: 3rem;
+  }
+
+  .promptTitle {
+    font-size: 1.25rem;
+  }
+
+  .promptText {
+    font-size: 0.9rem;
+  }
+
+  .qrReader {
+    max-width: 400px;
+  }
+
+  .residentCard {
+    padding: 1rem;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .residentName {
+    font-size: 1.5rem;
+  }
+
+  .section {
+    margin-bottom: 1.5rem;
+  }
+
+  .sectionTitle {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .infoGrid,
+  .billingGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .billingCard {
+    padding: 1rem;
+  }
+
+  .billingAmount {
+    font-size: 1.5rem;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .rescanBtn,
+  .viewDetailsBtn {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .infoSidebar {
+    gap: 1rem;
+  }
+
+  .infoCard {
+    padding: 1rem;
+  }
+
+  .infoCardTitle {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Extra Small Devices (320px - 480px) */
+@media (max-width: 480px) {
+  .container {
+    min-height: 100vh;
+  }
+
+  .header {
+    padding: 0.75rem 1rem;
+  }
+
+  .headerLefty {
+    gap: 1rem;
+  }
+
+  .backBtn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.9rem;
+  }
+
+  .headerBrand {
+    gap: 0.5rem;
+  }
+
+  .headerIcon {
+    font-size: 1.5rem;
+  }
+
+  .headerTitle {
+    font-size: 1rem;
+  }
+
+  .headerSubtitle {
+    font-size: 0.6rem;
+  }
+
+  .main {
+    padding: 0.75rem;
+  }
+
+  .contentWrapper {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .scannerSection {
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .scanPrompt {
+    padding: 1.5rem 0.75rem;
+    gap: 1rem;
+  }
+
+  .promptIcon {
+    font-size: 2.5rem;
+  }
+
+  .promptTitle {
+    font-size: 1.1rem;
+  }
+
+  .promptText {
+    font-size: 0.85rem;
+  }
+
+  .scanBtn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .qrReader {
+    max-width: 100%;
+  }
+
+  .successMessage {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .residentCard {
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .cardHeader {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .residentName {
+    font-size: 1.25rem;
+  }
+
+  .statusBadge {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.7rem;
+  }
+
+  .section {
+    margin-bottom: 1rem;
+  }
+
+  .sectionTitle {
+    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .infoGrid,
+  .billingGrid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .infoItem {
+    gap: 0.3rem;
+  }
+
+  .infoLabel {
+    font-size: 0.8rem;
+  }
+
+  .infoValue {
+    font-size: 0.9rem;
+  }
+
+  .billingCard {
+    padding: 0.75rem;
+    border-left-width: 3px;
+  }
+
+  .billingLabel {
+    font-size: 0.8rem;
+  }
+
+  .billingAmount {
+    font-size: 1.25rem;
+  }
+
+  .billingValue {
+    font-size: 0.9rem;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .rescanBtn,
+  .viewDetailsBtn {
+    padding: 0.65rem;
+    font-size: 0.85rem;
+  }
+
+  .infoSidebar {
+    gap: 0.75rem;
+  }
+
+  .infoCard {
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .infoCardTitle {
+    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .instructionsList li {
+    font-size: 0.8rem;
+    padding-left: 1.75rem;
+  }
+
+  .instructionsList li::before {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+  .testText {
+    font-size: 0.8rem;
+  }
+
+  .testList li {
+    font-size: 0.8rem;
+  }
+
+  .testNote {
+    font-size: 0.75rem;
+  }
+
+  .featureList li {
+    font-size: 0.85rem;
+    gap: 0.4rem;
+  }
+}
