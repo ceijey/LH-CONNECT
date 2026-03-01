@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 import styles from './dashboard.module.css';
 
 interface PaymentRecord {
@@ -17,10 +18,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>('Resident');
   const [isLoading, setIsLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   // Mock data
-  const residentBlock = 'Block A';
-  const residentLot = 'Lot 15';
+  const residentPhase = 'Phase 1';
+  const residentBlock = 'Blk 2';
+  const residentLot = 'Lot 10';
   const currentBalance = 0;
   const nextDueDate = 'March 1, 2026';
   const monthlyDues = 500;
@@ -48,11 +51,14 @@ export default function DashboardPage() {
   }, [router]);
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('userEmail');
-      router.push('/');
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
+    setShowLogoutModal(false);
+    router.push('/');
   };
 
   if (isLoading) {
@@ -61,6 +67,17 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.container}>
+      <ConfirmationModal
+        isOpen={showLogoutModal}
+        title="Logout Confirmation"
+        message="Are you sure you want to logout? You will be redirected to the login page."
+        confirmText="Logout"
+        cancelText="Cancel"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+        isDangerous={true}
+      />
+
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
@@ -82,7 +99,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <section className={styles.welcomeSection}>
           <h2 className={styles.welcomeTitle}>Welcome back, {userName}!</h2>
-          <p className={styles.residentInfo}>{residentBlock} - {residentLot}</p>
+          <p className={styles.residentInfo}>{residentPhase} {residentBlock} {residentLot}</p>
         </section>
 
         {/* Info Cards Grid */}

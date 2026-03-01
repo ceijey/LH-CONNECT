@@ -13,6 +13,7 @@ interface Transaction {
   amount: number;
   status: 'Paid' | 'Pending' | 'Failed';
   description: string;
+  paymentMethod: 'GCash' | 'Maya' | 'Bank Transfer' | 'Cash' | 'System';
 }
 
 export default function TransactionsPage() {
@@ -22,18 +23,18 @@ export default function TransactionsPage() {
 
   // Mock transaction data
   const allTransactions: Transaction[] = [
-    { id: 'TXN001', month: 'February 2026', date: 'Feb 22, 2026', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - February 2026' },
-    { id: 'TXN002', month: 'January 2026', date: 'Jan 20, 2026', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - January 2026' },
-    { id: 'TXN003', month: 'December 2025', date: 'Dec 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - December 2025' },
-    { id: 'TXN004', month: 'November 2025', date: 'Nov 15, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - November 2025' },
-    { id: 'TXN005', month: 'October 2025', date: 'Oct 22, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - October 2025' },
-    { id: 'TXN006', month: 'September 2025', date: 'Sep 19, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - September 2025' },
-    { id: 'TXN007', month: 'August 2025', date: 'Aug 21, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - August 2025' },
-    { id: 'TXN008', month: 'July 2025', date: 'Jul 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - July 2025' },
-    { id: 'TXN009', month: 'June 2025', date: 'Jun 20, 2025', type: 'Fine', amount: 50, status: 'Paid', description: 'Late payment fine' },
-    { id: 'TXN010', month: 'June 2025', date: 'Jun 15, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - June 2025' },
-    { id: 'TXN011', month: 'May 2025', date: 'May 22, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - May 2025' },
-    { id: 'TXN012', month: 'April 2025', date: 'Apr 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - April 2025' },
+    { id: 'TXN001', month: 'February 2026', date: 'Feb 22, 2026', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - February 2026', paymentMethod: 'GCash' },
+    { id: 'TXN002', month: 'January 2026', date: 'Jan 20, 2026', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - January 2026', paymentMethod: 'GCash' },
+    { id: 'TXN003', month: 'December 2025', date: 'Dec 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - December 2025', paymentMethod: 'Maya' },
+    { id: 'TXN004', month: 'November 2025', date: 'Nov 15, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - November 2025', paymentMethod: 'Bank Transfer' },
+    { id: 'TXN005', month: 'October 2025', date: 'Oct 22, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - October 2025', paymentMethod: 'GCash' },
+    { id: 'TXN006', month: 'September 2025', date: 'Sep 19, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - September 2025', paymentMethod: 'Cash' },
+    { id: 'TXN007', month: 'August 2025', date: 'Aug 21, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - August 2025', paymentMethod: 'GCash' },
+    { id: 'TXN008', month: 'July 2025', date: 'Jul 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - July 2025', paymentMethod: 'Maya' },
+    { id: 'TXN009', month: 'June 2025', date: 'Jun 20, 2025', type: 'Fine', amount: 50, status: 'Paid', description: 'Late payment fine', paymentMethod: 'System' },
+    { id: 'TXN010', month: 'June 2025', date: 'Jun 15, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - June 2025', paymentMethod: 'Bank Transfer' },
+    { id: 'TXN011', month: 'May 2025', date: 'May 22, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - May 2025', paymentMethod: 'GCash' },
+    { id: 'TXN012', month: 'April 2025', date: 'Apr 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - April 2025', paymentMethod: 'Cash' },
   ];
 
   useEffect(() => {
@@ -112,18 +113,17 @@ export default function TransactionsPage() {
               <table className={styles.transactionsTable}>
                 <thead>
                   <tr>
-                    <th>ID</th>
                     <th>Date</th>
                     <th>Type</th>
                     <th>Description</th>
                     <th>Amount</th>
+                    <th>Payment Method</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredTransactions.map((transaction) => (
                     <tr key={transaction.id} className={styles.tableRow}>
-                      <td className={styles.idCell}>{transaction.id}</td>
                       <td className={styles.dateCell}>{transaction.date}</td>
                       <td className={styles.typeCell}>
                         <span className={`${styles.typeBadge} ${styles[transaction.type.toLowerCase()]}`}>
@@ -132,6 +132,7 @@ export default function TransactionsPage() {
                       </td>
                       <td className={styles.descCell}>{transaction.description}</td>
                       <td className={styles.amountCell}>₱{transaction.amount}</td>
+                      <td className={styles.methodCell}>{transaction.paymentMethod}</td>
                       <td className={styles.statusCell}>
                         <span className={`${styles.statusBadge} ${styles[transaction.status.toLowerCase()]}`}>
                           {transaction.status}

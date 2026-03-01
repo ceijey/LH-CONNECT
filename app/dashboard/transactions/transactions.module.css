@@ -162,6 +162,7 @@
 .transactionsTable {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .transactionsTable thead {
@@ -175,6 +176,31 @@
   font-weight: 600;
   color: #0d47a1;
   font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.transactionsTable th:nth-child(1) {
+  width: 12%;
+}
+
+.transactionsTable th:nth-child(2) {
+  width: 10%;
+}
+
+.transactionsTable th:nth-child(3) {
+  width: 35%;
+}
+
+.transactionsTable th:nth-child(4) {
+  width: 12%;
+}
+
+.transactionsTable th:nth-child(5) {
+  width: 15%;
+}
+
+.transactionsTable th:nth-child(6) {
+  width: 16%;
 }
 
 .transactionsTable tbody tr {
@@ -197,12 +223,22 @@
   font-family: monospace;
 }
 
+.methodCell {
+  color: #546e7a;
+  font-weight: 500;
+  text-align: center;
+  word-break: break-word;
+}
+
 .dateCell {
   color: #546e7a;
+  text-align: left;
+  word-break: break-word;
 }
 
 .typeCell {
   text-align: center;
+  word-break: break-word;
 }
 
 .typeBadge {
@@ -230,6 +266,8 @@
 
 .descCell {
   color: #546e7a;
+  text-align: left;
+  word-break: break-word;
 }
 
 .amountCell {
@@ -240,6 +278,7 @@
 
 .statusCell {
   text-align: center;
+  word-break: break-word;
 }
 
 .statusBadge {
@@ -475,9 +514,15 @@
     width: 100%;
   }
 
+  .transactionsTable {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
   .transactionsTable th,
   .transactionsTable td {
     padding: 0.6rem 0.4rem;
+    font-size: 0.8rem;
   }
 
   .transactionsTable th {
@@ -485,7 +530,7 @@
     font-weight: 600;
   }
 
-  .idCell {
+  .methodCell {
     font-size: 0.75rem;
   }
 

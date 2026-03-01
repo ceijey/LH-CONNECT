@@ -29,7 +29,7 @@ export default function SubmitPaymentPage() {
     notes: '',
     file: null,
     residentName: 'Juan dela Cruz',
-    blockLot: 'Block A - Lot 15',
+    blockLot: 'Phase 1 Blk 2 Lot 10',
     paymentAmount: '500',
   });
   const [fileName, setFileName] = useState<string>('');
@@ -83,7 +83,7 @@ export default function SubmitPaymentPage() {
     }
 
     if (!formData.referenceNumber.trim()) {
-      alert('Please enter a reference number');
+      alert('Please enter an OR number');
       return;
     }
 
@@ -92,7 +92,7 @@ export default function SubmitPaymentPage() {
     // Simulate API call
     setTimeout(() => {
       alert('Payment proof submitted successfully!');
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: 'Juan dela Cruz', blockLot: 'Block A - Lot 15', paymentAmount: '500' });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: 'Juan dela Cruz', blockLot: 'Phase 1 Blk 2 Lot 10', paymentAmount: '500' });
       setFileName('');
       setIsSubmitting(false);
     }, 1500);
@@ -190,15 +190,15 @@ export default function SubmitPaymentPage() {
                   </select>
                 </div>
 
-                {/* Reference Number */}
+                {/* OR Number */}
                 <div className={styles.formGroup}>
-                  <label className={styles.label}>Reference Number</label>
+                  <label className={styles.label}>OR Number</label>
                   <input
                     type="text"
                     name="referenceNumber"
                     value={formData.referenceNumber}
                     onChange={handleInputChange}
-                    placeholder="Enter transaction reference number"
+                    placeholder="Enter Official Receipt number"
                     className={styles.input}
                   />
                 </div>

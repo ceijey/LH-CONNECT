@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from './page.module.css';
 
 export default function LandingPage() {
@@ -14,8 +15,6 @@ export default function LandingPage() {
           </div>
           <div className={styles.navLinks}>
             <Link href="#features" className={styles.navLink}>Features</Link>
-            <Link href="#about" className={styles.navLink}>About</Link>
-            <Link href="#contact" className={styles.navLink}>Contact</Link>
             <Link href="/login" className={styles.loginNavButton}>
               Sign In
             </Link>
@@ -37,17 +36,18 @@ export default function LandingPage() {
             <Link href="/login" className={styles.primaryButton}>
               Get Started
             </Link>
-            <Link href="#features" className={styles.secondaryButton}>
-              Learn More
-            </Link>
           </div>
         </div>
         <div className={styles.heroImage}>
           <div className={styles.illustration}>
-            {/* Simple illustration using CSS */}
-            <div className={styles.circle}></div>
-            <div className={styles.circle2}></div>
-            <div className={styles.circle3}></div>
+            <Image
+              src="/house_PNG50.png"
+              alt="Modern House"
+              width={1600}
+              height={1200}
+              priority
+              className={styles.houseImage}
+            />
           </div>
         </div>
       </section>
@@ -113,34 +113,6 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <div className={styles.footerColumn}>
-            <h4 className={styles.footerTitle}>YourBrand</h4>
-            <p className={styles.footerText}>
-              Making your life easier since 2024
-            </p>
-          </div>
-          <div className={styles.footerColumn}>
-            <h4 className={styles.footerTitle}>Links</h4>
-            <Link href="#features" className={styles.footerLink}>Features</Link>
-            <Link href="#about" className={styles.footerLink}>About</Link>
-            <Link href="#contact" className={styles.footerLink}>Contact</Link>
-          </div>
-          <div className={styles.footerColumn}>
-            <h4 className={styles.footerTitle}>Legal</h4>
-            <Link href="#" className={styles.footerLink}>Privacy Policy</Link>
-            <Link href="#" className={styles.footerLink}>Terms of Service</Link>
-          </div>
-        </div>
-        <div className={styles.footerBottom}>
-          <p className={styles.copyright}>
-            © 2024 YourBrand. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
 } from 'recharts';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 import styles from './admin-dashboard.module.css';
 
 interface StatCard {
@@ -21,6 +22,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('dashboard');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Chart data
   const collectionTrendsData = [
@@ -94,13 +96,16 @@ export default function AdminDashboard() {
   }, [router]);
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userRole');
-      router.push('/');
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    setShowLogoutModal(false);
+    router.push('/');
   };
 
   if (isLoading) {
@@ -109,6 +114,17 @@ export default function AdminDashboard() {
 
   return (
     <div className={styles.container}>
+      <ConfirmationModal
+        isOpen={showLogoutModal}
+        title="Logout Confirmation"
+        message="Are you sure you want to logout? You will be redirected to the login page."
+        confirmText="Logout"
+        cancelText="Cancel"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+        isDangerous={true}
+      />
+
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
