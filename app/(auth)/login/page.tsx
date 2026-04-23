@@ -67,14 +67,6 @@ export default function LoginPage() {
   const [signupMessage, setSignupMessage] = useState<string>('');
   const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
 
-  // Demo user accounts
-  const DEMO_ACCOUNTS = [
-    { email: 'admin@lh-connect.com', password: 'admin123', role: 'admin', name: 'Admin Account' },
-    { email: 'juan@lh-connect.com', password: 'resident123', role: 'resident', name: 'Juan Dela Cruz' },
-    { email: 'maria@lh-connect.com', password: 'resident123', role: 'resident', name: 'Maria Santos' },
-    { email: 'pedro@lh-connect.com', password: 'resident123', role: 'resident', name: 'Pedro Garcia' },
-  ];
-
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
@@ -188,32 +180,10 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Simulate API call
+    // TODO: Connect to backend API for authentication
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Check credentials against demo accounts
-      const user = DEMO_ACCOUNTS.find(
-        account => account.email === formData.email && account.password === formData.password
-      );
-
-      if (user) {
-        // Store auth info
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userEmail', user.email);
-        localStorage.setItem('userName', user.name);
-        localStorage.setItem('userRole', user.role);
-        localStorage.setItem('termsAccepted', 'true');
-        
-        // Redirect based on user role
-        if (user.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
-      } else {
-        setLoginError('Invalid email or password.');
-      }
+      setLoginError('Authentication service not yet configured. Please contact support.');
     } catch (error) {
       setLoginError('An error occurred. Please try again.');
     } finally {
@@ -369,25 +339,6 @@ export default function LoginPage() {
             >
               Sign up
             </button>
-          </div>
-
-          {/* Demo Credentials */}
-          <div className={styles.demoSection}>
-            <p className={styles.demoTitle}>🧪 Demo Credentials:</p>
-            <div className={styles.demoCredentials}>
-              <div className={styles.demoItem}>
-                <p className={styles.demoLabel}>Admin Account:</p>
-                <p className={styles.demoValue}>admin@lh-connect.com</p>
-                <p className={styles.demoValue}>admin123</p>
-              </div>
-              <div className={styles.demoItem}>
-                <p className={styles.demoLabel}>Resident Accounts:</p>
-                <p className={styles.demoValue}>juan@lh-connect.com</p>
-                <p className={styles.demoValue}>maria@lh-connect.com</p>
-                <p className={styles.demoValue}>pedro@lh-connect.com</p>
-                <p className={styles.demoValue}>All residents: resident123</p>
-              </div>
-            </div>
           </div>
         </form>
           </>

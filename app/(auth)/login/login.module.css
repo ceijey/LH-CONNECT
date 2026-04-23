@@ -323,55 +323,6 @@
   transform: translateY(-2px);
 }
 
-/* Demo Credentials Section */
-.demoSection {
-  margin-top: 25px;
-  padding: 15px;
-  background: #f0f7ff;
-  border: 1px solid #bbdefb;
-  border-radius: 8px;
-}
-
-.demoTitle {
-  color: #0d47a1;
-  font-weight: 600;
-  font-size: 12px;
-  margin: 0 0 10px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.demoCredentials {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.demoItem {
-  background: white;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border-left: 3px solid #1976d2;
-}
-
-.demoLabel {
-  color: #0d47a1;
-  font-weight: 600;
-  font-size: 13px;
-  margin: 0 0 5px 0;
-}
-
-.demoValue {
-  color: #546e7a;
-  font-size: 12px;
-  font-family: 'Courier New', monospace;
-  margin: 3px 0;
-  padding: 2px 5px;
-  background: #f5f7fa;
-  border-radius: 3px;
-  word-break: break-all;
-}
-
 /* Responsive Design */
 
 /* Tablet (768px - 1024px) */
@@ -447,20 +398,6 @@
   .demoTitle {
     font-size: 11px;
     margin-bottom: 10px;
-  }
-
-  .demoItem {
-    margin-bottom: 10px;
-  }
-
-  .demoLabel {
-    font-size: 11px;
-    margin-bottom: 4px;
-  }
-
-  .demoValue {
-    font-size: 10px;
-    margin: 2px 0;
   }
 
   .modalContent {

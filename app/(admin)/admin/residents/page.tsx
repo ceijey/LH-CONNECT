@@ -25,9 +25,6 @@ export default function AdminResidents() {
   const [filteredResidents, setFilteredResidents] = useState<Resident[]>([]);
 
   const allResidents: Resident[] = [
-    { id: 'R001', name: 'Juan Dela Cruz', phase: 'Phase 1', block: '1', lot: '15', email: 'juan@lh-connect.com', phone: '09171234567', status: 'Active', balance: 0 },
-    { id: 'R002', name: 'Maria Santos', phase: 'Phase 2', block: '2', lot: '8', email: 'maria@lh-connect.com', phone: '09181234567', status: 'Active', balance: 500 },
-    { id: 'R003', name: 'Pedro Garcia', phase: 'Phase 2', block: '3', lot: '12', email: 'pedro@lh-connect.com', phone: '09191234567', status: 'Delinquent', balance: 1500 },
     { id: 'R004', name: 'Rosa Reyes', phase: 'Phase 1', block: '4', lot: '5', email: 'rosa@example.com', phone: '09201234567', status: 'Active', balance: 1000 },
     { id: 'R005', name: 'Luis Lopez', phase: 'Phase 1', block: '1', lot: '22', email: 'luis@example.com', phone: '09211234567', status: 'Active', balance: 0 },
     { id: 'R006', name: 'Ana Gomez', phase: 'Phase 3', block: '2', lot: '3', email: 'ana@example.com', phone: '09221234567', status: 'Active', balance: 0 },

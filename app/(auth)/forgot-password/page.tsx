@@ -33,14 +33,6 @@ export default function ForgotPasswordPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Simulated stored reset codes (in real app, this would be in a database)
-  const DEMO_RESET_CODES: { [key: string]: string } = {
-    'admin@lh-connect.com': 'ADMIN123456',
-    'juan@lh-connect.com': 'RESET789012',
-    'maria@lh-connect.com': 'CODE345678',
-    'pedro@lh-connect.com': 'VERIFY901234',
-  };
-
   const validateEmail = (email: string): boolean => {
     const newErrors: FormErrors = {};
 
@@ -97,17 +89,10 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
 
-    // Simulate API call
+    // TODO: Connect to backend API for password reset
     setTimeout(() => {
-      // Check if email exists in demo accounts
-      if (DEMO_RESET_CODES[formData.email]) {
-        setSuccessMessage('Reset code has been sent to your email address');
-        setStep('verify');
-        setIsLoading(false);
-      } else {
-        setErrorMessage('Email not found in our system');
-        setIsLoading(false);
-      }
+      setErrorMessage('Password reset service not yet configured. Please contact support.');
+      setIsLoading(false);
     }, 1500);
   };
 
@@ -122,18 +107,10 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
 
-    // Simulate API call
+    // TODO: Connect to backend API to verify reset code
     setTimeout(() => {
-      // Verify the reset code matches
-      if (DEMO_RESET_CODES[formData.email] === formData.resetCode.toUpperCase()) {
-        setSuccessMessage('Code verified successfully');
-        setStep('reset');
-        setFormData(prev => ({ ...prev, resetCode: '' }));
-        setIsLoading(false);
-      } else {
-        setErrorMessage('Invalid reset code. Please try again.');
-        setIsLoading(false);
-      }
+      setErrorMessage('Password reset service not yet configured. Please contact support.');
+      setIsLoading(false);
     }, 1500);
   };
 
@@ -324,17 +301,6 @@ export default function ForgotPasswordPage() {
               </button>
             </form>
           )}
-
-          {/* Demo Codes Hint */}
-          <div className={styles.demoHint}>
-            <p className={styles.demoTitle}>Demo Accounts for Testing:</p>
-            <ul className={styles.demoList}>
-              <li><strong>admin@lh-connect.com</strong> - Code: ADMIN123456</li>
-              <li><strong>juan@lh-connect.com</strong> - Code: RESET789012</li>
-              <li><strong>maria@lh-connect.com</strong> - Code: CODE345678</li>
-              <li><strong>pedro@lh-connect.com</strong> - Code: VERIFY901234</li>
-            </ul>
-          </div>
         </div>
       </main>
     </div>
