@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LH-Connect | A Unified Management and Information System for Automating Monthly Dues and Resident Financial Analytics",
+  title: "LH-Connect - Unified Management and Information System for Automating Monthly Dues and Resident Financial Analytics",
   description: "A Unified Management and Information System for Automating Monthly Dues and Resident Financial Analytics",
 }
 
