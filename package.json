@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@opentelemetry/api": "^1.9.1",
     "external-editor": "^1.1.0",
+    "firebase": "^12.12.1",
+    "firebase-admin": "^13.8.0",
     "html5-qrcode": "^2.3.8",
     "inquirer": "^13.2.5",
     "next": "^16.1.6",

@@ -8,6 +8,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
 } from 'recharts';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import { apiCall } from '@/lib/api-client';
 import styles from './admin-dashboard.module.css';
 
 interface StatCard {
@@ -23,6 +24,7 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('dashboard');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [userName, setUserName] = useState('Admin User');
 
   // Chart data
   const collectionTrendsData = [
@@ -48,7 +50,7 @@ export default function AdminDashboard() {
     { block: 'Block D', delinquent: 5 },
   ];
 
-  const statCards: StatCard[] = [
+  const [statCards, setStatCards] = useState<StatCard[]>([
     {
       title: "Today's Collections",
       value: '₱8,500',
@@ -77,22 +79,61 @@ export default function AdminDashboard() {
       changeType: 'positive',
       icon: '⚠️',
     },
-  ];
+  ]);
 
   const COLORS = ['#1976d2', '#4caf50', '#ff9800', '#9c27b0'];
 
   useEffect(() => {
-    // Check if user is authenticated and is admin
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userRole = localStorage.getItem('userRole');
+    const loadDashboardData = async () => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      const userRole = localStorage.getItem('userRole');
 
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else if (userRole !== 'admin') {
-      router.push('/dashboard');
-    } else {
-      setIsLoading(false);
-    }
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+
+      if (userRole !== 'admin') {
+        router.push('/dashboard');
+        return;
+      }
+
+      try {
+        const [profilePayload, residentsPayload] = await Promise.all([
+          apiCall('/api/auth/profile'),
+          apiCall('/api/residents'),
+        ]);
+
+        setUserName(profilePayload.user?.fullName ?? 'Admin User');
+
+        const residents = (residentsPayload.residents ?? []) as Array<{ balance?: number }>;
+        const delinquentCount = residents.filter((resident) => Number(resident.balance ?? 0) > 0).length;
+
+        setStatCards((previousCards) => [
+          previousCards[0],
+          {
+            ...previousCards[1],
+            value: `₱${residents.length * 500}`,
+          },
+          {
+            ...previousCards[2],
+            value: `${residents.length}`,
+            change: residents.length > 0 ? 'Live resident records' : 'No resident records yet',
+          },
+          {
+            ...previousCards[3],
+            value: `${delinquentCount}`,
+            change: delinquentCount > 0 ? 'Residents with pending balance' : 'No delinquent residents',
+          },
+        ]);
+      } catch (error) {
+        console.error('Failed to load admin dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboardData();
   }, [router]);
 
   const handleLogout = () => {
@@ -100,10 +141,7 @@ export default function AdminDashboard() {
   };
 
   const confirmLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
+    localStorage.clear();
     setShowLogoutModal(false);
     router.push('/');
   };
@@ -200,7 +238,7 @@ export default function AdminDashboard() {
         <header className={styles.header}>
           <h1 className={styles.pageTitle}>Real Time Financial Dashboard</h1>
           <div className={styles.headerRight}>
-            <span className={styles.userLabel}>Admin User</span>
+            <span className={styles.userLabel}>{userName}</span>
             <div className={styles.userAvatar}>👤</div>
           </div>
         </header>

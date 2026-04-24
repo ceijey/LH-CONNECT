@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiCall } from '@/lib/api-client';
 import styles from './admin-page.module.css';
 
 interface Resident {
@@ -15,6 +16,7 @@ interface Resident {
   phone: string;
   status: 'Active' | 'Inactive' | 'Delinquent';
   balance: number;
+  createdAt?: string;
 }
 
 export default function AdminResidents() {
@@ -22,33 +24,72 @@ export default function AdminResidents() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('residents');
   const [searchTerm, setSearchTerm] = useState('');
+  const [allResidents, setAllResidents] = useState<Resident[]>([]);
   const [filteredResidents, setFilteredResidents] = useState<Resident[]>([]);
 
-  const allResidents: Resident[] = [
-    { id: 'R004', name: 'Rosa Reyes', phase: 'Phase 1', block: '4', lot: '5', email: 'rosa@example.com', phone: '09201234567', status: 'Active', balance: 1000 },
-    { id: 'R005', name: 'Luis Lopez', phase: 'Phase 1', block: '1', lot: '22', email: 'luis@example.com', phone: '09211234567', status: 'Active', balance: 0 },
-    { id: 'R006', name: 'Ana Gomez', phase: 'Phase 3', block: '2', lot: '3', email: 'ana@example.com', phone: '09221234567', status: 'Active', balance: 0 },
-    { id: 'R007', name: 'Carlos Mendoza', phase: 'Phase 3', block: '3', lot: '19', email: 'carlos@example.com', phone: '09231234567', status: 'Active', balance: 1000 },
-    { id: 'R008', name: 'Lucia Torres', phase: 'Phase 1', block: '1', lot: '8', email: 'lucia@example.com', phone: '09241234567', status: 'Active', balance: 2000 },
-    { id: 'R009', name: 'Miguel Diaz', phase: 'Phase 2', block: '4', lot: '14', email: 'miguel@example.com', phone: '09251234567', status: 'Delinquent', balance: 500 },
-    { id: 'R010', name: 'Sofia Ruiz', phase: 'Phase 3', block: '2', lot: '20', email: 'sofia@example.com', phone: '09261234567', status: 'Active', balance: 0 },
-  ];
+  const totalResidents = allResidents.length;
+  const activeCount = allResidents.filter((resident) => resident.status === 'Active').length;
+  const delinquentCount = allResidents.filter((resident) => resident.status === 'Delinquent').length;
+  const newThisMonth = allResidents.filter((resident) => {
+    if (!resident.createdAt) {
+      return false;
+    }
 
-  const totalResidents = 128;
-  const activeCount = 111;
-  const delinquentCount = 17;
-  const newThisMonth = 3;
+    const createdDate = new Date(resident.createdAt);
+    const now = new Date();
+    return (
+      createdDate.getMonth() === now.getMonth() &&
+      createdDate.getFullYear() === now.getFullYear()
+    );
+  }).length;
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userRole = localStorage.getItem('userRole');
+    const loadResidents = async () => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      const userRole = localStorage.getItem('userRole');
 
-    if (!isAuthenticated || userRole !== 'admin') {
-      router.push('/login');
-    } else {
-      setIsLoading(false);
-      setFilteredResidents(allResidents);
-    }
+      if (!isAuthenticated || userRole !== 'admin') {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        const payload = await apiCall('/api/residents');
+        const residents = (payload.residents ?? []).map((resident: any, index: number) => {
+          const balance = Number(resident.balance ?? 0);
+          const status: Resident['status'] =
+            resident.status === 'Inactive'
+              ? 'Inactive'
+              : balance > 0
+                ? 'Delinquent'
+                : 'Active';
+
+          return {
+            id: resident.id ?? `R${String(index + 1).padStart(3, '0')}`,
+            name: resident.fullName ?? resident.name ?? 'Unknown Resident',
+            phase: resident.phase ?? 'Phase N/A',
+            block: resident.block ?? '-',
+            lot: resident.lot ?? '-',
+            email: resident.email ?? '-',
+            phone: resident.phone ?? '-',
+            status,
+            balance,
+            createdAt: resident.createdAt,
+          } as Resident;
+        });
+
+        setAllResidents(residents);
+        setFilteredResidents(residents);
+      } catch (error) {
+        console.error('Failed to load residents:', error);
+        setAllResidents([]);
+        setFilteredResidents([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadResidents();
   }, [router]);
 
   const handleSearch = (term: string) => {
@@ -68,10 +109,7 @@ export default function AdminResidents() {
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userRole');
+      localStorage.clear();
       router.push('/');
     }
   };

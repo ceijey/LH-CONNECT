@@ -3,6 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import type { FirebaseError } from 'firebase/app';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase-client';
 import styles from './login.module.css';
 
 interface FormData {
@@ -170,6 +176,68 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const getAuthErrorMessage = (error: unknown): string => {
+    const firebaseError = error as FirebaseError;
+
+    switch (firebaseError?.code) {
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+      case 'auth/invalid-email':
+        return 'Invalid email or password.';
+      case 'auth/too-many-requests':
+        return 'Too many failed attempts. Please try again later.';
+      case 'auth/operation-not-allowed':
+        return 'Email/password sign-in is not enabled in Firebase Auth.';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
+  };
+
+  const getSignupErrorMessage = (error: unknown): string => {
+    const firebaseError = error as FirebaseError;
+
+    if (error instanceof Error && !firebaseError?.code) {
+      return error.message;
+    }
+
+    switch (firebaseError?.code) {
+      case 'auth/email-already-in-use':
+        return 'This email is already registered.';
+      case 'auth/invalid-email':
+        return 'Please enter a valid email address.';
+      case 'auth/weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'auth/operation-not-allowed':
+        return 'Email/password sign-up is not enabled in Firebase Auth.';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      default:
+        return 'An error occurred during sign-up. Please try again.';
+    }
+  };
+
+  const parseApiResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    const text = await response.text();
+    const cleanedText = text.trim();
+
+    if (cleanedText.startsWith('<!DOCTYPE') || cleanedText.startsWith('<html')) {
+      throw new Error(
+        'Server route failed before returning JSON. Check Firebase Admin environment variables and restart the dev server.'
+      );
+    }
+
+    throw new Error(cleanedText || 'Unexpected server response.');
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoginError('');
@@ -180,12 +248,42 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // TODO: Connect to backend API for authentication
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setLoginError('Authentication service not yet configured. Please contact support.');
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      // Get and store ID token for API requests
+      const idToken = await userCredential.user.getIdToken();
+
+      const profileResponse = await fetch('/api/auth/profile', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      if (!profileResponse.ok) {
+        const errorPayload = await parseApiResponse(profileResponse);
+        throw new Error(errorPayload?.error ?? 'Failed to load user profile.');
+      }
+
+      const profilePayload = await parseApiResponse(profileResponse);
+      const userData = profilePayload.user ?? {};
+      const role = userData.role === 'admin' ? 'admin' : 'resident';
+
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userEmail', userCredential.user.email ?? formData.email);
+      localStorage.setItem('userName', userData.fullName ?? 'User');
+      localStorage.setItem('userRole', role);
+      localStorage.setItem('idToken', idToken);
+      localStorage.setItem('userId', userCredential.user.uid);
+
+      router.push(role === 'admin' ? '/admin/dashboard' : '/dashboard');
     } catch (error) {
-      setLoginError('An error occurred. Please try again.');
+      setLoginError(getAuthErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -202,13 +300,38 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        signupFormData.email,
+        signupFormData.password
+      );
 
-      // In a real application, you would send this data to a backend server
-      // For now, we'll just show a success message and switch to login
+      const idToken = await userCredential.user.getIdToken();
+
+      const profileResponse = await fetch('/api/auth/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          fullName: signupFormData.fullName,
+          email: signupFormData.email,
+          phase: signupFormData.phase,
+          block: signupFormData.block,
+          lot: signupFormData.lot,
+          phone: signupFormData.phone,
+          role: 'resident',
+        }),
+      });
+
+      if (!profileResponse.ok) {
+        const profileError = await parseApiResponse(profileResponse);
+        throw new Error(profileError.error ?? 'Failed to save profile.');
+      }
+
       setSignupMessage('Account created successfully! You can now log in.');
-      
-      // Reset form
+
       setSignupFormData({
         fullName: '',
         email: '',
@@ -221,13 +344,12 @@ export default function LoginPage() {
         acceptTerms: false,
       });
 
-      // Switch to login after 2 seconds
       setTimeout(() => {
         setIsSignUp(false);
         setSignupMessage('');
       }, 2000);
     } catch (error) {
-      setSignupMessage('An error occurred. Please try again.');
+      setSignupMessage(getSignupErrorMessage(error));
     } finally {
       setIsLoading(false);
     }

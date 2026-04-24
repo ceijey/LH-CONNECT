@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import { apiCall } from '@/lib/api-client';
 import styles from './dashboard.module.css';
 
 interface PaymentRecord {
@@ -14,20 +15,26 @@ interface PaymentRecord {
   status: 'Paid' | 'Pending';
 }
 
+interface UserProfile {
+  fullName?: string;
+  phase?: string;
+  block?: string;
+  lot?: string;
+  balance?: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>('Resident');
+  const [profile, setProfile] = useState<UserProfile>({});
+  const [userId, setUserId] = useState<string>('LH-Connect Resident');
   const [isLoading, setIsLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  // Mock data
-  const residentPhase = 'Phase 1';
-  const residentBlock = 'Blk 2';
-  const residentLot = 'Lot 10';
-  const currentBalance = 0;
+
+  const currentBalance = profile.balance ?? 0;
   const nextDueDate = 'March 1, 2026';
   const monthlyDues = 500;
-  const qrCode = 'UH.A15-001';
+  const qrCode = userId;
   
   const paymentHistory: PaymentRecord[] = [
     { month: 'February 2026', date: 'Feb 22, 2026', amount: 500, status: 'Paid' },
@@ -36,18 +43,34 @@ export default function DashboardPage() {
   ];
 
   useEffect(() => {
-    // Check if user is authenticated
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const email = localStorage.getItem('userEmail');
-    
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      // Parse name from email or use a demo name
-      const name = email?.split('@')[0]?.replace(/\./g, ' ') || 'Juan dela Cruz';
-      setUserName(name.charAt(0).toUpperCase() + name.slice(1));
-      setIsLoading(false);
-    }
+    const loadResidentProfile = async () => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      const userRole = localStorage.getItem('userRole');
+
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+
+      if (userRole === 'admin') {
+        router.push('/admin/dashboard');
+        return;
+      }
+
+      try {
+        setUserId(localStorage.getItem('userId') ?? 'LH-Connect Resident');
+        const profilePayload = await apiCall('/api/auth/profile');
+        const userProfile = (profilePayload.user ?? {}) as UserProfile;
+        setProfile(userProfile);
+        setUserName(userProfile.fullName ?? localStorage.getItem('userName') ?? 'Resident');
+      } catch {
+        setUserName(localStorage.getItem('userName') ?? 'Resident');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadResidentProfile();
   }, [router]);
 
   const handleLogout = () => {
@@ -55,8 +78,7 @@ export default function DashboardPage() {
   };
 
   const confirmLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
+    localStorage.clear();
     setShowLogoutModal(false);
     router.push('/');
   };
@@ -99,7 +121,11 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <section className={styles.welcomeSection}>
           <h2 className={styles.welcomeTitle}>Welcome back, {userName}!</h2>
-          <p className={styles.residentInfo}>{residentPhase} {residentBlock} {residentLot}</p>
+          <p className={styles.residentInfo}>
+            {profile.phase ? `${profile.phase} ` : ''}
+            {profile.block ? `Blk ${profile.block} ` : ''}
+            {profile.lot ? `Lot ${profile.lot}` : ''}
+          </p>
         </section>
 
         {/* Info Cards Grid */}
