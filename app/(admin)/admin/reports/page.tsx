@@ -118,12 +118,12 @@ export default function AdminReports() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 style={{
                   padding: '10px 15px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
+                  border: '2px solid #E0E0E0',
+                  borderRadius: '8px',
                   fontSize: '0.9rem',
                   cursor: 'pointer',
                   backgroundColor: '#fff',
-                  color: '#000',
+                  color: '#1B2A4A',
                   fontWeight: 500
                 }}
               >
@@ -136,12 +136,12 @@ export default function AdminReports() {
                 onChange={(e) => setSelectedReportType(e.target.value)}
                 style={{
                   padding: '10px 15px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
+                  border: '2px solid #E0E0E0',
+                  borderRadius: '8px',
                   fontSize: '0.9rem',
                   cursor: 'pointer',
                   backgroundColor: '#fff',
-                  color: '#000',
+                  color: '#1B2A4A',
                   fontWeight: 500
                 }}
               >
@@ -155,11 +155,11 @@ export default function AdminReports() {
               <button 
                 onClick={handleExportPDF}
                 style={{
-                  background: '#000',
+                  background: '#1B2A4A',
                   color: '#fff',
                   border: 'none',
                   padding: '10px 20px',
-                  borderRadius: '4px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '0.9rem',
                   fontWeight: 600,
@@ -173,11 +173,11 @@ export default function AdminReports() {
               <button 
                 onClick={handleExportExcel}
                 style={{
-                  background: '#000',
+                  background: '#1B2A4A',
                   color: '#fff',
                   border: 'none',
                   padding: '10px 20px',
-                  borderRadius: '4px',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '0.9rem',
                   fontWeight: 600,
@@ -193,25 +193,25 @@ export default function AdminReports() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
             <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#000', marginBottom: '10px' }}>Total Dues</div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#000' }}>₱{totalDues.toLocaleString()}</div>
+              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Total Dues</div>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1B2A4A' }}>₱{totalDues.toLocaleString()}</div>
             </div>
             <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#000', marginBottom: '10px' }}>Total Collected</div>
+              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Total Collected</div>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2e7d32' }}>₱{totalCollected.toLocaleString()}</div>
             </div>
             <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#000', marginBottom: '10px' }}>Outstanding Balance</div>
+              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Outstanding Balance</div>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#d32f2f' }}>₱{outstandingBalance.toLocaleString()}</div>
             </div>
             <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#000', marginBottom: '10px' }}>Collection Rate</div>
+              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Collection Rate</div>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1976d2' }}>{collectionRate}%</div>
             </div>
           </div>
 
           <div style={{ background: '#fff', padding: '30px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-            <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1rem', fontWeight: 600, color: '#000' }}>{selectedReportType} - {selectedMonth}</h2>
+            <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1rem', fontWeight: 600, color: '#1B2A4A' }}>{selectedReportType} - {selectedMonth}</h2>
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>

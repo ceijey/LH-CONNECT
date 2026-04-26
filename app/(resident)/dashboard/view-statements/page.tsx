@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
+import Image from 'next/image';
 import styles from './view-statements.module.css';
 
 interface Statement {
@@ -112,7 +113,14 @@ export default function ViewStatementsPage() {
               ← Back
             </Link>
             <div className={styles.headerBrand}>
-              <span className={styles.headerIcon}>🏠</span>
+              <Image
+                src="/lhhoa-logo.png"
+                alt="LHHOA Logo"
+                width={50}
+                height={50}
+                className={styles.headerIcon}
+                priority
+              />
               <div>
                 <h1 className={styles.headerTitle}>LH-Connect</h1>
                 <p className={styles.headerSubtitle}>View Statements</p>

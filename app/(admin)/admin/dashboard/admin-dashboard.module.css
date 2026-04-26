@@ -1,7 +1,7 @@
 .container {
   display: flex;
   min-height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 50%, #f5f5f5 100%);
 }
 
 .loading {
@@ -10,26 +10,27 @@
   justify-content: center;
   height: 100vh;
   font-size: 1.25rem;
-  color: #0d47a1;
+  color: #1B2A4A;
   background: #ecf0f7;
 }
 
 /* Sidebar */
 .sidebar {
   width: 220px;
-  background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
-  color: white;
+  background: #ffffff;
+  color: #1B2A4A;
   padding: 2rem 0;
   overflow-y: auto;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 10px rgba(27, 42, 74, 0.08);
   position: fixed;
   height: 100vh;
   z-index: 100;
+  border-right: 1px solid #E0E0E0;
 }
 
 .sidebarHeader {
   padding: 0 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #E0E0E0;
 }
 
 .logo {
@@ -39,17 +40,21 @@
 }
 
 .logoIcon {
-  font-size: 2rem;
+  width: 2.75rem;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .logoText {
   font-weight: 700;
   font-size: 1.1rem;
+  color: #1B2A4A;
 }
 
 .logoSubtext {
   font-size: 0.75rem;
-  opacity: 0.8;
+  color: #9E9E9E;
 }
 
 /* Navigation */
@@ -65,7 +70,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1.5rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #1B2A4A;
   text-decoration: none;
   transition: all 0.3s;
   border-left: 4px solid transparent;
@@ -73,14 +78,14 @@
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(27, 42, 74, 0.05);
+  color: #1B2A4A;
 }
 
 .navItem.active {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border-left-color: #4dd0e1;
+  background: rgba(27, 42, 74, 0.08);
+  color: #1B2A4A;
+  border-left-color: #1B2A4A;
 }
 
 .navIcon {
@@ -98,8 +103,8 @@
   gap: 1rem;
   width: 100%;
   padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: transparent;
+  color: #1B2A4A;
   border: none;
   cursor: pointer;
   transition: all 0.3s;
@@ -108,7 +113,7 @@
 }
 
 .logoutBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(27, 42, 74, 0.08);
 }
 
 /* Main Content */
@@ -133,7 +138,7 @@
 
 .pageTitle {
   font-size: 1.75rem;
-  color: #0d47a1;
+  color: #1B2A4A;
   margin: 0;
   font-weight: 700;
 }
@@ -145,7 +150,7 @@
 }
 
 .userLabel {
-  color: #000000;
+  color: #1B2A4A;
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -153,13 +158,13 @@
 .userAvatar {
   width: 40px;
   height: 40px;
-  background: #e3f2fd;
+  background: rgba(27, 42, 74, 0.05);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  border: 2px solid #1976d2;
+  border: 2px solid #1B2A4A;
 }
 
 /* Stats Grid */
@@ -175,7 +180,7 @@
   padding: 1.75rem;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-top: 4px solid #1976d2;
+  border-top: 4px solid #1B2A4A;
   transition: all 0.3s;
 }
 
@@ -196,7 +201,7 @@
 }
 
 .statTitle {
-  color: #546e7a;
+  color: #9E9E9E;
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -204,7 +209,7 @@
 .statValue {
   font-size: 2rem;
   font-weight: 700;
-  color: #0d47a1;
+  color: #1B2A4A;
   margin-bottom: 0.75rem;
 }
 
@@ -248,7 +253,7 @@
 .chartTitle {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0d47a1;
+  color: #1B2A4A;
   margin: 0 0 1.5rem 0;
 }
 
@@ -302,7 +307,8 @@
   }
 
   .logoIcon {
-    font-size: 1.75rem;
+    width: 2.1rem;
+    height: auto;
   }
 
   .nav {
@@ -411,7 +417,8 @@
   }
 
   .logoIcon {
-    font-size: 1.5rem;
+    width: 1.8rem;
+    height: auto;
   }
 
   .nav {

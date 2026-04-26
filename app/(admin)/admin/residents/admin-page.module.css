@@ -1,7 +1,7 @@
 .container {
   display: flex;
   min-height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 50%, #f5f5f5 100%);
 }
 
 .loading {
@@ -10,28 +10,29 @@
   justify-content: center;
   height: 100vh;
   font-size: 1.25rem;
-  color: #0d47a1;
+  color: #1B2A4A;
   background: #ecf0f7;
 }
 
 /* Sidebar */
 .sidebar {
   width: 220px;
-  background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
-  color: white;
+  background: #ffffff;
+  color: #1B2A4A;
   padding: 2rem 0;
   overflow-y: auto;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 10px rgba(27, 42, 74, 0.08);
   position: fixed;
   height: 100vh;
   z-index: 100;
   display: flex;
   flex-direction: column;
+  border-right: 1px solid #E0E0E0;
 }
 
 .sidebarHeader {
   padding: 0 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #E0E0E0;
 }
 
 .logo {
@@ -47,11 +48,12 @@
 .logoText {
   font-weight: 700;
   font-size: 1.1rem;
+  color: #1B2A4A;
 }
 
 .logoSubtext {
   font-size: 0.75rem;
-  opacity: 0.8;
+  color: #9E9E9E;
 }
 
 .nav {
@@ -67,7 +69,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1.5rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #1B2A4A;
   text-decoration: none;
   transition: all 0.3s;
   border-left: 4px solid transparent;
@@ -75,30 +77,31 @@
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(27, 42, 74, 0.05);
+  color: #1B2A4A;
 }
 
 .navItem.active {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border-left-color: #4dd0e1;
+  background: rgba(27, 42, 74, 0.08);
+  color: #1B2A4A;
+  border-left-color: #1B2A4A;
 }
 
 .logoutBtn {
   width: 100%;
   padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: transparent;
+  color: #1B2A4A;
   border: none;
   cursor: pointer;
   transition: all 0.3s;
   font-size: 0.95rem;
   margin-top: auto;
+  text-align: left;
 }
 
 .logoutBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(27, 42, 74, 0.08);
 }
 
 /* Main Content */
@@ -122,7 +125,7 @@
 
 .pageTitle {
   font-size: 1.75rem;
-  color: #0d47a1;
+  color: #1B2A4A;
   margin: 0;
   font-weight: 700;
 }
@@ -134,7 +137,7 @@
 }
 
 .userLabel {
-  color: #546e7a;
+  color: #9E9E9E;
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -142,13 +145,13 @@
 .userAvatar {
   width: 40px;
   height: 40px;
-  background: #e3f2fd;
+  background: rgba(27, 42, 74, 0.05);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  border: 2px solid #1976d2;
+  border: 2px solid #1B2A4A;
 }
 
 /* Stats Grid */
@@ -168,7 +171,7 @@
 }
 
 .registryStatLabel {
-  color: #000000;
+  color: #1B2A4A;
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -177,7 +180,7 @@
 .registryStatValue {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #0d47a1;
+  color: #1B2A4A;
 }
 
 /* Content */
@@ -206,16 +209,16 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+  border-color: #1B2A4A;
+  box-shadow: 0 0 0 3px rgba(27, 42, 74, 0.1);
 }
 
 .searchInput::placeholder {
-  color: #000000;
+  color: #9E9E9E;
 }
 
 .addBtn {
-  background: #1976d2;
+  background: #1B2A4A;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -226,7 +229,7 @@
 }
 
 .addBtn:hover {
-  background: #1565c0;
+  background: #2C3E6B;
   transform: translateY(-2px);
 }
 
@@ -235,7 +238,7 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  border-bottom: 2px solid #ecf0f7;
+  border-bottom: 2px solid #E0E0E0;
 }
 
 .tab {
@@ -244,7 +247,7 @@
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #546e7a;
+  color: #9E9E9E;
   cursor: pointer;
   transition: all 0.3s;
   border-bottom: 3px solid transparent;
@@ -254,18 +257,18 @@
 }
 
 .tab:hover {
-  color: #0d47a1;
+  color: #1B2A4A;
 }
 
 .tab.active {
-  color: #0d47a1;
-  border-bottom-color: #0d47a1;
+  color: #1B2A4A;
+  border-bottom-color: #1B2A4A;
 }
 
 .sectionTitle {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #0d47a1;
+  color: #1B2A4A;
   margin-bottom: 1rem;
 }
 
@@ -281,19 +284,19 @@
 
 .table thead {
   background: #f5f7fa;
-  border-bottom: 2px solid #e3f2fd;
+  border-bottom: 2px solid #E0E0E0;
 }
 
 .table th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  color: #0d47a1;
+  color: #1B2A4A;
   font-size: 0.9rem;
 }
 
 .table tbody tr {
-  border-bottom: 1px solid #ecf0f7;
+  border-bottom: 1px solid #E0E0E0;
   transition: background 0.2s;
 }
 
@@ -304,7 +307,7 @@
 .table td {
   padding: 1rem;
   font-size: 0.9rem;
-  color: #000000;
+  color: #1B2A4A;
 }
 
 .badge {
@@ -361,8 +364,8 @@
 }
 
 .badge.unread {
-  background: #e3f2fd;
-  color: #0d47a1;
+  background: rgba(27, 42, 74, 0.05);
+  color: #1B2A4A;
   font-weight: 700;
 }
 
@@ -377,12 +380,12 @@
 }
 
 .badge.scheduled {
-  background: #e3f2fd;
-  color: #0d47a1;
+  background: rgba(27, 42, 74, 0.05);
+  color: #1B2A4A;
 }
 
 .actionBtn {
-  background: #1976d2;
+  background: #1B2A4A;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -393,13 +396,13 @@
 }
 
 .actionBtn:hover {
-  background: #1565c0;
+  background: #2C3E6B;
 }
 
 /* Table Cell Styles */
 .idBadge {
-  background: #e3f2fd;
-  color: #0d47a1;
+  background: rgba(27, 42, 74, 0.05);
+  color: #1B2A4A;
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
   font-weight: 600;
@@ -419,7 +422,7 @@
 
 .nameTd {
   font-weight: 600;
-  color: #0d47a1;
+  color: #1B2A4A;
 }
 
 .balanceTd {
@@ -447,25 +450,25 @@
 }
 
 .iconBtn:hover {
-  background: #ecf0f7;
+  background: rgba(27, 42, 74, 0.05);
   transform: scale(1.1);
 }
 
 /* Payment Actions */
 .paymentId {
   font-weight: 600;
-  color: #0d47a1;
+  color: #1B2A4A;
   font-family: monospace;
 }
 
 .resident {
   font-weight: 600;
-  color: #000000;
+  color: #1B2A4A;
 }
 
 .amount {
   font-weight: 600;
-  color: #0d47a1;
+  color: #1B2A4A;
 }
 
 .datetime {
@@ -473,7 +476,7 @@
 }
 
 .time {
-  color: #546e7a;
+  color: #9E9E9E;
   font-size: 0.8rem;
   margin-top: 0.25rem;
 }
@@ -486,9 +489,9 @@
 }
 
 .viewProofBtn {
-  background: #ecf0f7;
-  color: #0d47a1;
-  border: 1px solid #1976d2;
+  background: rgba(27, 42, 74, 0.05);
+  color: #1B2A4A;
+  border: 1px solid #1B2A4A;
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
   cursor: pointer;
@@ -498,7 +501,7 @@
 }
 
 .viewProofBtn:hover {
-  background: #1976d2;
+  background: #1B2A4A;
   color: white;
 }
 

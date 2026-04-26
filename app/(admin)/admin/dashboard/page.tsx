@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
@@ -44,10 +45,10 @@ export default function AdminDashboard() {
   ];
 
   const delinquencyData = [
-    { block: 'Block A', delinquent: 2 },
-    { block: 'Block B', delinquent: 7 },
-    { block: 'Block C', delinquent: 3 },
-    { block: 'Block D', delinquent: 5 },
+    { phase: 'Phase 1', delinquent: 2 },
+    { phase: 'Phase 2', delinquent: 7 },
+    { phase: 'Phase 3', delinquent: 3 },
+    { phase: 'Phase 4', delinquent: 5 },
   ];
 
   const [statCards, setStatCards] = useState<StatCard[]>([
@@ -81,7 +82,7 @@ export default function AdminDashboard() {
     },
   ]);
 
-  const COLORS = ['#1976d2', '#4caf50', '#ff9800', '#9c27b0'];
+  const COLORS = ['#1B2A4A', '#4caf50', '#ff9800', '#9c27b0'];
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -167,7 +168,14 @@ export default function AdminDashboard() {
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
-            <span className={styles.logoIcon}>🏠</span>
+            <Image
+              src="/lhhoa-logo.png"
+              alt="LHHOA logo"
+              width={44}
+              height={44}
+              className={styles.logoIcon}
+              priority
+            />
             <div>
               <div className={styles.logoText}>LH-Connect</div>
               <div className={styles.logoSubtext}>Admin Dashboard</div>
@@ -268,15 +276,15 @@ export default function AdminDashboard() {
               <AreaChart data={collectionTrendsData}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1976d2" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#1976d2" stopOpacity={0.1} />
+                    <stop offset="5%" stopColor="#1B2A4A" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#1B2A4A" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e3f2fd" />
-                <XAxis dataKey="month" stroke="#546e7a" />
-                <YAxis stroke="#546e7a" />
-                <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e3f2fd' }} />
-                <Area type="monotone" dataKey="value" stroke="#1976d2" fillOpacity={1} fill="url(#colorValue)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(27, 42, 74, 0.05)" />
+                <XAxis dataKey="month" stroke="#9E9E9E" />
+                <YAxis stroke="#9E9E9E" />
+                <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid rgba(27, 42, 74, 0.1)' }} />
+                <Area type="monotone" dataKey="value" stroke="#1B2A4A" fillOpacity={1} fill="url(#colorValue)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -308,11 +316,11 @@ export default function AdminDashboard() {
 
         {/* Delinquency Heatmap */}
         <div className={styles.chartCard} style={{ marginTop: '2rem' }}>
-          <h2 className={styles.chartTitle}>Delinquency Heatmap by Block</h2>
+          <h2 className={styles.chartTitle}>Heatmap by Phase</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={delinquencyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e3f2fd" />
-              <XAxis dataKey="block" stroke="#546e7a" />
+              <XAxis dataKey="phase" stroke="#546e7a" />
               <YAxis stroke="#546e7a" />
               <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e3f2fd' }} />
               <Bar dataKey="delinquent" fill="#ff5252" name="Delinquent Accounts" />

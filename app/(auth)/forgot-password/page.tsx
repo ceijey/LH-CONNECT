@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from './forgot-password.module.css';
 
 interface ForgotPasswordData {
@@ -162,17 +163,19 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <Link href="/login" className={styles.backLink}>
-          ← Back to Login
-        </Link>
-      </header>
-
-      {/* Main Content */}
-      <main className={styles.main}>
+      <div className={styles.main}>
         <div className={styles.formCard}>
           <div className={styles.formHeader}>
+            <div className={styles.logoContainer}>
+              <Image
+                src="/lhhoa-logo.png"
+                alt="LHHOA Logo"
+                width={110}
+                height={110}
+                className={styles.logo}
+                priority
+              />
+            </div>
             <h1 className={styles.title}>Reset Your Password</h1>
             <p className={styles.subtitle}>
               {step === 'request' && 'Enter your email address to receive a reset code'}
@@ -302,7 +305,7 @@ export default function ForgotPasswordPage() {
             </form>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

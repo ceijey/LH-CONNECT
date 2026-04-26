@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Html5QrcodeScanner } from 'html5-qrcode';
 import styles from './qr-scanner.module.css';
 
 interface ResidentData {
@@ -80,15 +79,20 @@ const residentsDatabase: Record<string, ResidentData> = {
 };
 
 export default function QRScannerPage() {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<any>(null);
   const [scannedResident, setScannedResident] = useState<ResidentData | null>(null);
   const [scanError, setScanError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   useEffect(() => {
-    if (isScanning && !scannerRef.current) {
+    const setupScanner = async () => {
+      if (!isScanning || scannerRef.current) {
+        return;
+      }
+
       try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
         const scanner = new Html5QrcodeScanner('qr-reader', {
           fps: 10,
           qrbox: 250,
@@ -96,7 +100,7 @@ export default function QRScannerPage() {
         }, false);
 
         scanner.render(
-          (decodedText) => {
+          (decodedText: string) => {
             // Parse the QR code data
             const residentId = decodedText.trim();
             const resident = residentsDatabase[residentId];
@@ -109,8 +113,8 @@ export default function QRScannerPage() {
               setScanError(`Resident not found. ID: ${residentId}`);
             }
           },
-          (error) => {
-            // Silently fail on scan errors
+          () => {
+            // Silently fail on scan errors.
           }
         );
 
@@ -121,7 +125,9 @@ export default function QRScannerPage() {
         }
         setScanError('Failed to initialize camera. Please ensure camera permission is granted.');
       }
-    }
+    };
+
+    setupScanner();
 
     return () => {
       if (scannerRef.current && isScanning) {

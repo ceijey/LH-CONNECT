@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { FirebaseError } from 'firebase/app';
 import {
@@ -102,7 +103,6 @@ export default function LoginPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error for this field when user interacts
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({
         ...prev,
@@ -118,7 +118,6 @@ export default function LoginPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error for this field when user interacts
     if (signupErrors[name as keyof SignupErrors]) {
       setSignupErrors(prev => ({
         ...prev,
@@ -130,47 +129,18 @@ export default function LoginPage() {
   const validateSignupForm = (): boolean => {
     const newErrors: SignupErrors = {};
 
-    if (!signupFormData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    }
-
-    if (!signupFormData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(signupFormData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!signupFormData.phase) {
-      newErrors.phase = 'Phase is required';
-    }
-
-    if (!signupFormData.block) {
-      newErrors.block = 'Block number is required';
-    }
-
-    if (!signupFormData.lot) {
-      newErrors.lot = 'Lot number is required';
-    }
-
-    if (!signupFormData.phone) {
-      newErrors.phone = 'Phone number is required';
-    }
-
-    if (!signupFormData.password) {
-      newErrors.password = 'Password is required';
-    } else if (signupFormData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (!signupFormData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (signupFormData.password !== signupFormData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    if (!signupFormData.acceptTerms) {
-      newErrors.acceptTerms = 'You must accept the Terms and Conditions';
-    }
+    if (!signupFormData.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!signupFormData.email) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(signupFormData.email)) newErrors.email = 'Email is invalid';
+    if (!signupFormData.phase) newErrors.phase = 'Phase is required';
+    if (!signupFormData.block) newErrors.block = 'Block number is required';
+    if (!signupFormData.lot) newErrors.lot = 'Lot number is required';
+    if (!signupFormData.phone) newErrors.phone = 'Phone number is required';
+    if (!signupFormData.password) newErrors.password = 'Password is required';
+    else if (signupFormData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    if (!signupFormData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password';
+    else if (signupFormData.password !== signupFormData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    if (!signupFormData.acceptTerms) newErrors.acceptTerms = 'You must accept the Terms and Conditions';
 
     setSignupErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -178,63 +148,39 @@ export default function LoginPage() {
 
   const getAuthErrorMessage = (error: unknown): string => {
     const firebaseError = error as FirebaseError;
-
     switch (firebaseError?.code) {
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
       case 'auth/user-not-found':
-      case 'auth/invalid-email':
-        return 'Invalid email or password.';
-      case 'auth/too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
-      case 'auth/operation-not-allowed':
-        return 'Email/password sign-in is not enabled in Firebase Auth.';
-      case 'auth/network-request-failed':
-        return 'Network error. Please check your internet connection.';
-      default:
-        return 'An error occurred. Please try again.';
+      case 'auth/invalid-email': return 'Invalid email or password.';
+      case 'auth/too-many-requests': return 'Too many failed attempts. Please try again later.';
+      case 'auth/operation-not-allowed': return 'Email/password sign-in is not enabled.';
+      case 'auth/network-request-failed': return 'Network error. Please check your internet connection.';
+      default: return 'An error occurred. Please try again.';
     }
   };
 
   const getSignupErrorMessage = (error: unknown): string => {
     const firebaseError = error as FirebaseError;
-
-    if (error instanceof Error && !firebaseError?.code) {
-      return error.message;
-    }
-
+    if (error instanceof Error && !firebaseError?.code) return error.message;
     switch (firebaseError?.code) {
-      case 'auth/email-already-in-use':
-        return 'This email is already registered.';
-      case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
-      case 'auth/weak-password':
-        return 'Password is too weak. Use at least 6 characters.';
-      case 'auth/operation-not-allowed':
-        return 'Email/password sign-up is not enabled in Firebase Auth.';
-      case 'auth/network-request-failed':
-        return 'Network error. Please check your internet connection.';
-      default:
-        return 'An error occurred during sign-up. Please try again.';
+      case 'auth/email-already-in-use': return 'This email is already registered.';
+      case 'auth/invalid-email': return 'Please enter a valid email address.';
+      case 'auth/weak-password': return 'Password is too weak. Use at least 6 characters.';
+      case 'auth/operation-not-allowed': return 'Email/password sign-up is not enabled.';
+      case 'auth/network-request-failed': return 'Network error. Please check your internet connection.';
+      default: return 'An error occurred during sign-up. Please try again.';
     }
   };
 
   const parseApiResponse = async (response: Response) => {
     const contentType = response.headers.get('content-type') ?? '';
-
-    if (contentType.includes('application/json')) {
-      return response.json();
-    }
-
+    if (contentType.includes('application/json')) return response.json();
     const text = await response.text();
     const cleanedText = text.trim();
-
     if (cleanedText.startsWith('<!DOCTYPE') || cleanedText.startsWith('<html')) {
-      throw new Error(
-        'Server route failed before returning JSON. Check Firebase Admin environment variables and restart the dev server.'
-      );
+      throw new Error('Server route failed before returning JSON. Check Firebase Admin environment variables.');
     }
-
     throw new Error(cleanedText || 'Unexpected server response.');
   };
 
@@ -242,27 +188,16 @@ export default function LoginPage() {
     e.preventDefault();
     setLoginError('');
 
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-
-      // Get and store ID token for API requests
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const idToken = await userCredential.user.getIdToken();
 
       const profileResponse = await fetch('/api/auth/profile', {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
 
       if (!profileResponse.ok) {
@@ -293,19 +228,11 @@ export default function LoginPage() {
     e.preventDefault();
     setSignupMessage('');
 
-    if (!validateSignupForm()) {
-      return;
-    }
-
+    if (!validateSignupForm()) return;
     setIsLoading(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        signupFormData.email,
-        signupFormData.password
-      );
-
+      const userCredential = await createUserWithEmailAndPassword(auth, signupFormData.email, signupFormData.password);
       const idToken = await userCredential.user.getIdToken();
 
       const profileResponse = await fetch('/api/auth/profile', {
@@ -331,17 +258,8 @@ export default function LoginPage() {
       }
 
       setSignupMessage('Account created successfully! You can now log in.');
-
       setSignupFormData({
-        fullName: '',
-        email: '',
-        phase: '',
-        block: '',
-        lot: '',
-        phone: '',
-        password: '',
-        confirmPassword: '',
-        acceptTerms: false,
+        fullName: '', email: '', phase: '', block: '', lot: '', phone: '', password: '', confirmPassword: '', acceptTerms: false,
       });
 
       setTimeout(() => {
@@ -356,334 +274,292 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.loginBox}>
-        {!isSignUp ? (
-          <>
-            {/* LOGIN FORM */}
-            <div className={styles.header}>
-              <h1 className={styles.title}>Welcome Back</h1>
-              <p className={styles.subtitle}>Please sign in to your account</p>
-            </div>
+    <div className={styles.pageContainer}>
+      
+      {/* Left Visual Section */}
+      <div className={styles.visualSection}>
+        <div className={styles.visualContent}>
+          <Image
+            src="/lhhoa-logo.png"
+            alt="LHHOA Logo"
+            width={80}
+            height={80}
+            className={styles.visualLogo}
+            priority
+          />
+          <h1 className={styles.visualTitle}>Manage Your Community</h1>
+          <p className={styles.visualSubtitle}>
+            Experience seamless community living. Access your HOA account, track dues, and connect with administrators all in one place.
+          </p>
+        </div>
+      </div>
 
-            <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.inputGroup}>
-            <label htmlFor="email" className={styles.label}>
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              disabled={isLoading}
-            />
-            {errors.email && (
-              <p className={styles.errorMessage}>{errors.email}</p>
-            )}
+      {/* Right Form Section */}
+      <div className={styles.formSection}>
+        <div className={styles.loginBox}>
+          
+          <div className={styles.mobileLogoContainer}>
+             <Image src="/lhhoa-logo.png" alt="LHHOA Logo" width={60} height={60} className={styles.mobileLogo} priority />
           </div>
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="password" className={styles.label}>
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              disabled={isLoading}
-            />
-            {errors.password && (
-              <p className={styles.errorMessage}>{errors.password}</p>
-            )}
-          </div>
+          {!isSignUp ? (
+            <>
+              {/* LOGIN FORM */}
+              <div className={styles.header}>
+                <h2 className={styles.title}>Welcome back</h2>
+                <p className={styles.subtitle}>Please enter your details to sign in.</p>
+              </div>
 
-          {/* Terms and Conditions Checkbox */}
-          <div className={styles.termsGroup}>
-            <label className={styles.termsLabel}>
-              <input
-                type="checkbox"
-                name="acceptTerms"
-                checked={formData.acceptTerms}
-                onChange={handleChange}
-                className={styles.termsCheckbox}
-                disabled={isLoading}
-              />
-              <span className={styles.termsText}>
-                I accept the{' '}
-                <button
-                  type="button"
-                  onClick={() => setShowTermsModal(true)}
-                  className={styles.termsLink}
-                >
-                  Terms and Conditions
+              <form onSubmit={handleSubmit} className={styles.form}>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="email" className={styles.label}>Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="name@example.com"
+                    disabled={isLoading}
+                  />
+                  {errors.email && <p className={styles.errorMessage}>{errors.email}</p>}
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label htmlFor="password" className={styles.label}>Password</label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    disabled={isLoading}
+                  />
+                  {errors.password && <p className={styles.errorMessage}>{errors.password}</p>}
+                </div>
+
+                <div className={styles.optionsRow}>
+                  <div className={styles.termsGroup}>
+                    <input
+                      type="checkbox"
+                      name="acceptTerms"
+                      id="loginAcceptTerms"
+                      checked={formData.acceptTerms}
+                      onChange={handleChange}
+                      className={styles.termsCheckbox}
+                      disabled={isLoading}
+                    />
+                    <div className={styles.termsLabel}>
+                      <label htmlFor="loginAcceptTerms" className={styles.termsText}>
+                        I accept the{' '}
+                      </label>
+                      <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
+                        Terms and Conditions
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.forgotPassword}>
+                    <Link href="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
+                  </div>
+                </div>
+                {errors.acceptTerms && <p className={styles.errorMessage}>{errors.acceptTerms}</p>}
+
+                {loginError && <p className={styles.errorMessage} style={{ textAlign: 'center' }}>{loginError}</p>}
+
+                <button type="submit" className={styles.button} disabled={isLoading}>
+                  {isLoading ? 'Signing in...' : 'Sign In'}
                 </button>
-              </span>
-            </label>
-            {errors.acceptTerms && (
-              <p className={styles.errorMessage}>{errors.acceptTerms}</p>
-            )}
-          </div>
 
-          <div className={styles.forgotPassword}>
-            <Link href="/forgot-password" className={styles.forgotLink}>
-              Forgot password?
-            </Link>
-          </div>
-
-          {loginError && (
-            <p className={styles.errorMessage} style={{ textAlign: 'center' }}>
-              {loginError}
-            </p>
-          )}
-
-          <button 
-            type="submit" 
-            className={styles.button}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </button>
-
-          <div className={styles.signupPrompt}>
-            Don't have an account?
-            <button 
-              type="button"
-              onClick={() => setIsSignUp(true)}
-              className={styles.signupLink}
-            >
-              Sign up
-            </button>
-          </div>
-        </form>
-          </>
-        ) : (
-          <>
-            {/* SIGNUP FORM */}
-            <div className={styles.header}>
-              <h1 className={styles.title}>Create Account</h1>
-              <p className={styles.subtitle}>Join our community</p>
-            </div>
-
-            <form onSubmit={handleSignup} className={styles.form}>
-              <div className={styles.inputGroup}>
-                <label htmlFor="fullName" className={styles.label}>
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  className={`${styles.input} ${signupErrors.fullName ? styles.inputError : ''}`}
-                  value={signupFormData.fullName}
-                  onChange={handleSignupChange}
-                  placeholder="Enter your full name"
-                  disabled={isLoading}
-                />
-                {signupErrors.fullName && (
-                  <p className={styles.errorMessage}>{signupErrors.fullName}</p>
-                )}
+                <div className={styles.signupPrompt}>
+                  Don't have an account?
+                  <button type="button" onClick={() => setIsSignUp(true)} className={styles.signupLink}>
+                    Sign up
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              {/* SIGNUP FORM */}
+              <div className={styles.header}>
+                <h2 className={styles.title}>Create Account</h2>
+                <p className={styles.subtitle}>Join your neighborhood network.</p>
               </div>
 
-              <div className={styles.inputGroup}>
-                <label htmlFor="signupEmail" className={styles.label}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="signupEmail"
-                  name="email"
-                  className={`${styles.input} ${signupErrors.email ? styles.inputError : ''}`}
-                  value={signupFormData.email}
-                  onChange={handleSignupChange}
-                  placeholder="Enter your email"
-                  disabled={isLoading}
-                />
-                {signupErrors.email && (
-                  <p className={styles.errorMessage}>{signupErrors.email}</p>
-                )}
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label htmlFor="phase" className={styles.label}>
-                  Phase
-                </label>
-                <select
-                  id="phase"
-                  name="phase"
-                  className={`${styles.input} ${signupErrors.phase ? styles.inputError : ''}`}
-                  value={signupFormData.phase}
-                  onChange={handleSignupChange}
-                  disabled={isLoading}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <option value="">Select your phase</option>
-                  <option value="Phase 1">Phase 1</option>
-                  <option value="Phase 2">Phase 2</option>
-                  <option value="Phase 3">Phase 3</option>
-                </select>
-                {signupErrors.phase && (
-                  <p className={styles.errorMessage}>{signupErrors.phase}</p>
-                )}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <form onSubmit={handleSignup} className={styles.form}>
                 <div className={styles.inputGroup}>
-                  <label htmlFor="block" className={styles.label}>
-                    Block
-                  </label>
+                  <label htmlFor="fullName" className={styles.label}>Full Name</label>
                   <input
                     type="text"
-                    id="block"
-                    name="block"
-                    className={`${styles.input} ${signupErrors.block ? styles.inputError : ''}`}
-                    value={signupFormData.block}
+                    id="fullName"
+                    name="fullName"
+                    className={`${styles.input} ${signupErrors.fullName ? styles.inputError : ''}`}
+                    value={signupFormData.fullName}
                     onChange={handleSignupChange}
-                    placeholder="Block number"
+                    placeholder="John Doe"
                     disabled={isLoading}
                   />
-                  {signupErrors.block && (
-                    <p className={styles.errorMessage}>{signupErrors.block}</p>
-                  )}
+                  {signupErrors.fullName && <p className={styles.errorMessage}>{signupErrors.fullName}</p>}
                 </div>
 
                 <div className={styles.inputGroup}>
-                  <label htmlFor="lot" className={styles.label}>
-                    Lot
-                  </label>
+                  <label htmlFor="signupEmail" className={styles.label}>Email Address</label>
                   <input
-                    type="text"
-                    id="lot"
-                    name="lot"
-                    className={`${styles.input} ${signupErrors.lot ? styles.inputError : ''}`}
-                    value={signupFormData.lot}
+                    type="email"
+                    id="signupEmail"
+                    name="email"
+                    className={`${styles.input} ${signupErrors.email ? styles.inputError : ''}`}
+                    value={signupFormData.email}
                     onChange={handleSignupChange}
-                    placeholder="Lot number"
+                    placeholder="name@example.com"
                     disabled={isLoading}
                   />
-                  {signupErrors.lot && (
-                    <p className={styles.errorMessage}>{signupErrors.lot}</p>
-                  )}
+                  {signupErrors.email && <p className={styles.errorMessage}>{signupErrors.email}</p>}
                 </div>
-              </div>
 
-              <div className={styles.inputGroup}>
-                <label htmlFor="phone" className={styles.label}>
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  className={`${styles.input} ${signupErrors.phone ? styles.inputError : ''}`}
-                  value={signupFormData.phone}
-                  onChange={handleSignupChange}
-                  placeholder="Enter your phone number"
-                  disabled={isLoading}
-                />
-                {signupErrors.phone && (
-                  <p className={styles.errorMessage}>{signupErrors.phone}</p>
-                )}
-              </div>
+                <div className={styles.gridCols2}>
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="phase" className={styles.label}>Phase</label>
+                    <select
+                      id="phase"
+                      name="phase"
+                      className={`${styles.input} ${signupErrors.phase ? styles.inputError : ''}`}
+                      value={signupFormData.phase}
+                      onChange={handleSignupChange}
+                      disabled={isLoading}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <option value="">Select</option>
+                      <option value="Phase 1">Phase 1</option>
+                      <option value="Phase 2">Phase 2</option>
+                      <option value="Phase 3">Phase 3</option>
+                    </select>
+                    {signupErrors.phase && <p className={styles.errorMessage}>{signupErrors.phase}</p>}
+                  </div>
 
-              <div className={styles.inputGroup}>
-                <label htmlFor="signupPassword" className={styles.label}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="signupPassword"
-                  name="password"
-                  className={`${styles.input} ${signupErrors.password ? styles.inputError : ''}`}
-                  value={signupFormData.password}
-                  onChange={handleSignupChange}
-                  placeholder="Enter your password"
-                  disabled={isLoading}
-                />
-                {signupErrors.password && (
-                  <p className={styles.errorMessage}>{signupErrors.password}</p>
-                )}
-              </div>
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="phone" className={styles.label}>Phone Number</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      className={`${styles.input} ${signupErrors.phone ? styles.inputError : ''}`}
+                      value={signupFormData.phone}
+                      onChange={handleSignupChange}
+                      placeholder="+1..."
+                      disabled={isLoading}
+                    />
+                    {signupErrors.phone && <p className={styles.errorMessage}>{signupErrors.phone}</p>}
+                  </div>
+                </div>
 
-              <div className={styles.inputGroup}>
-                <label htmlFor="confirmPassword" className={styles.label}>
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  className={`${styles.input} ${signupErrors.confirmPassword ? styles.inputError : ''}`}
-                  value={signupFormData.confirmPassword}
-                  onChange={handleSignupChange}
-                  placeholder="Confirm your password"
-                  disabled={isLoading}
-                />
-                {signupErrors.confirmPassword && (
-                  <p className={styles.errorMessage}>{signupErrors.confirmPassword}</p>
-                )}
-              </div>
+                <div className={styles.gridCols2}>
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="block" className={styles.label}>Block</label>
+                    <input
+                      type="text"
+                      id="block"
+                      name="block"
+                      className={`${styles.input} ${signupErrors.block ? styles.inputError : ''}`}
+                      value={signupFormData.block}
+                      onChange={handleSignupChange}
+                      placeholder="#"
+                      disabled={isLoading}
+                    />
+                    {signupErrors.block && <p className={styles.errorMessage}>{signupErrors.block}</p>}
+                  </div>
 
-              <div className={styles.termsGroup}>
-                <label className={styles.termsLabel}>
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="lot" className={styles.label}>Lot</label>
+                    <input
+                      type="text"
+                      id="lot"
+                      name="lot"
+                      className={`${styles.input} ${signupErrors.lot ? styles.inputError : ''}`}
+                      value={signupFormData.lot}
+                      onChange={handleSignupChange}
+                      placeholder="#"
+                      disabled={isLoading}
+                    />
+                    {signupErrors.lot && <p className={styles.errorMessage}>{signupErrors.lot}</p>}
+                  </div>
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label htmlFor="signupPassword" className={styles.label}>Password</label>
+                  <input
+                    type="password"
+                    id="signupPassword"
+                    name="password"
+                    className={`${styles.input} ${signupErrors.password ? styles.inputError : ''}`}
+                    value={signupFormData.password}
+                    onChange={handleSignupChange}
+                    placeholder="Create a password"
+                    disabled={isLoading}
+                  />
+                  {signupErrors.password && <p className={styles.errorMessage}>{signupErrors.password}</p>}
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label htmlFor="confirmPassword" className={styles.label}>Confirm Password</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    className={`${styles.input} ${signupErrors.confirmPassword ? styles.inputError : ''}`}
+                    value={signupFormData.confirmPassword}
+                    onChange={handleSignupChange}
+                    placeholder="Confirm your password"
+                    disabled={isLoading}
+                  />
+                  {signupErrors.confirmPassword && <p className={styles.errorMessage}>{signupErrors.confirmPassword}</p>}
+                </div>
+
+                <div className={styles.termsGroup}>
                   <input
                     type="checkbox"
                     name="acceptTerms"
+                    id="signupAcceptTerms"
                     checked={signupFormData.acceptTerms}
                     onChange={handleSignupChange}
                     className={styles.termsCheckbox}
                     disabled={isLoading}
                   />
-                  <span className={styles.termsText}>
-                    I accept the{' '}
-                    <button
-                      type="button"
-                      onClick={() => setShowTermsModal(true)}
-                      className={styles.termsLink}
-                    >
+                  <div className={styles.termsLabel}>
+                    <label htmlFor="signupAcceptTerms" className={styles.termsText}>
+                      I accept the{' '}
+                    </label>
+                    <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
                       Terms and Conditions
                     </button>
-                  </span>
-                </label>
-                {signupErrors.acceptTerms && (
-                  <p className={styles.errorMessage}>{signupErrors.acceptTerms}</p>
+                  </div>
+                </div>
+                {signupErrors.acceptTerms && <p className={styles.errorMessage}>{signupErrors.acceptTerms}</p>}
+
+                {signupMessage && (
+                  <p className={signupMessage.includes('successfully') ? styles.successMessage : styles.errorMessage} style={{ textAlign: 'center' }}>
+                    {signupMessage}
+                  </p>
                 )}
-              </div>
 
-              {signupMessage && (
-                <p style={{ textAlign: 'center', color: signupMessage.includes('successfully') ? '#2e7d32' : '#d32f2f' }} className={styles.errorMessage}>
-                  {signupMessage}
-                </p>
-              )}
-
-              <button 
-                type="submit" 
-                className={styles.button}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Creating Account...' : 'Sign Up'}
-              </button>
-
-              <div className={styles.signupPrompt}>
-                Already have an account?
-                <button 
-                  type="button"
-                  onClick={() => setIsSignUp(false)}
-                  className={styles.signupLink}
-                >
-                  Sign in
+                <button type="submit" className={styles.button} disabled={isLoading}>
+                  {isLoading ? 'Creating Account...' : 'Sign Up'}
                 </button>
-              </div>
-            </form>
-          </>
-        )}
+
+                <div className={styles.signupPrompt}>
+                  Already have an account?
+                  <button type="button" onClick={() => setIsSignUp(false)} className={styles.signupLink}>
+                    Sign in
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Terms and Conditions Modal */}
@@ -692,12 +568,7 @@ export default function LoginPage() {
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>Terms and Conditions</h2>
-              <button 
-                className={styles.modalClose}
-                onClick={() => setShowTermsModal(false)}
-              >
-                ×
-              </button>
+              <button className={styles.modalClose} onClick={() => setShowTermsModal(false)}>×</button>
             </div>
             <div className={styles.modalBody}>
               <h3>1. Acceptance of Terms</h3>
@@ -711,23 +582,9 @@ export default function LoginPage() {
               
               <h3>4. Prohibited Activities</h3>
               <p>You agree not to engage in any activity that interferes with or disrupts the application or its services.</p>
-              
-              <h3>5. Termination</h3>
-              <p>We reserve the right to terminate or suspend your account and access to the application at our sole discretion, without notice, for conduct that we believe violates these terms.</p>
-              
-              <h3>6. Changes to Terms</h3>
-              <p>We reserve the right to modify these terms at any time. Your continued use of the application following any changes constitutes your acceptance of the new terms.</p>
-              
-              <h3>7. Contact Information</h3>
-              <p>If you have any questions about these Terms, please contact us at support@example.com.</p>
             </div>
             <div className={styles.modalFooter}>
-              <button 
-                className={styles.modalButton}
-                onClick={() => setShowTermsModal(false)}
-              >
-                Close
-              </button>
+              <button className={styles.modalButton} onClick={() => setShowTermsModal(false)}>Close</button>
             </div>
           </div>
         </div>

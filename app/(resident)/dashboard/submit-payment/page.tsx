@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from './submit-payment.module.css';
 
 interface FormData {
@@ -108,7 +109,14 @@ export default function SubmitPaymentPage() {
               ← Back
             </Link>
             <div className={styles.headerBrand}>
-              <span className={styles.headerIcon}>🏠</span>
+              <Image
+                src="/lhhoa-logo.png"
+                alt="LHHOA Logo"
+                width={50}
+                height={50}
+                className={styles.headerIcon}
+                priority
+              />
               <div>
                 <h1 className={styles.headerTitle}>LH-Connect</h1>
                 <p className={styles.headerSubtitle}>Submit Payment</p>

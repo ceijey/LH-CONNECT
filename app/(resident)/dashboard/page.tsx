@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
@@ -104,7 +105,14 @@ export default function DashboardPage() {
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.logo}>
-            <span className={styles.logoIcon}>🏠</span>
+            <Image
+              src="/lhhoa-logo.png"
+              alt="LHHOA Logo"
+              width={50}
+              height={50}
+              className={styles.logoIcon}
+              priority
+            />
             <div>
               <h1 className={styles.logoText}>LH-Connect</h1>
               <p className={styles.logoSubtext}>Resident Portal</p>
@@ -167,7 +175,7 @@ export default function DashboardPage() {
                   size={150}
                   level="H"
                   includeMargin={true}
-                  fgColor="#0d47a1"
+                  fgColor="#1B2A4A"
                   bgColor="#ffffff"
                 />
               </div>

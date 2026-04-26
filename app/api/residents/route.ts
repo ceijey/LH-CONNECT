@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         .where('role', '==', 'resident')
         .get();
 
-      const residents = residentsSnapshot.docs.map((doc) => ({
+      const residents = residentsSnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       }));
