@@ -5,9 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LH-Connect",
-  description: "A beautiful login page built with Next.js",
-};
+  title: "LH-Connect - Unified Management and Information System for Automating Monthly Dues and Resident Financial Analytics",
+  description: "A Unified Management and Information System for Automating Monthly Dues and Resident Financial Analytics",
+}
 
 export default function RootLayout({
   children,
