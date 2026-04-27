@@ -2,32 +2,24 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
+import type { FirebaseError } from 'firebase/app';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase-client';
 import styles from './forgot-password.module.css';
 
 interface ForgotPasswordData {
   email: string;
-  resetCode: string;
-  newPassword: string;
-  confirmPassword: string;
 }
 
 interface FormErrors {
   email?: string;
-  resetCode?: string;
-  newPassword?: string;
-  confirmPassword?: string;
 }
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'request' | 'verify' | 'reset'>('request');
   const [formData, setFormData] = useState<ForgotPasswordData>({
     email: '',
-    resetCode: '',
-    newPassword: '',
-    confirmPassword: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -47,36 +39,21 @@ export default function ForgotPasswordPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateResetCode = (): boolean => {
-    const newErrors: FormErrors = {};
+  const getResetErrorMessage = (error: unknown): string => {
+    const firebaseError = error as FirebaseError;
 
-    if (!formData.resetCode.trim()) {
-      newErrors.resetCode = 'Reset code is required';
-    } else if (formData.resetCode.length < 6) {
-      newErrors.resetCode = 'Reset code must be at least 6 characters';
+    switch (firebaseError?.code) {
+      case 'auth/invalid-email':
+        return 'Please enter a valid email address.';
+      case 'auth/user-not-found':
+        return 'No account found for this email address.';
+      case 'auth/too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      default:
+        return 'Could not send reset email. Please try again.';
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateNewPassword = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.newPassword) {
-      newErrors.newPassword = 'New password is required';
-    } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = 'Password must be at least 6 characters';
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Confirm password is required';
-    } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleRequestReset = async (e: React.FormEvent) => {
@@ -90,60 +67,19 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
 
-    // TODO: Connect to backend API for password reset
-    setTimeout(() => {
-      setErrorMessage('Password reset service not yet configured. Please contact support.');
-      setIsLoading(false);
-    }, 1500);
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    if (!validateResetCode()) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    // TODO: Connect to backend API to verify reset code
-    setTimeout(() => {
-      setErrorMessage('Password reset service not yet configured. Please contact support.');
-      setIsLoading(false);
-    }, 1500);
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    if (!validateNewPassword()) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      // In a real app, this would update the password in the database
-      setSuccessMessage('Password has been reset successfully! Redirecting to login...');
-      
-      // Clear form
-      setFormData({
-        email: '',
-        resetCode: '',
-        newPassword: '',
-        confirmPassword: '',
+    try {
+      await sendPasswordResetEmail(auth, formData.email.trim(), {
+        url: `${window.location.origin}/login`,
       });
 
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
-    }, 1500);
+      setSuccessMessage(
+        'Password reset email sent. Please check your inbox and follow the link to set a new password.'
+      );
+    } catch (error) {
+      setErrorMessage(getResetErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,9 +114,7 @@ export default function ForgotPasswordPage() {
             </div>
             <h1 className={styles.title}>Reset Your Password</h1>
             <p className={styles.subtitle}>
-              {step === 'request' && 'Enter your email address to receive a reset code'}
-              {step === 'verify' && 'Enter the reset code sent to your email'}
-              {step === 'reset' && 'Create your new password'}
+              Enter your registered email and we will send you a secure reset link.
             </p>
           </div>
 
@@ -196,114 +130,39 @@ export default function ForgotPasswordPage() {
             </div>
           )}
 
-          {/* Request Reset Step */}
-          {step === 'request' && (
-            <form onSubmit={handleRequestReset} className={styles.form}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your registered email"
-                  className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                />
-                {errors.email && (
-                  <span className={styles.errorText}>{errors.email}</span>
-                )}
-              </div>
+          <form onSubmit={handleRequestReset} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Email Address</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your registered email"
+                className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
+              />
+              {errors.email && (
+                <span className={styles.errorText}>{errors.email}</span>
+              )}
+            </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={styles.submitBtn}
-              >
-                {isLoading ? 'Sending...' : 'Send Reset Code'}
-              </button>
-            </form>
-          )}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={styles.submitBtn}
+            >
+              {isLoading ? 'Sending...' : 'Send Reset Link'}
+            </button>
 
-          {/* Verify Code Step */}
-          {step === 'verify' && (
-            <form onSubmit={handleVerifyCode} className={styles.form}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Reset Code</label>
-                <input
-                  type="text"
-                  name="resetCode"
-                  value={formData.resetCode}
-                  onChange={handleChange}
-                  placeholder="Enter the code from your email"
-                  className={`${styles.input} ${errors.resetCode ? styles.inputError : ''}`}
-                  maxLength={20}
-                />
-                {errors.resetCode && (
-                  <span className={styles.errorText}>{errors.resetCode}</span>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={styles.submitBtn}
-              >
-                {isLoading ? 'Verifying...' : 'Verify Code'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep('request')}
-                className={styles.backBtn}
-                disabled={isLoading}
-              >
-                ← Back
-              </button>
-            </form>
-          )}
-
-          {/* Reset Password Step */}
-          {step === 'reset' && (
-            <form onSubmit={handleResetPassword} className={styles.form}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>New Password</label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  placeholder="Enter new password"
-                  className={`${styles.input} ${errors.newPassword ? styles.inputError : ''}`}
-                />
-                {errors.newPassword && (
-                  <span className={styles.errorText}>{errors.newPassword}</span>
-                )}
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Confirm Password</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm new password"
-                  className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ''}`}
-                />
-                {errors.confirmPassword && (
-                  <span className={styles.errorText}>{errors.confirmPassword}</span>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={styles.submitBtn}
-              >
-                {isLoading ? 'Resetting...' : 'Reset Password'}
-              </button>
-            </form>
-          )}
+            <button
+              type="button"
+              className={styles.backBtn}
+              onClick={() => router.push('/login')}
+              disabled={isLoading}
+            >
+              ← Back to Login
+            </button>
+          </form>
         </div>
       </div>
     </div>

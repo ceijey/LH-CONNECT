@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
+import { guardResidentRoute, logoutAndRedirect } from '@/lib/auth-session';
 import styles from './dashboard.module.css';
 
 interface PaymentRecord {
@@ -45,16 +46,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadResidentProfile = async () => {
-      const isAuthenticated = localStorage.getItem('isAuthenticated');
-      const userRole = localStorage.getItem('userRole');
-
-      if (!isAuthenticated) {
-        router.push('/login');
-        return;
-      }
-
-      if (userRole === 'admin') {
-        router.push('/admin/dashboard');
+      if (!guardResidentRoute(router)) {
         return;
       }
 
@@ -78,10 +70,9 @@ export default function DashboardPage() {
     setShowLogoutModal(true);
   };
 
-  const confirmLogout = () => {
-    localStorage.clear();
+  const confirmLogout = async () => {
     setShowLogoutModal(false);
-    router.push('/');
+    await logoutAndRedirect(router, '/');
   };
 
   if (isLoading) {

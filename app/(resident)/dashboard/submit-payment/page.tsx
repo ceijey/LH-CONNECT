@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { guardResidentRoute, logoutAndRedirect } from '@/lib/auth-session';
 import styles from './submit-payment.module.css';
 
 interface FormData {
@@ -35,6 +36,7 @@ export default function SubmitPaymentPage() {
   });
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const paymentMethod = 'GCash';
 
@@ -54,6 +56,14 @@ export default function SubmitPaymentPage() {
       verifiedDate: 'Jan 20, 2026 02:30 PM',
     },
   ];
+
+  useEffect(() => {
+    if (!guardResidentRoute(router)) {
+      return;
+    }
+
+    setIsLoading(false);
+  }, [router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,6 +109,10 @@ export default function SubmitPaymentPage() {
     }, 1500);
   };
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -125,10 +139,8 @@ export default function SubmitPaymentPage() {
           </div>
           <button
             className={styles.logoutBtn}
-            onClick={() => {
-              localStorage.removeItem('isAuthenticated');
-              localStorage.removeItem('userEmail');
-              router.push('/');
+            onClick={async () => {
+              await logoutAndRedirect(router, '/');
             }}
           >
             ⬅ Logout

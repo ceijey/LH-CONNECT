@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { guardResidentRoute } from '@/lib/auth-session';
 import styles from './transactions.module.css';
 
 interface Transaction {
@@ -38,14 +39,11 @@ export default function TransactionsPage() {
   ];
 
   useEffect(() => {
-    // Check if user is authenticated
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      setIsLoading(false);
+    if (!guardResidentRoute(router)) {
+      return;
     }
+
+    setIsLoading(false);
   }, [router]);
 
   const filteredTransactions = filterStatus === 'All' 

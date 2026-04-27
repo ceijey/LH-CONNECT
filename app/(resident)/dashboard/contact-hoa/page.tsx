@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { guardResidentRoute, logoutAndRedirect } from '@/lib/auth-session';
 import styles from './contact-hoa.module.css';
 
 interface Message {
@@ -25,6 +26,7 @@ export default function ContactHOAPage() {
   const router = useRouter();
   const [selectedMessage, setSelectedMessage] = useState<number>(1);
   const [replyText, setReplyText] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   const messages: Message[] = [
     {
@@ -79,12 +81,24 @@ export default function ContactHOAPage() {
   const currentConversation = conversations[selectedMessage] || [];
   const currentMessage = messages.find((m) => m.id === selectedMessage);
 
+  useEffect(() => {
+    if (!guardResidentRoute(router)) {
+      return;
+    }
+
+    setIsLoading(false);
+  }, [router]);
+
   const handleSendReply = () => {
     if (replyText.trim()) {
       alert('Your reply has been sent!');
       setReplyText('');
     }
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className={styles.container}>
@@ -112,10 +126,8 @@ export default function ContactHOAPage() {
           </div>
           <button
             className={styles.logoutBtn}
-            onClick={() => {
-              localStorage.removeItem('isAuthenticated');
-              localStorage.removeItem('userEmail');
-              router.push('/');
+            onClick={async () => {
+              await logoutAndRedirect(router, '/');
             }}
           >
             ⬅ Logout
