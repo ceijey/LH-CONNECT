@@ -41,14 +41,7 @@ export default function AdminMessages() {
   const unreadCount = messages.filter(m => m.status === 'Unread').length;
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userRole = localStorage.getItem('userRole');
-
-    if (!isAuthenticated || userRole !== 'admin') {
-      router.push('/login');
-    } else {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }, [router]);
 
   const handleLogout = async () => {

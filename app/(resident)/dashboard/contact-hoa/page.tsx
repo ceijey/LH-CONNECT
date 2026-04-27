@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { guardResidentRoute, logoutAndRedirect } from '@/lib/auth-session';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './contact-hoa.module.css';
 
 interface Message {
@@ -82,10 +82,6 @@ export default function ContactHOAPage() {
   const currentMessage = messages.find((m) => m.id === selectedMessage);
 
   useEffect(() => {
-    if (!guardResidentRoute(router)) {
-      return;
-    }
-
     setIsLoading(false);
   }, [router]);
 

@@ -4,21 +4,15 @@ export async function apiCall(
   endpoint: string,
   options: RequestInit & { method?: string } = {}
 ) {
-  const idToken = localStorage.getItem('idToken');
-
-  if (!idToken) {
-    throw new Error('Not authenticated. Please log in.');
-  }
-
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
-    Authorization: `Bearer ${idToken}`,
   };
 
   const response = await fetch(endpoint, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (response.status === 401 || response.status === 403) {

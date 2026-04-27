@@ -87,19 +87,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const loadDashboardData = async () => {
-      const isAuthenticated = localStorage.getItem('isAuthenticated');
-      const userRole = localStorage.getItem('userRole');
-
-      if (!isAuthenticated) {
-        router.push('/login');
-        return;
-      }
-
-      if (userRole !== 'admin') {
-        router.push('/dashboard');
-        return;
-      }
-
       try {
         const [profilePayload, residentsPayload] = await Promise.all([
           apiCall('/api/auth/profile'),

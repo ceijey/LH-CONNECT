@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
-import { guardResidentRoute, logoutAndRedirect } from '@/lib/auth-session';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './dashboard.module.css';
 
 interface PaymentRecord {
@@ -46,10 +46,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadResidentProfile = async () => {
-      if (!guardResidentRoute(router)) {
-        return;
-      }
-
       try {
         setUserId(localStorage.getItem('userId') ?? 'LH-Connect Resident');
         const profilePayload = await apiCall('/api/auth/profile');

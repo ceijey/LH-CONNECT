@@ -3,16 +3,11 @@
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
 
-type RouterLike = {
-  push: (href: string) => void;
-};
-
 const AUTH_STORAGE_KEYS = [
   'isAuthenticated',
   'userEmail',
   'userName',
   'userRole',
-  'idToken',
   'userId',
 ];
 
@@ -26,31 +21,6 @@ export async function destroyServerSession() {
   } catch {
     // Ignore network issues and still clear local client session.
   }
-}
-
-export function guardResidentRoute(router: RouterLike) {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  const userRole = localStorage.getItem('userRole');
-  const idToken = localStorage.getItem('idToken');
-
-  if (!isAuthenticated || !idToken) {
-    clearAuthSession();
-    router.push('/login');
-    return false;
-  }
-
-  if (userRole === 'admin') {
-    router.push('/admin/dashboard');
-    return false;
-  }
-
-  if (userRole !== 'resident') {
-    clearAuthSession();
-    router.push('/login');
-    return false;
-  }
-
-  return true;
 }
 
 export async function logoutAndRedirect(router: RouterLike, targetPath = '/') {

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { guardResidentRoute, logoutAndRedirect } from '@/lib/auth-session';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './submit-payment.module.css';
 
 interface FormData {
@@ -58,10 +58,6 @@ export default function SubmitPaymentPage() {
   ];
 
   useEffect(() => {
-    if (!guardResidentRoute(router)) {
-      return;
-    }
-
     setIsLoading(false);
   }, [router]);
 

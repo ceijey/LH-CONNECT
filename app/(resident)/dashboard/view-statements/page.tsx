@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { guardResidentRoute, logoutAndRedirect } from '@/lib/auth-session';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './view-statements.module.css';
 
 interface Statement {
@@ -96,10 +96,6 @@ export default function ViewStatementsPage() {
   const filteredStatements = statements.filter((s) => s.year === filterYear);
 
   useEffect(() => {
-    if (!guardResidentRoute(router)) {
-      return;
-    }
-
     setIsLoading(false);
   }, [router]);
 

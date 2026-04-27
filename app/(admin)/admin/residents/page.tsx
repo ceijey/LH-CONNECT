@@ -46,14 +46,6 @@ export default function AdminResidents() {
 
   useEffect(() => {
     const loadResidents = async () => {
-      const isAuthenticated = localStorage.getItem('isAuthenticated');
-      const userRole = localStorage.getItem('userRole');
-
-      if (!isAuthenticated || userRole !== 'admin') {
-        router.push('/login');
-        return;
-      }
-
       try {
         const payload = await apiCall('/api/residents');
         const residents = (payload.residents ?? []).map((resident: any, index: number) => {

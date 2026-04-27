@@ -35,14 +35,7 @@ export default function AdminPayments() {
   ];
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userRole = localStorage.getItem('userRole');
-
-    if (!isAuthenticated || userRole !== 'admin') {
-      router.push('/login');
-    } else {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }, [router]);
 
   const handleLogout = async () => {

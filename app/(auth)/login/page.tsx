@@ -213,7 +213,6 @@ export default function LoginPage() {
       localStorage.setItem('userEmail', userCredential.user.email ?? formData.email);
       localStorage.setItem('userName', userData.fullName ?? 'User');
       localStorage.setItem('userRole', role);
-      localStorage.setItem('idToken', idToken);
       localStorage.setItem('userId', userCredential.user.uid);
 
       const sessionResponse = await fetch('/api/auth/session', {
