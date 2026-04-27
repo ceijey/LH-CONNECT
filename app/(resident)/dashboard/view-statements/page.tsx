@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './view-statements.module.css';
 
 interface Statement {
@@ -21,6 +22,7 @@ interface Statement {
 export default function ViewStatementsPage() {
   const router = useRouter();
   const [filterYear, setFilterYear] = useState<number>(2026);
+  const [isLoading, setIsLoading] = useState(true);
 
   const statements: Statement[] = [
     {
@@ -93,6 +95,10 @@ export default function ViewStatementsPage() {
 
   const filteredStatements = statements.filter((s) => s.year === filterYear);
 
+  useEffect(() => {
+    setIsLoading(false);
+  }, [router]);
+
   const handleDownload = (statement: Statement) => {
     alert(
       `Downloading ${statement.month} ${statement.year} statement as ${statement.fileFormat}...`
@@ -102,6 +108,10 @@ export default function ViewStatementsPage() {
   const handleBulkDownload = () => {
     alert('Downloading all statements as ZIP file...');
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className={styles.container}>
@@ -129,10 +139,8 @@ export default function ViewStatementsPage() {
           </div>
           <button
             className={styles.logoutBtn}
-            onClick={() => {
-              localStorage.removeItem('isAuthenticated');
-              localStorage.removeItem('userEmail');
-              router.push('/');
+            onClick={async () => {
+              await logoutAndRedirect(router, '/');
             }}
           >
             ⬅ Logout

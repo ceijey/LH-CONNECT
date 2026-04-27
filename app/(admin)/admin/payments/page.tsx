@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from '../residents/admin-page.module.css';
 
 interface Payment {
@@ -34,23 +35,12 @@ export default function AdminPayments() {
   ];
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userRole = localStorage.getItem('userRole');
-
-    if (!isAuthenticated || userRole !== 'admin') {
-      router.push('/login');
-    } else {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userRole');
-      router.push('/');
+      await logoutAndRedirect(router, '/');
     }
   };
 

@@ -38,14 +38,7 @@ export default function TransactionsPage() {
   ];
 
   useEffect(() => {
-    // Check if user is authenticated
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }, [router]);
 
   const filteredTransactions = filterStatus === 'All' 

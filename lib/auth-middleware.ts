@@ -3,19 +3,21 @@ import { adminAuth } from './firebase-admin';
 
 export async function verifyToken(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
+  const sessionCookie = request.cookies.get('lh_session')?.value;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if ((!authHeader || !authHeader.startsWith('Bearer ')) && !sessionCookie) {
     return {
-      error: 'Missing or invalid authorization header',
+      error: 'Missing authentication credentials',
       status: 401,
       decoded: null,
     };
   }
 
-  const token = authHeader.substring(7);
-
   try {
-    const decoded = await adminAuth.verifyIdToken(token);
+    const decoded = authHeader?.startsWith('Bearer ')
+      ? await adminAuth.verifyIdToken(authHeader.substring(7))
+      : await adminAuth.verifySessionCookie(sessionCookie as string, true);
+
     return {
       error: null,
       status: 200,

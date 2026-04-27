@@ -213,8 +213,18 @@ export default function LoginPage() {
       localStorage.setItem('userEmail', userCredential.user.email ?? formData.email);
       localStorage.setItem('userName', userData.fullName ?? 'User');
       localStorage.setItem('userRole', role);
-      localStorage.setItem('idToken', idToken);
       localStorage.setItem('userId', userCredential.user.uid);
+
+      const sessionResponse = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionResponse.ok) {
+        const sessionError = await parseApiResponse(sessionResponse);
+        throw new Error(sessionError?.error ?? 'Failed to create secure session.');
+      }
 
       router.push(role === 'admin' ? '/admin/dashboard' : '/dashboard');
     } catch (error) {
