@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './admin-dashboard.module.css';
 
 interface StatCard {
@@ -141,10 +142,9 @@ export default function AdminDashboard() {
     setShowLogoutModal(true);
   };
 
-  const confirmLogout = () => {
-    localStorage.clear();
+  const confirmLogout = async () => {
     setShowLogoutModal(false);
-    router.push('/');
+    await logoutAndRedirect(router, '/');
   };
 
   if (isLoading) {

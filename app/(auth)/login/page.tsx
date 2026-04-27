@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
+import { setAuthSessionCookies } from '@/lib/auth-session';
 import styles from './login.module.css';
 
 interface FormData {
@@ -215,6 +216,7 @@ export default function LoginPage() {
       localStorage.setItem('userRole', role);
       localStorage.setItem('idToken', idToken);
       localStorage.setItem('userId', userCredential.user.uid);
+      setAuthSessionCookies(role);
 
       router.push(role === 'admin' ? '/admin/dashboard' : '/dashboard');
     } catch (error) {

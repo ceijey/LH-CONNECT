@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiCall } from '@/lib/api-client';
+import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './admin-page.module.css';
 
 interface Resident {
@@ -107,10 +108,9 @@ export default function AdminResidents() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.clear();
-      router.push('/');
+      await logoutAndRedirect(router, '/');
     }
   };
 
