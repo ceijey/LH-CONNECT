@@ -1,4 +1,4 @@
-import { clearAuthSession } from '@/lib/auth-session';
+import { clearAuthSession, destroyServerSession } from '@/lib/auth-session';
 
 export async function apiCall(
   endpoint: string,
@@ -23,6 +23,7 @@ export async function apiCall(
 
   if (response.status === 401 || response.status === 403) {
     clearAuthSession();
+    await destroyServerSession();
     window.location.href = '/login';
     throw new Error('Authentication failed. Redirecting to login...');
   }

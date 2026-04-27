@@ -10,7 +10,6 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
-import { setAuthSessionCookies } from '@/lib/auth-session';
 import styles from './login.module.css';
 
 interface FormData {
@@ -216,7 +215,17 @@ export default function LoginPage() {
       localStorage.setItem('userRole', role);
       localStorage.setItem('idToken', idToken);
       localStorage.setItem('userId', userCredential.user.uid);
-      setAuthSessionCookies(role);
+
+      const sessionResponse = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionResponse.ok) {
+        const sessionError = await parseApiResponse(sessionResponse);
+        throw new Error(sessionError?.error ?? 'Failed to create secure session.');
+      }
 
       router.push(role === 'admin' ? '/admin/dashboard' : '/dashboard');
     } catch (error) {

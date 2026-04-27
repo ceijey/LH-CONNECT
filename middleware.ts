@@ -9,7 +9,8 @@ function redirectTo(request: NextRequest, path: string) {
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const isAuthenticated = request.cookies.get('lh_auth')?.value === '1';
+  const sessionCookie = request.cookies.get('lh_session')?.value;
+  const isAuthenticated = Boolean(sessionCookie);
   const role = request.cookies.get('lh_role')?.value;
 
   const isAdminRoute = pathname.startsWith('/admin');
