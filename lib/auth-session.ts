@@ -3,6 +3,10 @@
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
 
+type RouterLike = {
+  push: (path: string) => void;
+};
+
 const AUTH_STORAGE_KEYS = [
   'isAuthenticated',
   'userEmail',

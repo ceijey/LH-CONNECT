@@ -17,6 +17,8 @@
     "html5-qrcode": "^2.3.8",
     "inquirer": "^13.2.5",
     "next": "^15.1.0",
+    "pdf-lib": "^1.17.1",
+    "pdfkit": "^0.18.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^10.0.2",

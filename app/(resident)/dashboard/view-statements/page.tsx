@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { apiCall } from '@/lib/api-client';
 import styles from './view-statements.module.css';
 
 interface Statement {
-  id: number;
+  id: string;
   month: string;
   year: number;
   date: string;
@@ -21,96 +22,136 @@ interface Statement {
 
 export default function ViewStatementsPage() {
   const router = useRouter();
-  const [filterYear, setFilterYear] = useState<number>(2026);
+  const currentYear = new Date().getFullYear();
+  const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statements, setStatements] = useState<Statement[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const statements: Statement[] = [
-    {
-      id: 1,
-      month: 'February',
-      year: 2026,
-      date: '2026-02-28',
-      totalDues: 500,
-      amountPaid: 500,
-      balance: 0,
-      status: 'Paid',
-      fileFormat: 'PDF',
-    },
-    {
-      id: 2,
-      month: 'January',
-      year: 2026,
-      date: '2026-01-31',
-      totalDues: 500,
-      amountPaid: 500,
-      balance: 0,
-      status: 'Paid',
-      fileFormat: 'PDF',
-    },
-    {
-      id: 3,
-      month: 'December',
-      year: 2025,
-      date: '2025-12-31',
-      totalDues: 500,
-      amountPaid: 500,
-      balance: 0,
-      status: 'Paid',
-      fileFormat: 'PDF',
-    },
-    {
-      id: 4,
-      month: 'November',
-      year: 2025,
-      date: '2025-11-30',
-      totalDues: 500,
-      amountPaid: 500,
-      balance: 0,
-      status: 'Paid',
-      fileFormat: 'PDF',
-    },
-    {
-      id: 5,
-      month: 'October',
-      year: 2025,
-      date: '2025-10-31',
-      totalDues: 500,
-      amountPaid: 500,
-      balance: 0,
-      status: 'Paid',
-      fileFormat: 'PDF',
-    },
-    {
-      id: 6,
-      month: 'September',
-      year: 2025,
-      date: '2025-09-30',
-      totalDues: 500,
-      amountPaid: 500,
-      balance: 0,
-      status: 'Paid',
-      fileFormat: 'PDF',
-    },
-  ];
-
+  const availableYears = Array.from(new Set(statements.map((statement) => statement.year))).sort(
+    (a, b) => b - a
+  );
   const filteredStatements = statements.filter((s) => s.year === filterYear);
+  const hasStatements = statements.length > 0;
 
   useEffect(() => {
-    setIsLoading(false);
-  }, [router]);
+    if (!availableYears.includes(filterYear) && availableYears.length > 0) {
+      setFilterYear(availableYears[0]);
+    }
+  }, [availableYears, filterYear]);
 
-  const handleDownload = (statement: Statement) => {
-    alert(
-      `Downloading ${statement.month} ${statement.year} statement as ${statement.fileFormat}...`
-    );
+  useEffect(() => {
+    const fetchStatements = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await apiCall('/api/statements');
+        console.log('Statements API response:', data);
+        setStatements(data.statements);
+      } catch (err: any) {
+        console.error('Error fetching statements:', err);
+        setError(err.message || 'Failed to load statements');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStatements();
+  }, []);
+
+  const handleDownload = async (statement: Statement, format: 'pdf' | 'csv' = 'pdf') => {
+    try {
+      setIsDownloading(true);
+      const query = new URLSearchParams({
+        format,
+        statementId: statement.id,
+      });
+      const link = document.createElement('a');
+      link.href = `/api/statements/download?${query.toString()}`;
+      link.download = `statement_${statement.month}_${statement.year}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error('Download error:', err);
+      alert('Failed to download statement. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  const handleBulkDownload = () => {
-    alert('Downloading all statements as ZIP file...');
+  const handleBulkDownload = async (format: 'pdf' | 'csv' = 'csv') => {
+    try {
+      setIsDownloading(true);
+      const query = new URLSearchParams({ format });
+      const link = document.createElement('a');
+      link.href = `/api/statements/download?${query.toString()}`;
+      link.download = `all_statements.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error('Download error:', err);
+      alert('Failed to download statements. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <div className={styles.headerContent}>
+            <div className={styles.headerLefty}>
+              <Link href="/dashboard" className={styles.backBtn}>
+                ← Back
+              </Link>
+            </div>
+            <button
+              className={styles.logoutBtn}
+              onClick={async () => {
+                await logoutAndRedirect(router, '/');
+              }}
+            >
+              ⬅ Logout
+            </button>
+          </div>
+        </header>
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <p>Loading your statements...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <div className={styles.headerContent}>
+            <div className={styles.headerLefty}>
+              <Link href="/dashboard" className={styles.backBtn}>
+                ← Back
+              </Link>
+            </div>
+            <button
+              className={styles.logoutBtn}
+              onClick={async () => {
+                await logoutAndRedirect(router, '/');
+              }}
+            >
+              ⬅ Logout
+            </button>
+          </div>
+        </header>
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'red' }}>
+          <p>Error: {error}</p>
+          <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -168,14 +209,25 @@ export default function ViewStatementsPage() {
               value={filterYear}
               onChange={(e) => setFilterYear(Number(e.target.value))}
               className={styles.filterSelect}
+              disabled={availableYears.length === 0}
             >
-              <option value={2026}>2026</option>
-              <option value={2025}>2025</option>
-              <option value={2024}>2024</option>
+              {availableYears.length > 0 ? (
+                availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))
+              ) : (
+                <option value={currentYear}>{currentYear}</option>
+              )}
             </select>
           </div>
-          <button className={styles.bulkDownloadBtn} onClick={handleBulkDownload}>
-            ⬇ Download All ({filteredStatements.length})
+          <button
+            className={styles.bulkDownloadBtn}
+            onClick={() => handleBulkDownload('csv')}
+            disabled={isDownloading || filteredStatements.length === 0}
+          >
+            {isDownloading ? '⏳ Downloading...' : `⬇ Download All (${filteredStatements.length})`}
           </button>
         </div>
 
@@ -222,9 +274,10 @@ export default function ViewStatementsPage() {
                 <div className={styles.cardFooter}>
                   <button
                     className={styles.downloadBtn}
-                    onClick={() => handleDownload(statement)}
+                    onClick={() => handleDownload(statement, 'pdf')}
+                    disabled={isDownloading}
                   >
-                    ⬇ Download {statement.fileFormat}
+                    {isDownloading ? '⏳ Downloading...' : `⬇ Download ${statement.fileFormat}`}
                   </button>
                 </div>
               </div>
@@ -232,7 +285,16 @@ export default function ViewStatementsPage() {
           ) : (
             <div className={styles.emptyState}>
               <p className={styles.emptyIcon}>📄</p>
-              <p className={styles.emptyText}>No statements found for {filterYear}</p>
+              <p className={styles.emptyText}>
+                {hasStatements
+                  ? `No billing statements found for ${filterYear}.`
+                  : 'No billing statements yet.'}
+              </p>
+              <p className={styles.emptySubtext}>
+                {hasStatements
+                  ? 'Try a different year or check back later.'
+                  : 'Your billing statements will appear here once they are issued.'}
+              </p>
             </div>
           )}
         </div>

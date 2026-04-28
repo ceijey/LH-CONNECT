@@ -15,6 +15,8 @@ export async function apiCall(
     credentials: 'include',
   });
 
+  console.log(`[API] ${endpoint}: status=${response.status}, ok=${response.ok}`);
+
   if (response.status === 401 || response.status === 403) {
     clearAuthSession();
     await destroyServerSession();
@@ -23,9 +25,17 @@ export async function apiCall(
   }
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API error: ${response.statusText}`);
+    const errorText = await response.text();
+    console.error(`[API Error] Response text:`, errorText);
+    try {
+      const error = JSON.parse(errorText);
+      throw new Error(error.error || `API error: ${response.statusText}`);
+    } catch (e: any) {
+      throw new Error(`API error: ${response.statusText} - ${errorText}`);
+    }
   }
 
-  return response.json();
+  const jsonText = await response.text();
+  console.log(`[API Response] ${endpoint}:`, jsonText);
+  return JSON.parse(jsonText);
 }
