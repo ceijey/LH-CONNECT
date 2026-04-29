@@ -226,7 +226,7 @@ export default function LoginPage() {
         throw new Error(sessionError?.error ?? 'Failed to create secure session.');
       }
 
-      router.push(role === 'admin' ? '/admin/dashboard' : '/dashboard');
+      router.replace(role === 'admin' ? '/admin/dashboard' : '/dashboard');
     } catch (error) {
       setLoginError(getAuthErrorMessage(error));
     } finally {

@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './admin-page.module.css';
 
 interface Resident {
@@ -21,7 +21,7 @@ interface Resident {
 }
 
 export default function AdminResidents() {
-  const router = useRouter();
+  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('residents');
   const [searchTerm, setSearchTerm] = useState('');

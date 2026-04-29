@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
 
 interface ReportData {
@@ -18,6 +19,7 @@ interface ReportData {
 
 export default function AdminReports() {
   const router = useRouter();
+  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('reports');
   const [selectedMonth, setSelectedMonth] = useState('February 2026');
@@ -41,7 +43,7 @@ export default function AdminReports() {
     const userRole = localStorage.getItem('userRole');
 
     if (!isAuthenticated || userRole !== 'admin') {
-      router.push('/login');
+      router.replace('/login');
     } else {
       setIsLoading(false);
     }

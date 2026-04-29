@@ -18,6 +18,7 @@ interface Transaction {
 
 export default function TransactionsPage() {
   const router = useRouter();
+  useAuthPageshow('resident');
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'All' | 'Paid' | 'Pending' | 'Failed'>('All');
 

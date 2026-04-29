@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './contact-hoa.module.css';
 
 interface Message {
@@ -24,6 +25,7 @@ interface Conversation {
 
 export default function ContactHOAPage() {
   const router = useRouter();
+  useAuthPageshow('resident');
   const [selectedMessage, setSelectedMessage] = useState<number>(1);
   const [replyText, setReplyText] = useState('');
   const [isLoading, setIsLoading] = useState(true);

@@ -5,6 +5,7 @@ import { auth } from '@/lib/firebase-client';
 
 type RouterLike = {
   push: (path: string) => void;
+  replace: (path: string) => void;
 };
 
 const AUTH_STORAGE_KEYS = [
@@ -37,5 +38,5 @@ export async function logoutAndRedirect(router: RouterLike, targetPath = '/') {
   }
 
   clearAuthSession();
-  router.push(targetPath);
+  router.replace(targetPath);
 }

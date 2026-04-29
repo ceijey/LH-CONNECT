@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './submit-payment.module.css';
 
 interface FormData {
@@ -26,6 +27,7 @@ interface Submission {
 
 export default function SubmitPaymentPage() {
   const router = useRouter();
+  useAuthPageshow('resident');
   const [formData, setFormData] = useState<FormData>({
     referenceNumber: '',
     notes: '',

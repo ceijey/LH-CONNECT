@@ -1,8 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import styles from './qr-scanner.module.css';
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 
 interface ResidentData {
   id: string;
@@ -79,6 +85,7 @@ const residentsDatabase: Record<string, ResidentData> = {
 };
 
 export default function QRScannerPage() {
+  const router = useRouter();
   const scannerRef = useRef<any>(null);
   const [scannedResident, setScannedResident] = useState<ResidentData | null>(null);
   const [scanError, setScanError] = useState('');
@@ -86,6 +93,7 @@ export default function QRScannerPage() {
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   useEffect(() => {
+
     const setupScanner = async () => {
       if (!isScanning || scannerRef.current) {
         return;

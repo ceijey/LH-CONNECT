@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
 import messengerStyles from './messenger.module.css';
 
@@ -21,7 +21,7 @@ interface Message {
 }
 
 export default function AdminMessages() {
-  const router = useRouter();
+  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('messages');
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);

@@ -1,11 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './view-statements.module.css';
 
 interface Statement {
@@ -22,6 +23,7 @@ interface Statement {
 
 export default function ViewStatementsPage() {
   const router = useRouter();
+  useAuthPageshow('resident');
   const currentYear = new Date().getFullYear();
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [isLoading, setIsLoading] = useState(true);

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './dashboard.module.css';
 
 interface PaymentRecord {
@@ -27,6 +28,7 @@ interface UserProfile {
 
 export default function DashboardPage() {
   const router = useRouter();
+  useAuthPageshow('resident');
   const [userName, setUserName] = useState<string>('Resident');
   const [profile, setProfile] = useState<UserProfile>({});
   const [userId, setUserId] = useState<string>('LH-Connect Resident');
@@ -61,6 +63,8 @@ export default function DashboardPage() {
 
     loadResidentProfile();
   }, [router]);
+
+
 
   const handleLogout = () => {
     setShowLogoutModal(true);

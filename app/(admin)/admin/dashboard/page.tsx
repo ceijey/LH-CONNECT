@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
@@ -11,6 +11,7 @@ import {
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './admin-dashboard.module.css';
 
 interface StatCard {
@@ -23,6 +24,7 @@ interface StatCard {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('dashboard');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -123,7 +125,7 @@ export default function AdminDashboard() {
     };
 
     loadDashboardData();
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
     setShowLogoutModal(true);
