@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './submit-payment.module.css';
 
@@ -25,6 +26,14 @@ interface Submission {
   verifiedDate?: string;
 }
 
+interface UserProfile {
+  fullName?: string;
+  phase?: string;
+  block?: string;
+  lot?: string;
+  balance?: number;
+}
+
 export default function SubmitPaymentPage() {
   const router = useRouter();
   useAuthPageshow('resident');
@@ -32,36 +41,41 @@ export default function SubmitPaymentPage() {
     referenceNumber: '',
     notes: '',
     file: null,
-    residentName: 'Juan dela Cruz',
-    blockLot: 'Phase 1 Blk 2 Lot 10',
-    paymentAmount: '500',
+    residentName: '',
+    blockLot: '',
+    paymentAmount: '',
   });
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const paymentMethod = 'GCash';
+  const paymentMethod = '';
 
-  const recentSubmissions: Submission[] = [
-    {
-      month: 'February 2026',
-      amount: 500,
-      status: 'Verified',
-      submittedDate: 'Feb 22, 2026 10:30 AM',
-      verifiedDate: 'Feb 22, 2026 11:00 AM',
-    },
-    {
-      month: 'January 2026',
-      amount: 500,
-      status: 'Verified',
-      submittedDate: 'Jan 20, 2026 09:15 AM',
-      verifiedDate: 'Jan 20, 2026 02:30 PM',
-    },
-  ];
+  const recentSubmissions: Submission[] = [];
 
   useEffect(() => {
-    setIsLoading(false);
-  }, [router]);
+      const loadResidentProfile = async () => {
+        try {
+          const profilePayload = await apiCall('/api/auth/profile');
+          const userProfile = (profilePayload.user ?? {}) as UserProfile;
+        
+          // Prefill form with resident information
+          setFormData(prev => ({
+            ...prev,
+            residentName: userProfile.fullName ?? '',
+            blockLot: userProfile.block && userProfile.lot 
+              ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
+              : '',
+          }));
+        } catch (error) {
+          console.error('Failed to load resident profile:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadResidentProfile();
+    }, [router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,7 +115,7 @@ export default function SubmitPaymentPage() {
     // Simulate API call
     setTimeout(() => {
       alert('Payment proof submitted successfully!');
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: 'Juan dela Cruz', blockLot: 'Phase 1 Blk 2 Lot 10', paymentAmount: '500' });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: '', blockLot: '', paymentAmount: '' });
       setFileName('');
       setIsSubmitting(false);
     }, 1500);

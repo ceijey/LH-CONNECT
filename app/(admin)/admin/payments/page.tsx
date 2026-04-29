@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -20,10 +21,12 @@ interface Payment {
 }
 
 export default function AdminPayments() {
+  const router = useRouter();
   useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('payments');
   const [activeTab, setActiveTab] = useState<'Pending' | 'Verified' | 'Rejected'>('Pending');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const allPayments: Payment[] = [
     { id: 'P001', resident: 'Maria Santos', phase: 'Phase 2', block: '2', lot: '8', amount: 500, date: '2026-02-23', time: '10:30 AM', method: 'GCash', status: 'Pending' },
@@ -44,7 +47,25 @@ export default function AdminPayments() {
     }
   };
 
-  const filteredPayments = allPayments.filter(p => p.status === activeTab);
+  const filteredPayments = allPayments.filter((payment) => {
+    const matchesStatus = payment.status === activeTab;
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return matchesStatus;
+    }
+
+    const matchesSearch = [
+      payment.id,
+      payment.resident,
+      payment.phase,
+      `blk ${payment.block} lot ${payment.lot}`,
+      payment.method,
+      payment.date,
+    ].some((value) => value.toLowerCase().includes(normalizedSearch));
+
+    return matchesStatus && matchesSearch;
+  });
   const pendingCount = allPayments.filter(p => p.status === 'Pending').length;
   const verifiedCount = allPayments.filter(p => p.status === 'Verified').length;
   const rejectedCount = allPayments.filter(p => p.status === 'Rejected').length;
@@ -96,6 +117,17 @@ export default function AdminPayments() {
         </header>
 
         <div className={styles.content}>
+          <div className={styles.controlsSection} style={{ marginBottom: '20px' }}>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by resident, payment ID, block, lot, method, or date"
+              className={styles.filterSelect}
+              style={{ width: '100%', maxWidth: '420px' }}
+            />
+          </div>
+
           {/* Tabs */}
           <div className={styles.tabsContainer}>
             <button 
@@ -108,13 +140,13 @@ export default function AdminPayments() {
               className={`${styles.tab} ${activeTab === 'Verified' ? styles.active : ''}`}
               onClick={() => setActiveTab('Verified')}
             >
-              ✓ Verified
+              ✓ Verified ({verifiedCount})
             </button>
             <button 
               className={`${styles.tab} ${activeTab === 'Rejected' ? styles.active : ''}`}
               onClick={() => setActiveTab('Rejected')}
             >
-              ✕ Rejected
+              ✕ Rejected ({rejectedCount})
             </button>
           </div>
 
@@ -123,6 +155,12 @@ export default function AdminPayments() {
             {activeTab === 'Verified' && '✓ Verified Payments'}
             {activeTab === 'Rejected' && '✕ Rejected Payments'}
           </div>
+
+          {searchTerm && (
+            <div style={{ marginBottom: '12px', color: '#666', fontSize: '0.95rem' }}>
+              Showing {filteredPayments.length} result{filteredPayments.length === 1 ? '' : 's'} for "{searchTerm.trim()}"
+            </div>
+          )}
           
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
@@ -138,29 +176,37 @@ export default function AdminPayments() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPayments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className={styles.paymentId}>{payment.id}</td>
-                    <td className={styles.resident}>{payment.resident}</td>
-                    <td><span className={styles.phaseBadge}>{payment.phase}</span> Blk {payment.block} Lot {payment.lot}</td>
-                    <td className={styles.amount}>₱{payment.amount}</td>
-                    <td className={styles.datetime}>
-                      <div>{payment.date}</div>
-                      <div className={styles.time}>{payment.time}</div>
-                    </td>
-                    <td>{payment.method}</td>
-                    <td className={styles.paymentActions}>
-                      <button className={styles.viewProofBtn} title="View Proof">👁️ View Proof</button>
-                      {activeTab === 'Pending' && (
-                        <>
-                          <button className={styles.approveBtn} title="Approve">✓</button>
-                          <button className={styles.rejectBtn} title="Reject">✕</button>
-                        </>
-                      )}
-                      <button className={styles.deleteBtn} title="Delete">🗑️</button>
+                {filteredPayments.length > 0 ? (
+                  filteredPayments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td className={styles.paymentId}>{payment.id}</td>
+                      <td className={styles.resident}>{payment.resident}</td>
+                      <td><span className={styles.phaseBadge}>{payment.phase}</span> Blk {payment.block} Lot {payment.lot}</td>
+                      <td className={styles.amount}>₱{payment.amount}</td>
+                      <td className={styles.datetime}>
+                        <div>{payment.date}</div>
+                        <div className={styles.time}>{payment.time}</div>
+                      </td>
+                      <td>{payment.method}</td>
+                      <td className={styles.paymentActions}>
+                        <button className={styles.viewProofBtn} title="View Proof">👁️ View Proof</button>
+                        {activeTab === 'Pending' && (
+                          <>
+                            <button className={styles.approveBtn} title="Approve">✓</button>
+                            <button className={styles.rejectBtn} title="Reject">✕</button>
+                          </>
+                        )}
+                        <button className={styles.deleteBtn} title="Delete">🗑️</button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#666' }}>
+                      No payments match the current filters.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

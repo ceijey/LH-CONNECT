@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { apiCall } from '@/lib/api-client';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -26,65 +27,40 @@ interface Conversation {
 export default function ContactHOAPage() {
   const router = useRouter();
   useAuthPageshow('resident');
-  const [selectedMessage, setSelectedMessage] = useState<number>(1);
+  const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<{ [key: number]: Conversation[] }>({});
 
-  const messages: Message[] = [
-    {
-      id: 1,
-      title: 'Thank you',
-      date: '2026-02-22 04:15 PM',
-      status: 'Replied',
-      preview: 'Thank you for quickly verifying my payment. Appreciated!',
-    },
-    {
-      id: 2,
-      title: 'Question about maintenance schedule',
-      date: '2026-02-20 10:00 AM',
-      status: 'Replied',
-      preview: 'When is the next scheduled maintenance in our area?',
-    },
-  ];
-
-  const conversations: { [key: number]: Conversation[] } = {
-    1: [
-      {
-        id: 1,
-        sender: 'You',
-        content: 'Thank you for quickly verifying my payment. Appreciated!',
-        timestamp: '2026-02-22 04:15 PM',
-      },
-      {
-        id: 2,
-        sender: 'HOA Admin',
-        content:
-          "You're welcome! We're always happy to help. If you have any other questions, feel free to reach out.",
-        timestamp: '2026-02-22 04:30 PM',
-      },
-    ],
-    2: [
-      {
-        id: 1,
-        sender: 'You',
-        content: 'When is the next scheduled maintenance in our area?',
-        timestamp: '2026-02-20 10:00 AM',
-      },
-      {
-        id: 2,
-        sender: 'HOA Admin',
-        content:
-          'The next maintenance for Block A is scheduled for March 5, 2026. Work will be done from 8 AM to 5 PM. Please ensure your gates are open for contractor access.',
-        timestamp: '2026-02-20 02:30 PM',
-      },
-    ],
-  };
-
-  const currentConversation = conversations[selectedMessage] || [];
-  const currentMessage = messages.find((m) => m.id === selectedMessage);
+  const currentConversation: Conversation[] = (selectedMessage !== null && conversations[selectedMessage]) ? conversations[selectedMessage] : [];
+  const currentMessage = messages.find((m) => m.id === selectedMessage ?? undefined) ?? null;
 
   useEffect(() => {
-    setIsLoading(false);
+    const fetchMessages = async () => {
+      try {
+        setIsLoading(true);
+        // Try to fetch resident messages (API may not exist yet)
+        const res = await apiCall('/api/messages');
+        if (res && res.messages) {
+          setMessages(res.messages as Message[]);
+        }
+        if (res && res.conversations) {
+          setConversations(res.conversations as { [key: number]: Conversation[] });
+        }
+        // if no messages returned, leave empty arrays
+        if (res && Array.isArray(res.messages) && res.messages.length > 0) {
+          setSelectedMessage(res.messages[0].id);
+        }
+      } catch (err) {
+        // no-op; fall back to empty state
+        console.error('Failed to fetch messages:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMessages();
   }, [router]);
 
   const handleSendReply = () => {
@@ -144,23 +120,29 @@ export default function ContactHOAPage() {
             </div>
 
             <div className={styles.messagesList}>
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`${styles.messageItem} ${
-                    selectedMessage === message.id ? styles.active : ''
-                  }`}
-                  onClick={() => setSelectedMessage(message.id)}
-                >
-                  <div className={styles.messageContent}>
-                    <h3 className={styles.messageTitle}>{message.title}</h3>
-                    <p className={styles.messageDate}>{message.date}</p>
+              {isLoading ? (
+                <div className={styles.emptyState}>Loading messages…</div>
+              ) : messages.length === 0 ? (
+                <div className={styles.emptyState}>No messages yet. Use the form to send a message to the HOA.</div>
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`${styles.messageItem} ${
+                      selectedMessage === message.id ? styles.active : ''
+                    }`}
+                    onClick={() => setSelectedMessage(message.id)}
+                  >
+                    <div className={styles.messageContent}>
+                      <h3 className={styles.messageTitle}>{message.title}</h3>
+                      <p className={styles.messageDate}>{message.date}</p>
+                    </div>
+                    <span className={`${styles.badge} ${styles[message.status.toLowerCase()]}`}>
+                      {message.status}
+                    </span>
                   </div>
-                  <span className={`${styles.badge} ${styles[message.status.toLowerCase()]}`}>
-                    {message.status}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </aside>
 
@@ -174,20 +156,26 @@ export default function ContactHOAPage() {
 
             {/* Messages Thread */}
             <div className={styles.messagesThread}>
-              {currentConversation.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`${styles.messageThread} ${
-                    msg.sender === 'You' ? styles.userMessage : styles.adminMessage
-                  }`}
-                >
-                  <div className={styles.senderInfo}>
-                    <strong className={styles.senderName}>{msg.sender}</strong>
-                    <span className={styles.timestamp}>{msg.timestamp}</span>
+              {isLoading ? (
+                <div className={styles.emptyState}>Loading conversation…</div>
+              ) : currentConversation.length === 0 ? (
+                <div className={styles.emptyState}>No conversation selected.</div>
+              ) : (
+                currentConversation.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`${styles.messageThread} ${
+                      msg.sender === 'You' ? styles.userMessage : styles.adminMessage
+                    }`}
+                  >
+                    <div className={styles.senderInfo}>
+                      <strong className={styles.senderName}>{msg.sender}</strong>
+                      <span className={styles.timestamp}>{msg.timestamp}</span>
+                    </div>
+                    <div className={styles.messageBody}>{msg.content}</div>
                   </div>
-                  <div className={styles.messageBody}>{msg.content}</div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Reply Section */}

@@ -3,122 +3,88 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-'use client';
-
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import { apiCall } from '@/lib/api-client';
+import styles from './qr-scanner.module.css';
 
 interface ResidentData {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  phase: string;
-  block: string;
-  lot: string;
-  monthlyDues: number;
-  balance: number;
-  status: 'Paid' | 'Pending' | 'Delinquent';
-  lastPayment: string;
-  lastPaymentAmount: number;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  phase?: string;
+  block?: string;
+  lot?: string;
+  balance?: number;
+  role?: string;
+  createdAt?: string;
 }
-
-const residentsDatabase: Record<string, ResidentData> = {
-  'RES001': {
-    id: 'RES001',
-    name: 'Juan dela Cruz',
-    email: 'juan@email.com',
-    phone: '0917-123-4567',
-    phase: 'Phase 1',
-    block: '1',
-    lot: '5',
-    monthlyDues: 500,
-    balance: 0,
-    status: 'Paid',
-    lastPayment: 'Feb 28, 2026',
-    lastPaymentAmount: 500,
-  },
-  'RES002': {
-    id: 'RES002',
-    name: 'Maria Santos',
-    email: 'maria@email.com',
-    phone: '0918-987-6543',
-    phase: 'Phase 2',
-    block: '2',
-    lot: '8',
-    monthlyDues: 500,
-    balance: 500,
-    status: 'Pending',
-    lastPayment: 'Jan 30, 2026',
-    lastPaymentAmount: 500,
-  },
-  'RES003': {
-    id: 'RES003',
-    name: 'Carlos Rodriguez',
-    email: 'carlos@email.com',
-    phone: '0919-456-7890',
-    phase: 'Phase 1',
-    block: '3',
-    lot: '12',
-    monthlyDues: 500,
-    balance: 1500,
-    status: 'Delinquent',
-    lastPayment: 'Dec 15, 2025',
-    lastPaymentAmount: 500,
-  },
-  'RES004': {
-    id: 'RES004',
-    name: 'Ana Garcia',
-    email: 'ana@email.com',
-    phone: '0920-321-6547',
-    phase: 'Phase 3',
-    block: '4',
-    lot: '2',
-    monthlyDues: 500,
-    balance: 0,
-    status: 'Paid',
-    lastPayment: 'Feb 25, 2026',
-    lastPaymentAmount: 500,
-  },
-};
 
 export default function QRScannerPage() {
   const router = useRouter();
+  useAuthPageshow('admin');
+  
   const scannerRef = useRef<any>(null);
   const [scannedResident, setScannedResident] = useState<ResidentData | null>(null);
   const [scanError, setScanError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [residentsCache, setResidentsCache] = useState<ResidentData[]>([]);
+  const [isLoadingResidents, setIsLoadingResidents] = useState(true);
 
+  // Fetch residents on component mount
   useEffect(() => {
+    const fetchResidents = async () => {
+      try {
+        setIsLoadingResidents(true);
+        const data = await apiCall('/api/residents');
+        console.log('Residents fetched:', data.residents?.length, 'residents');
+        console.log('Sample resident:', data.residents?.[0]);
+        setResidentsCache(data.residents || []);
+      } catch (error) {
+        console.error('Failed to fetch residents:', error);
+        setScanError('Failed to load residents data. Please refresh the page.');
+      } finally {
+        setIsLoadingResidents(false);
+      }
+    };
+
+    fetchResidents();
+  }, []);
+
+  // Initialize scanner when isScanning changes
+  useEffect(() => {
+    if (!isScanning || scannerRef.current) {
+      return;
+    }
 
     const setupScanner = async () => {
-      if (!isScanning || scannerRef.current) {
-        return;
-      }
-
       try {
-        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        const Html5QrcodeScanner = (await import('html5-qrcode')).Html5QrcodeScanner;
+
         const scanner = new Html5QrcodeScanner('qr-reader', {
           fps: 10,
-          qrbox: 250,
+          qrbox: { width: 250, height: 250 },
           aspectRatio: 1,
         }, false);
 
         scanner.render(
           (decodedText: string) => {
             // Parse the QR code data
-            const residentId = decodedText.trim();
-            const resident = residentsDatabase[residentId];
+            const scannedId = decodedText.trim();
+            console.log('QR Scanned ID:', scannedId);
+            console.log('Available resident IDs:', residentsCache.map(r => r.id));
+            
+            const resident = residentsCache.find((r) => r.id === scannedId);
 
             if (resident) {
+              console.log('Resident found:', resident);
               setScannedResident(resident);
               setScanError('');
               scanner.pause();
             } else {
-              setScanError(`Resident not found. ID: ${residentId}`);
+              console.log('Resident not found with ID:', scannedId);
+              setScanError(`Resident not found. ID: ${scannedId}`);
             }
           },
           () => {
@@ -142,7 +108,7 @@ export default function QRScannerPage() {
         scannerRef.current.clear().catch(() => {});
       }
     };
-  }, [isScanning]);
+  }, [isScanning, residentsCache]);
 
   const handleStartScan = () => {
     setScannedResident(null);
@@ -163,19 +129,6 @@ export default function QRScannerPage() {
     setScanError('');
     if (scannerRef.current) {
       scannerRef.current.resume();
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid':
-        return '#2e7d32';
-      case 'Pending':
-        return '#f57f17';
-      case 'Delinquent':
-        return '#c62828';
-      default:
-        return '#546e7a';
     }
   };
 
@@ -214,9 +167,9 @@ export default function QRScannerPage() {
                 <button
                   onClick={handleStartScan}
                   className={styles.scanBtn}
-                  disabled={permissionDenied}
+                  disabled={permissionDenied || isLoadingResidents}
                 >
-                  🔍 Start Scanning
+                  {isLoadingResidents ? '⏳ Loading residents...' : '🔍 Start Scanning'}
                 </button>
                 {permissionDenied && (
                   <p className={styles.errorText}>
@@ -255,12 +208,14 @@ export default function QRScannerPage() {
                 {/* Resident Card */}
                 <div className={styles.residentCard}>
                   <div className={styles.cardHeader}>
-                    <h2 className={styles.residentName}>{scannedResident.name}</h2>
+                    <h2 className={styles.residentName}>{scannedResident.fullName || 'Unknown Resident'}</h2>
                     <span
                       className={styles.statusBadge}
-                      style={{ background: getStatusColor(scannedResident.status) }}
+                      style={{
+                        background: scannedResident.balance && scannedResident.balance > 0 ? '#c62828' : '#2e7d32',
+                      }}
                     >
-                      {scannedResident.status}
+                      {scannedResident.balance && scannedResident.balance > 0 ? 'Delinquent' : 'Paid'}
                     </span>
                   </div>
 
@@ -274,15 +229,15 @@ export default function QRScannerPage() {
                       </div>
                       <div className={styles.infoItem}>
                         <span className={styles.infoLabel}>Email:</span>
-                        <span className={styles.infoValue}>{scannedResident.email}</span>
+                        <span className={styles.infoValue}>{scannedResident.email || '-'}</span>
                       </div>
                       <div className={styles.infoItem}>
                         <span className={styles.infoLabel}>Phone:</span>
-                        <span className={styles.infoValue}>{scannedResident.phone}</span>
+                        <span className={styles.infoValue}>{scannedResident.phone || '-'}</span>
                       </div>
                       <div className={styles.infoItem}>
                         <span className={styles.infoLabel}>Phase:</span>
-                        <span className={styles.infoValue}>{scannedResident.phase}</span>
+                        <span className={styles.infoValue}>{scannedResident.phase || '-'}</span>
                       </div>
                     </div>
                   </div>
@@ -293,13 +248,13 @@ export default function QRScannerPage() {
                     <div className={styles.infoGrid}>
                       <div className={styles.infoItem}>
                         <span className={styles.infoLabel}>Block:</span>
-                        <span className={styles.infoValue}>{scannedResident.block}</span>
+                        <span className={styles.infoValue}>{scannedResident.block || '-'}</span>
                       </div>
                       <div className={styles.infoItem}>
                         <span className={styles.infoLabel}>Lot:</span>
-                        <span className={styles.infoValue}>{scannedResident.lot}</span>
+                        <span className={styles.infoValue}>{scannedResident.lot || '-'}</span>
                       </div>
-                      <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ gridColumn: '1 / -1' }}>
                         <span className={styles.infoLabel}>Full Address:</span>
                         <span className={styles.infoValue}>
                           Blk {scannedResident.block} Lot {scannedResident.lot}, {scannedResident.phase}, Lincoln Heights
@@ -310,30 +265,18 @@ export default function QRScannerPage() {
 
                   {/* Billing Information */}
                   <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Billing Information</h3>
+                    <h3 className={styles.sectionTitle}>Balance Information</h3>
                     <div className={styles.billingGrid}>
-                      <div className={styles.billingCard}>
-                        <span className={styles.billingLabel}>Monthly Dues</span>
-                        <span className={styles.billingAmount}>₱{scannedResident.monthlyDues.toLocaleString()}</span>
-                      </div>
                       <div className={styles.billingCard}>
                         <span className={styles.billingLabel}>Outstanding Balance</span>
                         <span
                           className={styles.billingAmount}
                           style={{
-                            color: scannedResident.balance > 0 ? '#c62828' : '#2e7d32',
+                            color: scannedResident.balance && scannedResident.balance > 0 ? '#c62828' : '#2e7d32',
                           }}
                         >
-                          ₱{scannedResident.balance.toLocaleString()}
+                          ₱{(scannedResident.balance || 0).toLocaleString()}
                         </span>
-                      </div>
-                      <div className={styles.billingCard}>
-                        <span className={styles.billingLabel}>Last Payment</span>
-                        <span className={styles.billingValue}>{scannedResident.lastPayment}</span>
-                      </div>
-                      <div className={styles.billingCard}>
-                        <span className={styles.billingLabel}>Last Payment Amount</span>
-                        <span className={styles.billingValue}>₱{scannedResident.lastPaymentAmount.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -373,15 +316,9 @@ export default function QRScannerPage() {
 
             <div className={styles.infoCard}>
               <h3 className={styles.infoCardTitle}>Test QR Codes</h3>
-              <p className={styles.testText}>Use these IDs to test:</p>
-              <ul className={styles.testList}>
-                <li>RES001 - Juan dela Cruz</li>
-                <li>RES002 - Maria Santos</li>
-                <li>RES003 - Carlos Rodriguez</li>
-                <li>RES004 - Ana Garcia</li>
-              </ul>
+              <p className={styles.testText}>Use resident IDs to test scanning</p>
               <p className={styles.testNote}>
-                Scan the QR displayed on each resident's profile card
+                Each resident's QR code encodes their Firebase user ID for lookup
               </p>
             </div>
 
@@ -390,9 +327,9 @@ export default function QRScannerPage() {
               <ul className={styles.featureList}>
                 <li>✓ Instant resident lookup</li>
                 <li>✓ Complete billing info</li>
-                <li>✓ Payment history</li>
-                <li>✓ Status indicators</li>
                 <li>✓ Real-time scanning</li>
+                <li>✓ Camera permission handling</li>
+                <li>✓ Live database sync</li>
               </ul>
             </div>
           </aside>

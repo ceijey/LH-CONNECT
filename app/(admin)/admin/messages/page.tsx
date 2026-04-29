@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiCall } from '@/lib/api-client';
 import Link from 'next/link';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -23,24 +25,40 @@ interface Message {
 export default function AdminMessages() {
   useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
   const [activeNav, setActiveNav] = useState('messages');
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-
-  const messages: Message[] = [
-    { id: 'MSG001', from: 'Maria Santos', block: '2', lot: '8', subject: 'Question about monthly dues', date: '2026-02-23', time: '09:45 AM', message: "Good morning! I'd like to clarify the breakdown of our monthly dues. Can you provide details?", status: 'Unread', priority: 'High' },
-    { id: 'MSG002', from: 'Carlos Mendoza', block: '3', lot: '19', subject: 'Payment confirmation', date: '2026-02-23', time: '08:30 AM', message: 'I submitted a payment yesterday. Can you confirm if it was received?', status: 'Read', priority: 'Normal' },
-    { id: 'MSG003', from: 'Juan Dela Cruz', block: '1', lot: '15', subject: 'Thank you', date: '2026-02-22', time: '04:15 PM', message: 'Thank you for resolving the issue. Much appreciated!', status: 'Read', priority: 'Normal' },
-  ];
+  const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
     if (messages.length > 0 && !selectedMessage) {
       setSelectedMessage(messages[0]);
     }
+  }, [messages]);
+
+  // Fetch messages from API on mount
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        setIsLoading(true);
+        const res = await apiCall('/api/messages');
+        // Expecting { messages: Message[] }
+        const payload = res?.messages ?? [];
+        setMessages(payload);
+      } catch (err) {
+        console.error('Failed to load messages:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMessages();
   }, []);
 
   const unreadCount = messages.filter(m => m.status === 'Unread').length;
 
   useEffect(() => {
+    // minimal loader behavior until messages are fetched from API
     setIsLoading(false);
   }, [router]);
 
@@ -103,19 +121,27 @@ export default function AdminMessages() {
               <span className={messengerStyles.badge}>{unreadCount} New</span>
             </div>
             <div className={messengerStyles.messageThreads}>
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`${messengerStyles.messageThread} ${selectedMessage?.id === msg.id ? messengerStyles.active : ''}`}
-                  onClick={() => setSelectedMessage(msg)}
-                >
-                  <div className={messengerStyles.threadName}>{msg.from}</div>
-                  <div className={messengerStyles.threadInfo}>Blk {msg.block} - Lot {msg.lot}</div>
-                  <div className={messengerStyles.threadSubject}>{msg.subject}</div>
-                  <div className={messengerStyles.threadTime}>{msg.date} {msg.time}</div>
-                  {msg.status === 'Unread' && <div className={messengerStyles.unreadDot}></div>}
+              {isLoading ? (
+                <div className={messengerStyles.emptyState}>Loading messages…</div>
+              ) : messages.length === 0 ? (
+                <div className={messengerStyles.emptyState}>
+                  No messages yet. Residents can send messages via the Contact HOA form.
                 </div>
-              ))}
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`${messengerStyles.messageThread} ${selectedMessage?.id === msg.id ? messengerStyles.active : ''}`}
+                    onClick={() => setSelectedMessage(msg)}
+                  >
+                    <div className={messengerStyles.threadName}>{msg.from}</div>
+                    <div className={messengerStyles.threadInfo}>Blk {msg.block} - Lot {msg.lot}</div>
+                    <div className={messengerStyles.threadSubject}>{msg.subject}</div>
+                    <div className={messengerStyles.threadTime}>{msg.date} {msg.time}</div>
+                    {msg.status === 'Unread' && <div className={messengerStyles.unreadDot}></div>}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

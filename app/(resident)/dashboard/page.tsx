@@ -36,15 +36,11 @@ export default function DashboardPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const currentBalance = profile.balance ?? 0;
-  const nextDueDate = 'March 1, 2026';
+  const nextDueDate = '';
   const monthlyDues = 500;
   const qrCode = userId;
   
-  const paymentHistory: PaymentRecord[] = [
-    { month: 'February 2026', date: 'Feb 22, 2026', amount: 500, status: 'Paid' },
-    { month: 'January 2026', date: 'Jan 20, 2026', amount: 500, status: 'Paid' },
-    { month: 'December 2025', date: 'Dec 18, 2025', amount: 500, status: 'Paid' },
-  ];
+  const paymentHistory: PaymentRecord[] = [];
 
   useEffect(() => {
     const loadResidentProfile = async () => {
