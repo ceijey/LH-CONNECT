@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiCall } from '@/lib/api-client';
+import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './transactions.module.css';
 
 interface Transaction {
@@ -20,33 +22,90 @@ export default function TransactionsPage() {
   const router = useRouter();
   useAuthPageshow('resident');
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'All' | 'Paid' | 'Pending' | 'Failed'>('All');
-
-  // Mock transaction data
-  const allTransactions: Transaction[] = [
-    { id: 'TXN001', month: 'February 2026', date: 'Feb 22, 2026', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - February 2026', paymentMethod: 'GCash' },
-    { id: 'TXN002', month: 'January 2026', date: 'Jan 20, 2026', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - January 2026', paymentMethod: 'GCash' },
-    { id: 'TXN003', month: 'December 2025', date: 'Dec 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - December 2025', paymentMethod: 'Maya' },
-    { id: 'TXN004', month: 'November 2025', date: 'Nov 15, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - November 2025', paymentMethod: 'Bank Transfer' },
-    { id: 'TXN005', month: 'October 2025', date: 'Oct 22, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - October 2025', paymentMethod: 'GCash' },
-    { id: 'TXN006', month: 'September 2025', date: 'Sep 19, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - September 2025', paymentMethod: 'Cash' },
-    { id: 'TXN007', month: 'August 2025', date: 'Aug 21, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - August 2025', paymentMethod: 'GCash' },
-    { id: 'TXN008', month: 'July 2025', date: 'Jul 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - July 2025', paymentMethod: 'Maya' },
-    { id: 'TXN009', month: 'June 2025', date: 'Jun 20, 2025', type: 'Fine', amount: 50, status: 'Paid', description: 'Late payment fine', paymentMethod: 'System' },
-    { id: 'TXN010', month: 'June 2025', date: 'Jun 15, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - June 2025', paymentMethod: 'Bank Transfer' },
-    { id: 'TXN011', month: 'May 2025', date: 'May 22, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - May 2025', paymentMethod: 'GCash' },
-    { id: 'TXN012', month: 'April 2025', date: 'Apr 18, 2025', type: 'Payment', amount: 500, status: 'Paid', description: 'Monthly dues - April 2025', paymentMethod: 'Cash' },
-  ];
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    setIsLoading(false);
+    const loadTransactions = async () => {
+      try {
+        setLoadError('');
+        const payload = await apiCall('/api/payments');
+        const fetched = (payload.payments ?? []).map((payment: any) => {
+          const toMillis = (value: any) => {
+            if (!value) return 0;
+            if (typeof value.toMillis === 'function') return value.toMillis();
+            if (typeof value.toDate === 'function') return value.toDate().getTime();
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : new Date(value).getTime() || 0;
+          };
+
+          const createdAt = payment.createdAt ? new Date(toMillis(payment.createdAt)) : new Date();
+          const month = createdAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+
+          return {
+            id: payment.id,
+            month,
+            date: createdAt.toLocaleDateString(),
+            type: payment.status?.toLowerCase() === 'pending' ? 'Adjustment' : 'Payment',
+            amount: Number(payment.amount ?? 0),
+            status: payment.status === 'Failed' ? 'Failed' : payment.status === 'Pending' ? 'Pending' : 'Paid',
+            description: payment.reference ? `Payment reference ${payment.reference}` : `Monthly dues - ${month}`,
+            paymentMethod: (payment.method || 'System') as Transaction['paymentMethod'],
+          } as Transaction;
+        }) as Transaction[];
+
+        setTransactions(fetched);
+      } catch (error: any) {
+        setTransactions([]);
+        setLoadError(error?.message || 'Failed to load transactions');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTransactions();
   }, [router]);
 
   const filteredTransactions = filterStatus === 'All' 
-    ? allTransactions 
-    : allTransactions.filter(t => t.status === filterStatus);
+    ? transactions 
+    : transactions.filter(t => t.status === filterStatus);
 
   const totalAmount = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  const handleDownloadCSV = async () => {
+    setIsDownloading(true);
+    try {
+      const headers = ['Date', 'Month', 'Type', 'Description', 'Amount', 'Payment Method', 'Status'];
+      const rows = filteredTransactions.map((transaction) => [
+        transaction.date,
+        transaction.month,
+        transaction.type,
+        transaction.description,
+        String(transaction.amount),
+        transaction.paymentMethod,
+        transaction.status,
+      ]);
+
+      const csv = [
+        headers.join(','),
+        ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'transactions.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (isLoading) {
     return <div className={styles.loading}>Loading...</div>;
@@ -98,6 +157,11 @@ export default function TransactionsPage() {
 
         {/* Transactions Table */}
         <section className={styles.transactionsSection}>
+          {loadError ? (
+            <div className={styles.emptyState}>
+              <p>{loadError}</p>
+            </div>
+          ) : null}
           {filteredTransactions.length === 0 ? (
             <div className={styles.emptyState}>
               <p>No transactions found for this filter.</p>
@@ -142,10 +206,10 @@ export default function TransactionsPage() {
 
         {/* Download Section */}
         <section className={styles.downloadSection}>
-          <button className={styles.downloadBtn}>
-            📥 Download All as CSV
+          <button className={styles.downloadBtn} onClick={handleDownloadCSV} disabled={isDownloading || filteredTransactions.length === 0}>
+            📥 {isDownloading ? 'Downloading...' : 'Download All as CSV'}
           </button>
-          <button className={styles.printBtn}>
+          <button className={styles.printBtn} onClick={() => window.print()}>
             🖨️ Print Transactions
           </button>
         </section>

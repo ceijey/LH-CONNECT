@@ -12,10 +12,13 @@ import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './dashboard.module.css';
 
 interface PaymentRecord {
-  month: string;
-  date: string;
+  id?: string;
   amount: number;
-  status: 'Paid' | 'Pending';
+  createdAt?: any;
+  status?: string;
+  method?: string;
+  reference?: string;
+  residentId?: string;
 }
 
 interface UserProfile {
@@ -36,11 +39,15 @@ export default function DashboardPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const currentBalance = profile.balance ?? 0;
-  const nextDueDate = '';
+  const [nextDueDateStr, setNextDueDateStr] = useState<string>('');
+  const nextDueDate = nextDueDateStr;
   const monthlyDues = 500;
   const qrCode = userId;
   
-  const paymentHistory: PaymentRecord[] = [];
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [statements, setStatements] = useState<any[]>([]);
+  const [statementsLoading, setStatementsLoading] = useState(true);
 
   useEffect(() => {
     const loadResidentProfile = async () => {
@@ -59,6 +66,61 @@ export default function DashboardPage() {
 
     loadResidentProfile();
   }, [router]);
+
+  useEffect(() => {
+    const loadPayments = async () => {
+      try {
+        setPaymentsLoading(true);
+        const payload = await apiCall('/api/payments');
+        const fetched = (payload.payments ?? []) as PaymentRecord[];
+        setPayments(fetched);
+      } catch (e) {
+        setPayments([]);
+      } finally {
+        setPaymentsLoading(false);
+      }
+    };
+
+    loadPayments();
+  }, []);
+
+
+  useEffect(() => {
+    const loadStatements = async () => {
+      try {
+        setStatementsLoading(true);
+        const payload = await apiCall('/api/statements');
+        const fetched = (payload.statements ?? []) as any[];
+        setStatements(fetched);
+
+        const now = Date.now();
+        const unpaid = fetched.filter((s) => {
+          const balance = Number(s.balance ?? 0);
+          const status = (s.status || '').toString().toLowerCase();
+          return balance > 0 || status !== 'paid';
+        });
+
+        if (unpaid.length === 0) {
+          setNextDueDateStr('All caught up');
+        } else {
+          const withDates = unpaid
+            .map((s) => ({ stmt: s, time: s.date ? new Date(s.date).getTime() : 0 }))
+            .sort((a, b) => a.time - b.time);
+
+          const next = withDates.find((w) => w.time >= now) || withDates[0];
+          if (next && next.time) setNextDueDateStr(new Date(next.time).toLocaleDateString());
+          else setNextDueDateStr('Due date unknown');
+        }
+      } catch (e) {
+        setStatements([]);
+        setNextDueDateStr('—');
+      } finally {
+        setStatementsLoading(false);
+      }
+    };
+
+    loadStatements();
+  }, []);
 
 
 
@@ -196,20 +258,38 @@ export default function DashboardPage() {
         <section className={styles.paymentSection}>
           <h2 className={styles.sectionTitle}>Recent Payment History</h2>
           <div className={styles.paymentList}>
-            {paymentHistory.map((payment, index) => (
-              <div key={index} className={styles.paymentItem}>
-                <div className={styles.paymentInfo}>
-                  <div className={styles.paymentMonth}>{payment.month}</div>
-                  <div className={styles.paymentDate}>{payment.date}</div>
-                </div>
-                <div className={styles.paymentAmount}>
-                  <span className={styles.amount}>₱{payment.amount}</span>
-                  <span className={`${styles.status} ${styles[payment.status.toLowerCase()]}`}>
-                    {payment.status}
-                  </span>
-                </div>
-              </div>
-            ))}
+            {paymentsLoading ? (
+              <div className={styles.loading}>Loading payments...</div>
+            ) : payments.length === 0 ? (
+              <div className={styles.empty}>No payments found.</div>
+            ) : (
+              payments.map((payment) => {
+                const toMillis = (v: any) => {
+                  if (!v) return 0;
+                  if (typeof v.toMillis === 'function') return v.toMillis();
+                  const n = Number(v);
+                  return Number.isFinite(n) ? n : new Date(v).getTime() || 0;
+                };
+
+                const date = payment.createdAt ? new Date(toMillis(payment.createdAt)) : null;
+                const dateStr = date ? date.toLocaleDateString() : '—';
+
+                return (
+                  <div key={payment.id ?? dateStr} className={styles.paymentItem}>
+                    <div className={styles.paymentInfo}>
+                      <div className={styles.paymentMonth}>{date ? date.toLocaleString(undefined, { month: 'short', year: 'numeric' }) : '—'}</div>
+                      <div className={styles.paymentDate}>{dateStr}</div>
+                    </div>
+                    <div className={styles.paymentAmount}>
+                      <span className={styles.amount}>₱{payment.amount}</span>
+                      <span className={`${styles.status} ${styles[(payment.status ?? 'pending').toLowerCase()]}`}>
+                        {payment.status ?? 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
           <Link href="/dashboard/transactions">
             <button className={styles.viewAllBtn}>View All Transactions</button>
