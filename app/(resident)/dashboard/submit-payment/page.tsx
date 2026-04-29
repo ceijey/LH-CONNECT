@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import Toast from '@/app/components/Toast';
 import styles from './submit-payment.module.css';
 
 interface FormData {
@@ -19,11 +20,16 @@ interface FormData {
 }
 
 interface Submission {
+  id?: string;
   month: string;
   amount: number;
   status: 'Verified' | 'Pending';
   submittedDate: string;
   verifiedDate?: string;
+  paymentMethod?: string;
+  referenceNumber?: string;
+  fileName?: string;
+  fileUrl?: string;
 }
 
 interface UserProfile {
@@ -48,10 +54,10 @@ export default function SubmitPaymentPage() {
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  const paymentMethod = '';
-
-  const recentSubmissions: Submission[] = [];
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState('gcash');
+  const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
+  const [recentLoading, setRecentLoading] = useState(true);
 
   useEffect(() => {
       const loadResidentProfile = async () => {
@@ -77,12 +83,35 @@ export default function SubmitPaymentPage() {
       loadResidentProfile();
     }, [router]);
 
+  useEffect(() => {
+    const loadRecentSubmissions = async () => {
+      try {
+        setRecentLoading(true);
+        const payload = await apiCall('/api/payment-submissions');
+        setRecentSubmissions((payload.submissions ?? []).map((submission: any) => ({
+          ...submission,
+          month: submission.month ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+          amount: Number(submission.paymentAmount ?? 0),
+          status: submission.status === 'Verified' ? 'Verified' : 'Pending',
+          submittedDate: submission.submittedDate ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(),
+        })));
+      } catch (error) {
+        console.error('Failed to load recent submissions:', error);
+        setRecentSubmissions([]);
+      } finally {
+        setRecentLoading(false);
+      }
+    };
+
+    loadRecentSubmissions();
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
+        setToast({ message: 'File size must be less than 10MB', type: 'error' });
         return;
       }
       setFormData({ ...formData, file });
@@ -101,24 +130,60 @@ export default function SubmitPaymentPage() {
     e.preventDefault();
 
     if (!formData.file) {
-      alert('Please upload a payment proof');
+      setToast({ message: 'Please upload a payment proof', type: 'error' });
       return;
     }
 
     if (!formData.referenceNumber.trim()) {
-      alert('Please enter an OR number');
+      setToast({ message: 'Please enter an OR number', type: 'error' });
       return;
     }
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      alert('Payment proof submitted successfully!');
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: '', blockLot: '', paymentAmount: '' });
+    try {
+      const payload = new FormData();
+      payload.append('residentName', formData.residentName);
+      payload.append('blockLot', formData.blockLot);
+      payload.append('paymentAmount', formData.paymentAmount);
+      payload.append('paymentMethod', paymentMethod);
+      payload.append('referenceNumber', formData.referenceNumber);
+      payload.append('notes', formData.notes);
+      payload.append('file', formData.file);
+
+      const response = await fetch('/api/payment-submissions', {
+        method: 'POST',
+        body: payload,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to submit payment proof');
+      }
+
+      const submission = data.submission as Submission;
+
+      setRecentSubmissions((current) => [
+        {
+          ...submission,
+          month: submission.month ?? new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+          amount: Number(submission.amount ?? (Number(formData.paymentAmount) || 0)),
+          status: submission.status ?? 'Pending',
+          submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
+        },
+        ...current,
+      ]);
+
+      setToast({ message: 'Payment proof submitted successfully!', type: 'success' });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: '' });
       setFileName('');
+    } catch (error: any) {
+      setToast({ message: error.message || 'Failed to submit payment proof', type: 'error' });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   if (isLoading) {
@@ -127,6 +192,12 @@ export default function SubmitPaymentPage() {
 
   return (
     <div className={styles.container}>
+      <Toast
+        isVisible={toast !== null}
+        message={toast?.message ?? ''}
+        type={toast?.type ?? 'info'}
+        onClose={() => setToast(null)}
+      />
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
@@ -214,7 +285,11 @@ export default function SubmitPaymentPage() {
                 {/* Payment Method */}
                 <div className={styles.formGroup}>
                   <label className={styles.label}>Payment Method</label>
-                  <select className={styles.select}>
+                  <select
+                    className={styles.select}
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  >
                     <option value="gcash">GCash</option>
                     <option value="maya">Maya</option>
                     <option value="bank">Bank Transfer</option>
@@ -344,27 +419,33 @@ export default function SubmitPaymentPage() {
             <div className={styles.card}>
               <h3 className={styles.cardTitle}>Recent Submissions</h3>
               <div className={styles.submissionsList}>
-                {recentSubmissions.map((submission, index) => (
-                  <div key={index} className={styles.submissionItem}>
-                    <div className={styles.submissionHeader}>
-                      <div>
-                        <h4 className={styles.submissionMonth}>{submission.month}</h4>
-                        <p className={styles.submissionAmount}>₱{submission.amount}</p>
+                {recentLoading ? (
+                  <p className={styles.uploadSmall}>Loading recent submissions...</p>
+                ) : recentSubmissions.length === 0 ? (
+                  <p className={styles.uploadSmall}>No recent submissions yet.</p>
+                ) : (
+                  recentSubmissions.map((submission) => (
+                    <div key={submission.id ?? `${submission.submittedDate}-${submission.referenceNumber ?? ''}`} className={styles.submissionItem}>
+                      <div className={styles.submissionHeader}>
+                        <div>
+                          <h4 className={styles.submissionMonth}>{submission.month}</h4>
+                          <p className={styles.submissionAmount}>₱{submission.amount}</p>
+                        </div>
+                        <span className={`${styles.badge} ${styles[submission.status.toLowerCase()]}`}>
+                          ✓ {submission.status}
+                        </span>
                       </div>
-                      <span className={`${styles.badge} ${styles[submission.status.toLowerCase()]}`}>
-                        ✓ {submission.status}
-                      </span>
-                    </div>
-                    <p className={styles.submissionDate}>
-                      Submitted: {submission.submittedDate}
-                    </p>
-                    {submission.verifiedDate && (
-                      <p className={styles.verifiedDate}>
-                        Verified: {submission.verifiedDate}
+                      <p className={styles.submissionDate}>
+                        Submitted: {submission.submittedDate}
                       </p>
-                    )}
-                  </div>
-                ))}
+                      {submission.verifiedDate && (
+                        <p className={styles.verifiedDate}>
+                          Verified: {submission.verifiedDate}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </aside>

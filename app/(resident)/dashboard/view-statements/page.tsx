@@ -50,7 +50,7 @@ export default function ViewStatementsPage() {
         setError(null);
         const data = await apiCall('/api/statements');
         console.log('Statements API response:', data);
-        setStatements(data.statements);
+        setStatements(data.statements ?? []);
       } catch (err: any) {
         console.error('Error fetching statements:', err);
         setError(err.message || 'Failed to load statements');
@@ -69,12 +69,24 @@ export default function ViewStatementsPage() {
         format,
         statementId: statement.id,
       });
+      const response = await fetch(`/api/statements/download?${query.toString()}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to download statement');
+      }
+
+      const blob = await response.blob();
       const link = document.createElement('a');
-      link.href = `/api/statements/download?${query.toString()}`;
+      const url = URL.createObjectURL(blob);
+      link.href = url;
       link.download = `statement_${statement.month}_${statement.year}.${format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error('Download error:', err);
       alert('Failed to download statement. Please try again.');
@@ -87,12 +99,24 @@ export default function ViewStatementsPage() {
     try {
       setIsDownloading(true);
       const query = new URLSearchParams({ format });
+      const response = await fetch(`/api/statements/download?${query.toString()}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to download statements');
+      }
+
+      const blob = await response.blob();
       const link = document.createElement('a');
-      link.href = `/api/statements/download?${query.toString()}`;
+      const url = URL.createObjectURL(blob);
+      link.href = url;
       link.download = `all_statements.${format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error('Download error:', err);
       alert('Failed to download statements. Please try again.');
