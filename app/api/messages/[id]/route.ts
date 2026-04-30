@@ -13,10 +13,8 @@ const isUnreadMessage = (message: any) => {
   return status === 'unread' || status === 'new';
 };
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, context: any) {
+  const { params } = context || {};
   const tokenVerification = await verifyToken(request);
 
   if (tokenVerification.error) {
