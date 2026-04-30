@@ -11,15 +11,19 @@ import Toast from '@/app/components/Toast';
 import styles from './contact-hoa.module.css';
 
 interface Message {
-  id: number;
+  id: string;
   title: string;
   date: string;
   status: 'Replied' | 'New';
   preview: string;
+  senderId?: string;
+  senderName?: string;
+  threadId?: string;
+  replies?: Conversation[];
 }
 
 interface Conversation {
-  id: number;
+  id: string;
   sender: 'You' | 'HOA Admin';
   content: string;
   timestamp: string;
@@ -28,11 +32,11 @@ interface Conversation {
 export default function ContactHOAPage() {
   const router = useRouter();
   useAuthPageshow('resident');
-  const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<{ [key: number]: Conversation[] }>({});
+  const [conversations, setConversations] = useState<{ [key: string]: Conversation[] }>({});
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
@@ -42,6 +46,13 @@ export default function ContactHOAPage() {
     ? null
     : messages.find((m) => m.id === selectedMessage) ?? null;
 
+  const mapRepliesToConversation = (replies: any[] = []): Conversation[] => replies.map((reply, index) => ({
+    id: String(reply.id ?? `${index}-${reply.time ?? Date.now()}`),
+    sender: String(reply.senderRole ?? '').toLowerCase() === 'admin' ? 'HOA Admin' : 'You',
+    content: String(reply.message ?? ''),
+    timestamp: `${reply.date ?? ''} ${reply.time ?? ''}`.trim(),
+  }));
+
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -49,14 +60,40 @@ export default function ContactHOAPage() {
         // Try to fetch resident messages (API may not exist yet)
         const res = await apiCall('/api/messages');
         if (res && res.messages) {
-          setMessages(res.messages as Message[]);
+          const threadMessages = (res.messages as any[]).map((message) => ({
+            id: String(message.id),
+            title: String(message.subject ?? message.title ?? 'New HOA Message'),
+            date: String(message.date ?? new Date().toLocaleDateString()),
+            status: String(message.status ?? '').toLowerCase() === 'unread' ? 'New' : 'Replied',
+            preview: String(message.preview ?? message.message ?? '').slice(0, 120),
+            senderId: message.senderId,
+            senderName: message.senderName,
+            threadId: message.threadId ?? message.id,
+            replies: Array.isArray(message.replies) ? mapRepliesToConversation(message.replies) : undefined,
+          })) as Message[];
+
+          setMessages(threadMessages);
+
+          const threadMap = threadMessages.reduce<{ [key: string]: Conversation[] }>((acc, message) => {
+            acc[message.id] = message.replies && message.replies.length > 0
+              ? message.replies
+              : [{
+                  id: `${message.id}-starter`,
+                  sender: 'You',
+                  content: message.preview,
+                  timestamp: message.date,
+                }];
+            return acc;
+          }, {});
+
+          setConversations(threadMap);
         }
         if (res && res.conversations) {
-          setConversations(res.conversations as { [key: number]: Conversation[] });
+          setConversations(res.conversations as { [key: string]: Conversation[] });
         }
         // if no messages returned, leave empty arrays
         if (res && Array.isArray(res.messages) && res.messages.length > 0) {
-          setSelectedMessage(res.messages[0].id);
+          setSelectedMessage(String(res.messages[0].id));
         }
       } catch (err) {
         // no-op; fall back to empty state
@@ -94,34 +131,51 @@ export default function ContactHOAPage() {
           recipientRole: 'admin',
           to: 'HOA Admin',
           priority: 'Normal',
+          threadId: currentMessage?.id,
         }),
       });
 
       const createdMessage = response?.message;
 
       if (createdMessage) {
-        setMessages((current) => [
-          {
-            id: createdMessage.id ?? Date.now(),
-            title: createdMessage.subject ?? subject,
-            date: createdMessage.date ?? new Date().toLocaleDateString(),
-            status: 'New',
-            preview: createdMessage.preview ?? trimmedReply.slice(0, 60),
-          },
-          ...current,
-        ]);
+        const nextMessage: Message = {
+          id: String(createdMessage.id ?? currentMessage?.id ?? Date.now()),
+          title: String(createdMessage.subject ?? subject),
+          date: String(createdMessage.date ?? new Date().toLocaleDateString()),
+          status: 'New',
+          preview: String(createdMessage.preview ?? trimmedReply.slice(0, 60)),
+          senderId: createdMessage.senderId,
+          senderName: createdMessage.senderName,
+          threadId: createdMessage.threadId ?? createdMessage.id,
+          replies: Array.isArray(createdMessage.replies) ? mapRepliesToConversation(createdMessage.replies) : undefined,
+        };
+
+        setMessages((current) => {
+          const existingIndex = current.findIndex((message) => message.id === nextMessage.id);
+
+          if (existingIndex >= 0) {
+            return current.map((message) => (message.id === nextMessage.id ? nextMessage : message));
+          }
+
+          return [nextMessage, ...current];
+        });
 
         setConversations((current) => ({
           ...current,
-          [createdMessage.id ?? Date.now()]: [
-            {
-              id: Date.now(),
-              sender: 'You',
-              content: trimmedReply,
-              timestamp: createdMessage.time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            },
-          ],
+          [nextMessage.id]: nextMessage.replies && nextMessage.replies.length > 0
+            ? nextMessage.replies
+            : [
+                ...(current[currentMessage?.id ?? nextMessage.id] ?? []),
+                {
+                  id: `${Date.now()}`,
+                  sender: 'You',
+                  content: trimmedReply,
+                  timestamp: createdMessage.time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                },
+              ],
         }));
+
+        setSelectedMessage(nextMessage.id);
       }
 
       setReplyText('');

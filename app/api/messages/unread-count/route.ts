@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
-
-const isUnreadMessage = (message: any) => {
-  const status = String(message?.status ?? '').trim().toLowerCase();
-  const read = message?.read;
-
-  if (typeof read === 'boolean') {
-    return !read;
-  }
-
-  return status === 'unread' || status === 'new';
-};
+import { countUnreadThreads } from '@/lib/message-threads';
 
 export async function GET(request: NextRequest) {
   const tokenVerification = await verifyToken(request);
@@ -36,7 +26,7 @@ export async function GET(request: NextRequest) {
         ? await adminDb.collection('messages').get()
         : await adminDb.collection('messages').where('recipientId', '==', decoded.uid).get();
 
-    const unreadCount = (snapshot.docs || []).filter((doc: any) => isUnreadMessage(doc.data())).length;
+    const unreadCount = countUnreadThreads((snapshot.docs || []).map((doc: any) => ({ id: doc.id, ...doc.data() })));
 
     return NextResponse.json({ unreadCount, user: decoded });
   } catch (error: any) {

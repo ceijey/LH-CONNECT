@@ -14,6 +14,7 @@ import messengerStyles from './messenger.module.css';
 interface Message {
   id: string;
   senderId?: string;
+  senderName?: string;
   from: string;
   block: string;
   lot: string;
@@ -23,6 +24,18 @@ interface Message {
   message: string;
   status: 'Unread' | 'Read';
   priority: 'High' | 'Normal' | 'Low';
+  replies?: ConversationEntry[];
+  threadId?: string;
+}
+
+interface ConversationEntry {
+  id: string;
+  senderId?: string;
+  senderName?: string;
+  senderRole?: string;
+  message: string;
+  date: string;
+  time: string;
 }
 
 export default function AdminMessages() {
@@ -94,7 +107,7 @@ export default function AdminMessages() {
     }
 
     try {
-      await apiCall('/api/messages', {
+      const response = await apiCall('/api/messages', {
         method: 'POST',
         body: JSON.stringify({
           subject: `Re: ${selectedMessage.subject}`,
@@ -103,8 +116,20 @@ export default function AdminMessages() {
           recipientRole: 'resident',
           to: selectedMessage.from,
           priority: selectedMessage.priority ?? 'Normal',
+          threadId: selectedMessage.id,
         }),
       });
+
+      const updatedMessage = response?.message;
+
+      if (updatedMessage) {
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === updatedMessage.id ? updatedMessage : message,
+          ),
+        );
+        setSelectedMessage(updatedMessage);
+      }
 
       setReplyText('');
       showToast('Reply sent successfully.', 'success');
@@ -242,9 +267,46 @@ export default function AdminMessages() {
                   <span>From: {selectedMessage.from} • Blk {selectedMessage.block} - Lot {selectedMessage.lot}</span>
                   <span>{selectedMessage.date} {selectedMessage.time}</span>
                 </div>
-                <div className={messengerStyles.messageContent}>
-                  {selectedMessage.message}
-                </div>
+                  <div className={messengerStyles.messageContent}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {(selectedMessage.replies && selectedMessage.replies.length > 0
+                        ? selectedMessage.replies
+                        : [{
+                            id: selectedMessage.id,
+                            senderName: selectedMessage.from,
+                            senderRole: 'resident',
+                            message: selectedMessage.message,
+                            date: selectedMessage.date,
+                            time: selectedMessage.time,
+                          }]
+                      ).map((reply) => {
+                        const isAdminReply = String(reply.senderRole ?? '').toLowerCase() === 'admin';
+
+                        return (
+                          <div
+                            key={reply.id}
+                            style={{
+                              alignSelf: isAdminReply ? 'flex-end' : 'flex-start',
+                              maxWidth: '85%',
+                              padding: '0.85rem 1rem',
+                              borderRadius: '16px',
+                              background: isAdminReply ? '#0f172a' : '#f8fafc',
+                              color: isAdminReply ? '#ffffff' : '#0f172a',
+                              border: isAdminReply ? 'none' : '1px solid #e2e8f0',
+                            }}
+                          >
+                            <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', opacity: 0.8 }}>
+                              {isAdminReply ? 'HOA Admin' : (reply.senderName ?? selectedMessage.from)}
+                            </div>
+                            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{reply.message}</div>
+                            <div style={{ fontSize: '0.75rem', marginTop: '0.45rem', opacity: 0.7 }}>
+                              {reply.date} {reply.time}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 <div className={messengerStyles.replySection}>
                   <h4>Reply</h4>
                   <textarea
