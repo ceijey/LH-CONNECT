@@ -34,7 +34,9 @@ export default function ContactHOAPage() {
   const [conversations, setConversations] = useState<{ [key: number]: Conversation[] }>({});
 
   const currentConversation: Conversation[] = (selectedMessage !== null && conversations[selectedMessage]) ? conversations[selectedMessage] : [];
-  const currentMessage = messages.find((m) => m.id === selectedMessage ?? undefined) ?? null;
+  const currentMessage = selectedMessage === null
+    ? null
+    : messages.find((m) => m.id === selectedMessage) ?? null;
 
   useEffect(() => {
     const fetchMessages = async () => {

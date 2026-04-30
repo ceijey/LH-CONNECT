@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -21,6 +22,7 @@ interface Resident {
 }
 
 export default function AdminResidents() {
+  const router = useRouter();
   useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('residents');
