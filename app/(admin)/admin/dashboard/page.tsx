@@ -9,6 +9,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
 } from 'recharts';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -212,6 +213,7 @@ export default function AdminDashboard() {
           >
             <span className={styles.navIcon}>💬</span>
             <span className={styles.navLabel}>Messages</span>
+            <UnreadMessagesBadge />
           </Link>
           <Link 
             href="/admin/reports" 

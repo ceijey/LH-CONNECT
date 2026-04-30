@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
+const formatTimestamp = (date: Date) => {
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return {
+    date: date.toLocaleDateString(),
+    time,
+  };
+};
+
 export async function GET(request: NextRequest) {
   const tokenVerification = await verifyToken(request);
 
@@ -50,6 +58,75 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ messages, user: decoded });
   } catch (error: any) {
     console.error('Error fetching messages:', error.message || error);
+    return createErrorResponse('Internal server error', 500);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const tokenVerification = await verifyToken(request);
+
+  if (tokenVerification.error) {
+    return createErrorResponse(tokenVerification.error, tokenVerification.status);
+  }
+
+  const decoded = tokenVerification.decoded!;
+
+  try {
+    const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
+    const userData = userDoc.data();
+
+    if (!userData) {
+      return createErrorResponse('User not found', 404);
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const messageText = String(body.message ?? '').trim();
+    const subjectText = String(body.subject ?? '').trim();
+    const recipientId = String(body.recipientId ?? '').trim() || 'admin';
+    const priority = String(body.priority ?? 'Normal').trim() || 'Normal';
+
+    if (!messageText) {
+      return createErrorResponse('Message is required', 400);
+    }
+
+    const senderName = String(userData.fullName ?? userData.name ?? decoded.uid).trim();
+    const addressParts = [userData.phase, userData.block && `Blk ${userData.block}`, userData.lot && `Lot ${userData.lot}`]
+      .filter(Boolean)
+      .join(' ');
+    const now = new Date();
+    const { date, time } = formatTimestamp(now);
+    const subject = subjectText || `Message from ${senderName}`;
+
+    const messagePayload = {
+      senderId: decoded.uid,
+      senderName,
+      recipientId,
+      recipientRole: String(body.recipientRole ?? (recipientId === 'admin' ? 'admin' : 'resident')).toLowerCase(),
+      from: senderName,
+      to: String(body.to ?? (recipientId === 'admin' ? 'HOA Admin' : recipientId)),
+      phase: userData.phase ?? '',
+      block: userData.block ?? '',
+      lot: userData.lot ?? '',
+      subject,
+      message: messageText,
+      preview: messageText.slice(0, 120),
+      status: 'Unread',
+      read: false,
+      priority,
+      date,
+      time,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      address: addressParts,
+    };
+
+    const ref = await adminDb.collection('messages').add(messagePayload);
+
+    return NextResponse.json({
+      message: { id: ref.id, ...messagePayload },
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating message:', error.message || error);
     return createErrorResponse('Internal server error', 500);
   }
 }

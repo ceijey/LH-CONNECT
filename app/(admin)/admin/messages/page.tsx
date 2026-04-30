@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import Link from 'next/link';
+import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
+import Toast from '@/app/components/Toast';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
@@ -11,6 +13,7 @@ import messengerStyles from './messenger.module.css';
 
 interface Message {
   id: string;
+  senderId?: string;
   from: string;
   block: string;
   lot: string;
@@ -29,12 +32,88 @@ export default function AdminMessages() {
   const [activeNav, setActiveNav] = useState('messages');
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [replyText, setReplyText] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [isToastVisible, setIsToastVisible] = useState(false);
 
   useEffect(() => {
     if (messages.length > 0 && !selectedMessage) {
       setSelectedMessage(messages[0]);
     }
   }, [messages]);
+
+  const markMessageAsRead = async (messageId: string) => {
+    const target = messages.find((message) => message.id === messageId);
+
+    if (!target || target.status === 'Read') {
+      return;
+    }
+
+    try {
+      await apiCall(`/api/messages/${messageId}`, { method: 'PATCH' });
+
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === messageId ? { ...message, status: 'Read' } : message,
+        ),
+      );
+
+      setSelectedMessage((current) =>
+        current && current.id === messageId ? { ...current, status: 'Read' } : current,
+      );
+
+      window.dispatchEvent(new Event('lh-messages-updated'));
+    } catch (error) {
+      console.error('Failed to mark message as read:', error);
+    }
+  };
+
+  const handleSelectMessage = (message: Message) => {
+    setSelectedMessage(message);
+    void markMessageAsRead(message.id);
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setIsToastVisible(true);
+  };
+
+  const handleSendReply = async () => {
+    const trimmedReply = replyText.trim();
+
+    if (!selectedMessage?.senderId) {
+      showToast('Select a resident message to reply to.', 'error');
+      return;
+    }
+
+    if (!trimmedReply) {
+      showToast('Type a reply before sending.', 'error');
+      return;
+    }
+
+    try {
+      await apiCall('/api/messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject: `Re: ${selectedMessage.subject}`,
+          message: trimmedReply,
+          recipientId: selectedMessage.senderId,
+          recipientRole: 'resident',
+          to: selectedMessage.from,
+          priority: selectedMessage.priority ?? 'Normal',
+        }),
+      });
+
+      setReplyText('');
+      showToast('Reply sent successfully.', 'success');
+      window.dispatchEvent(new Event('lh-messages-updated'));
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+      showToast('Failed to send reply. Please try again.', 'error');
+    }
+  };
 
   // Fetch messages from API on mount
   useEffect(() => {
@@ -72,6 +151,12 @@ export default function AdminMessages() {
 
   return (
     <div className={styles.container}>
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={isToastVisible}
+        onClose={() => setIsToastVisible(false)}
+      />
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
@@ -97,6 +182,7 @@ export default function AdminMessages() {
           </Link>
           <Link href="/admin/messages" className={`${styles.navItem} ${activeNav === 'messages' ? styles.active : ''}`} onClick={() => setActiveNav('messages')}>
             <span>💬</span> Messages
+            <UnreadMessagesBadge />
           </Link>
           <Link href="/admin/reports" className={styles.navItem} onClick={() => setActiveNav('reports')}>
             <span>📑</span> Reports
@@ -132,7 +218,7 @@ export default function AdminMessages() {
                   <div
                     key={msg.id}
                     className={`${messengerStyles.messageThread} ${selectedMessage?.id === msg.id ? messengerStyles.active : ''}`}
-                    onClick={() => setSelectedMessage(msg)}
+                    onClick={() => handleSelectMessage(msg)}
                   >
                     <div className={messengerStyles.threadName}>{msg.from}</div>
                     <div className={messengerStyles.threadInfo}>Blk {msg.block} - Lot {msg.lot}</div>
@@ -161,10 +247,20 @@ export default function AdminMessages() {
                 </div>
                 <div className={messengerStyles.replySection}>
                   <h4>Reply</h4>
-                  <textarea placeholder="Type your reply here..." className={messengerStyles.replyText}></textarea>
+                  <textarea
+                    placeholder="Type your reply here..."
+                    className={messengerStyles.replyText}
+                    value={replyText}
+                    onChange={(event) => setReplyText(event.target.value)}
+                  ></textarea>
                   <div className={messengerStyles.replyButtons}>
-                    <button className={messengerStyles.sendBtn}>✈ Send Reply</button>
-                    <button className={messengerStyles.markBtn}>Mark as Read</button>
+                    <button className={messengerStyles.sendBtn} onClick={() => void handleSendReply()}>✈ Send Reply</button>
+                    <button
+                      className={messengerStyles.markBtn}
+                      onClick={() => void markMessageAsRead(selectedMessage.id)}
+                    >
+                      Mark as Read
+                    </button>
                   </div>
                 </div>
               </>

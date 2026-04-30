@@ -385,6 +385,44 @@
   box-shadow: 0 3px 10px rgba(13, 71, 161, 0.3);
 }
 
+.utilityButtons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.utilityBtn,
+.utilityBtnSecondary {
+  padding: 0.95rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.utilityBtn {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.utilityBtn:hover {
+  background: #bbdefb;
+  transform: translateY(-2px);
+}
+
+.utilityBtnSecondary {
+  background: #ede7f6;
+  color: #4527a0;
+}
+
+.utilityBtnSecondary:hover {
+  background: #d1c4e9;
+  transform: translateY(-2px);
+}
+
 /* Info Sidebar */
 .infoSidebar {
   display: flex;

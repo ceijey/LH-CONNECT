@@ -6,7 +6,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { FirebaseError } from 'firebase/app';
 import {
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  signInWithPopup,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
@@ -184,6 +186,41 @@ export default function LoginPage() {
     throw new Error(cleanedText || 'Unexpected server response.');
   };
 
+  const completeLogin = async (idToken: string, email: string | null, fallbackName: string) => {
+    const profileResponse = await fetch('/api/auth/profile', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+
+    if (!profileResponse.ok) {
+      const errorPayload = await parseApiResponse(profileResponse);
+      throw new Error(errorPayload?.error ?? 'Failed to load user profile.');
+    }
+
+    const profilePayload = await parseApiResponse(profileResponse);
+    const userData = profilePayload.user ?? {};
+    const role = userData.role === 'admin' ? 'admin' : 'resident';
+
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userEmail', email ?? formData.email);
+    localStorage.setItem('userName', userData.fullName ?? fallbackName);
+    localStorage.setItem('userRole', role);
+    localStorage.setItem('userId', profilePayload.user?.uid ?? auth.currentUser?.uid ?? '');
+
+    const sessionResponse = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!sessionResponse.ok) {
+      const sessionError = await parseApiResponse(sessionResponse);
+      throw new Error(sessionError?.error ?? 'Failed to create secure session.');
+    }
+
+    router.replace(role === 'admin' ? '/admin/dashboard' : '/dashboard');
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoginError('');
@@ -195,38 +232,26 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const idToken = await userCredential.user.getIdToken();
 
-      const profileResponse = await fetch('/api/auth/profile', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
+      await completeLogin(idToken, userCredential.user.email, 'User');
+    } catch (error) {
+      setLoginError(getAuthErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      if (!profileResponse.ok) {
-        const errorPayload = await parseApiResponse(profileResponse);
-        throw new Error(errorPayload?.error ?? 'Failed to load user profile.');
-      }
+  const handleGoogleSignIn = async () => {
+    setLoginError('');
+    setIsLoading(true);
 
-      const profilePayload = await parseApiResponse(profileResponse);
-      const userData = profilePayload.user ?? {};
-      const role = userData.role === 'admin' ? 'admin' : 'resident';
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
 
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userEmail', userCredential.user.email ?? formData.email);
-      localStorage.setItem('userName', userData.fullName ?? 'User');
-      localStorage.setItem('userRole', role);
-      localStorage.setItem('userId', userCredential.user.uid);
+      const userCredential = await signInWithPopup(auth, provider);
+      const idToken = await userCredential.user.getIdToken();
 
-      const sessionResponse = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!sessionResponse.ok) {
-        const sessionError = await parseApiResponse(sessionResponse);
-        throw new Error(sessionError?.error ?? 'Failed to create secure session.');
-      }
-
-      router.replace(role === 'admin' ? '/admin/dashboard' : '/dashboard');
+      await completeLogin(idToken, userCredential.user.email, userCredential.user.displayName ?? 'User');
     } catch (error) {
       setLoginError(getAuthErrorMessage(error));
     } finally {
@@ -382,6 +407,16 @@ export default function LoginPage() {
 
                 <button type="submit" className={styles.button} disabled={isLoading}>
                   {isLoading ? 'Signing in...' : 'Sign In'}
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                  style={{ marginTop: '12px', backgroundColor: '#fff', color: '#1B2A4A', border: '2px solid #D0D7E2' }}
+                >
+                  {isLoading ? 'Connecting...' : 'Continue with Google'}
                 </button>
 
                 <div className={styles.signupPrompt}>

@@ -20,6 +20,10 @@ interface ResidentData {
   createdAt?: string;
 }
 
+function isValidFirebaseUid(value: string) {
+  return /^[A-Za-z0-9_-]{10,128}$/.test(value);
+}
+
 export default function QRScannerPage() {
   const router = useRouter();
   useAuthPageshow('admin');
@@ -31,6 +35,7 @@ export default function QRScannerPage() {
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [residentsCache, setResidentsCache] = useState<ResidentData[]>([]);
   const [isLoadingResidents, setIsLoadingResidents] = useState(true);
+  const [actionMessage, setActionMessage] = useState('');
 
   // Fetch residents on component mount
   useEffect(() => {
@@ -74,6 +79,12 @@ export default function QRScannerPage() {
             const scannedId = decodedText.trim();
             console.log('QR Scanned ID:', scannedId);
             console.log('Available resident IDs:', residentsCache.map(r => r.id));
+
+            if (!isValidFirebaseUid(scannedId)) {
+              setScannedResident(null);
+              setScanError('Invalid QR code format. Expected a Firebase UID.');
+              return;
+            }
             
             const resident = residentsCache.find((r) => r.id === scannedId);
 
@@ -81,6 +92,7 @@ export default function QRScannerPage() {
               console.log('Resident found:', resident);
               setScannedResident(resident);
               setScanError('');
+              setActionMessage('');
               scanner.pause();
             } else {
               console.log('Resident not found with ID:', scannedId);
@@ -113,6 +125,7 @@ export default function QRScannerPage() {
   const handleStartScan = () => {
     setScannedResident(null);
     setScanError('');
+    setActionMessage('');
     setIsScanning(true);
   };
 
@@ -127,8 +140,49 @@ export default function QRScannerPage() {
   const handleRescan = () => {
     setScannedResident(null);
     setScanError('');
+    setActionMessage('');
     if (scannerRef.current) {
       scannerRef.current.resume();
+    }
+  };
+
+  const handleCopyResidentId = async () => {
+    if (!scannedResident) return;
+
+    try {
+      await navigator.clipboard.writeText(scannedResident.id);
+      setActionMessage('Resident ID copied to clipboard.');
+    } catch {
+      setScanError('Unable to copy resident ID.');
+    }
+  };
+
+  const handleShareResident = async () => {
+    if (!scannedResident) return;
+
+    const fullAddress = `Blk ${scannedResident.block || '-'} Lot ${scannedResident.lot || '-'}, ${scannedResident.phase || '-'}, Lincoln Heights`;
+    const shareText = [
+      `Resident: ${scannedResident.fullName || 'Unknown Resident'}`,
+      `Resident ID: ${scannedResident.id}`,
+      `Email: ${scannedResident.email || '-'}`,
+      `Phone: ${scannedResident.phone || '-'}`,
+      `Address: ${fullAddress}`,
+      `Balance: ₱${(scannedResident.balance || 0).toLocaleString()}`,
+    ].join('\n');
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'LH-Connect Resident Info',
+          text: shareText,
+        });
+        setActionMessage('Resident details shared successfully.');
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        setActionMessage('Sharing is not supported here, so the resident details were copied instead.');
+      }
+    } catch {
+      setScanError('Unable to share resident details.');
     }
   };
 
@@ -204,6 +258,12 @@ export default function QRScannerPage() {
                 <div className={styles.successMessage}>
                   ✓ Resident found! Scanning complete.
                 </div>
+
+                {actionMessage && (
+                  <div className={styles.successMessage}>
+                    {actionMessage}
+                  </div>
+                )}
 
                 {/* Resident Card */}
                 <div className={styles.residentCard}>
@@ -295,6 +355,15 @@ export default function QRScannerPage() {
                     >
                       📋 View Full Details
                     </Link>
+                  </div>
+
+                  <div className={styles.utilityButtons}>
+                    <button onClick={handleCopyResidentId} className={styles.utilityBtn}>
+                      📋 Copy Resident ID
+                    </button>
+                    <button onClick={handleShareResident} className={styles.utilityBtnSecondary}>
+                      📤 Share Resident Info
+                    </button>
                   </div>
                 </div>
               </div>

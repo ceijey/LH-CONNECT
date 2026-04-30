@@ -7,6 +7,7 @@ import { apiCall } from '@/lib/api-client';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import Toast from '@/app/components/Toast';
 import styles from './contact-hoa.module.css';
 
 interface Message {
@@ -32,6 +33,9 @@ export default function ContactHOAPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<{ [key: number]: Conversation[] }>({});
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [isToastVisible, setIsToastVisible] = useState(false);
 
   const currentConversation: Conversation[] = (selectedMessage !== null && conversations[selectedMessage]) ? conversations[selectedMessage] : [];
   const currentMessage = selectedMessage === null
@@ -65,10 +69,67 @@ export default function ContactHOAPage() {
     fetchMessages();
   }, [router]);
 
-  const handleSendReply = () => {
-    if (replyText.trim()) {
-      alert('Your reply has been sent!');
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setIsToastVisible(true);
+  };
+
+  const handleSendReply = async () => {
+    const trimmedReply = replyText.trim();
+
+    if (!trimmedReply) {
+      showToast('Type a message before sending.', 'error');
+      return;
+    }
+
+    try {
+      const subject = currentMessage?.title ?? 'New HOA Message';
+      const response = await apiCall('/api/messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject,
+          message: trimmedReply,
+          recipientId: 'admin',
+          recipientRole: 'admin',
+          to: 'HOA Admin',
+          priority: 'Normal',
+        }),
+      });
+
+      const createdMessage = response?.message;
+
+      if (createdMessage) {
+        setMessages((current) => [
+          {
+            id: createdMessage.id ?? Date.now(),
+            title: createdMessage.subject ?? subject,
+            date: createdMessage.date ?? new Date().toLocaleDateString(),
+            status: 'New',
+            preview: createdMessage.preview ?? trimmedReply.slice(0, 60),
+          },
+          ...current,
+        ]);
+
+        setConversations((current) => ({
+          ...current,
+          [createdMessage.id ?? Date.now()]: [
+            {
+              id: Date.now(),
+              sender: 'You',
+              content: trimmedReply,
+              timestamp: createdMessage.time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            },
+          ],
+        }));
+      }
+
       setReplyText('');
+      showToast('Your message has been sent.', 'success');
+      window.dispatchEvent(new Event('lh-messages-updated'));
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+      showToast('Failed to send message. Please try again.', 'error');
     }
   };
 
@@ -78,6 +139,12 @@ export default function ContactHOAPage() {
 
   return (
     <div className={styles.container}>
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={isToastVisible}
+        onClose={() => setIsToastVisible(false)}
+      />
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>

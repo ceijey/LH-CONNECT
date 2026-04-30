@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import Toast from '@/app/components/Toast';
 import styles from './view-statements.module.css';
 
 interface Statement {
@@ -30,12 +31,21 @@ export default function ViewStatementsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statements, setStatements] = useState<Statement[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [isToastVisible, setIsToastVisible] = useState(false);
 
   const availableYears = Array.from(new Set(statements.map((statement) => statement.year))).sort(
     (a, b) => b - a
   );
   const filteredStatements = statements.filter((s) => s.year === filterYear);
   const hasStatements = statements.length > 0;
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setIsToastVisible(true);
+  };
 
   useEffect(() => {
     if (!availableYears.includes(filterYear) && availableYears.length > 0) {
@@ -89,7 +99,7 @@ export default function ViewStatementsPage() {
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error('Download error:', err);
-      alert('Failed to download statement. Please try again.');
+      showToast('Failed to download statement. Please try again.', 'error');
     } finally {
       setIsDownloading(false);
     }
@@ -119,7 +129,7 @@ export default function ViewStatementsPage() {
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error('Download error:', err);
-      alert('Failed to download statements. Please try again.');
+      showToast('Failed to download statements. Please try again.', 'error');
     } finally {
       setIsDownloading(false);
     }
@@ -182,6 +192,12 @@ export default function ViewStatementsPage() {
 
   return (
     <div className={styles.container}>
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={isToastVisible}
+        onClose={() => setIsToastVisible(false)}
+      />
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
+import Toast from '@/app/components/Toast';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
@@ -24,6 +26,9 @@ export default function AdminReports() {
   const [activeNav, setActiveNav] = useState('reports');
   const [selectedMonth, setSelectedMonth] = useState('February 2026');
   const [selectedReportType, setSelectedReportType] = useState('Monthly Report');
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [isToastVisible, setIsToastVisible] = useState(false);
 
   const financialData: ReportData[] = [
     { block: '1', lot: '15', resident: 'Juan dela Cruz', monthlyDues: 500, amountPaid: 500, balance: 0, status: 'Paid' },
@@ -37,6 +42,12 @@ export default function AdminReports() {
   const totalCollected = financialData.reduce((sum, d) => sum + d.amountPaid, 0);
   const outstandingBalance = financialData.reduce((sum, d) => sum + d.balance, 0);
   const collectionRate = totalDues > 0 ? ((totalCollected / totalDues) * 100).toFixed(1) : '0';
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setIsToastVisible(true);
+  };
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -56,17 +67,23 @@ export default function AdminReports() {
   };
 
   const handleExportPDF = () => {
-    alert('Exporting report as PDF...');
+    showToast('Exporting report as PDF...', 'info');
   };
 
   const handleExportExcel = () => {
-    alert('Exporting report as Excel...');
+    showToast('Exporting report as Excel...', 'info');
   };
 
   if (isLoading) return <div className={styles.loading}>Loading...</div>;
 
   return (
     <div className={styles.container}>
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={isToastVisible}
+        onClose={() => setIsToastVisible(false)}
+      />
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
@@ -92,6 +109,7 @@ export default function AdminReports() {
           </Link>
           <Link href="/admin/messages" className={styles.navItem} onClick={() => setActiveNav('messages')}>
             <span>💬</span> Messages
+            <UnreadMessagesBadge />
           </Link>
           <Link href="/admin/reports" className={`${styles.navItem} ${activeNav === 'reports' ? styles.active : ''}`} onClick={() => setActiveNav('reports')}>
             <span>📑</span> Reports

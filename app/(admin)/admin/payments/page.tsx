@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
@@ -99,6 +100,7 @@ export default function AdminPayments() {
           </Link>
           <Link href="/admin/messages" className={styles.navItem} onClick={() => setActiveNav('messages')}>
             <span>💬</span> Messages
+            <UnreadMessagesBadge />
           </Link>
           <Link href="/admin/reports" className={styles.navItem} onClick={() => setActiveNav('reports')}>
             <span>📑</span> Reports
