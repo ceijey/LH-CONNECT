@@ -95,7 +95,7 @@ export default function ViewStatementsPage() {
       link.download = `statement_${statement.month}_${statement.year}.${format}`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error('Download error:', err);
@@ -125,7 +125,7 @@ export default function ViewStatementsPage() {
       link.download = `all_statements.${format}`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error('Download error:', err);
