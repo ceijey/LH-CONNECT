@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
+import { groupMessagesIntoThreads } from '@/lib/message-threads';
 import Link from 'next/link';
 import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
 import Toast from '@/app/components/Toast';
@@ -93,6 +94,10 @@ export default function AdminMessages() {
     setIsToastVisible(true);
   };
 
+  const initialLoadRef = useRef(true);
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
   const handleSendReply = async () => {
     const trimmedReply = replyText.trim();
 
@@ -141,25 +146,120 @@ export default function AdminMessages() {
   };
 
   // Fetch messages from API on mount
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        setIsLoading(true);
-        const res = await apiCall('/api/messages');
-        // Expecting { messages: Message[] }
-        const payload = res?.messages ?? [];
-        setMessages(payload);
-      } catch (err) {
-        console.error('Failed to load messages:', err);
-      } finally {
+  const fetchMessages = useCallback(async () => {
+    try {
+      if (initialLoadRef.current) setIsLoading(true);
+      const res = await apiCall('/api/messages');
+      const payload = res?.messages ?? [];
+      const threads = groupMessagesIntoThreads(payload as any[]);
+
+      const oldKey = messagesRef.current.map((m) => `${m.id}@${(m as any).updatedAt ?? m.date ?? ''}`).join('|');
+      const newKey = threads.map((m: any) => `${m.id}@${m.updatedAt ?? m.date ?? ''}`).join('|');
+      if (oldKey !== newKey) {
+        setMessages(threads as Message[]);
+      }
+
+      initialLoadRef.current = false;
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    } finally {
+      if (initialLoadRef.current === false) {
         setIsLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchMessages();
+  }, [fetchMessages]);
+
+  const unreadCount = messages.filter((m) => m.status === 'Unread').length;
+
+  // keep selectedMessage pointing to the current thread object if it exists
+  useEffect(() => {
+    setSelectedMessage((current) => {
+      if (!current) return messages[0] ?? null;
+      const found = messages.find((m) => m.id === (current as Message).id);
+      if (!found) return messages[0] ?? null;
+      // keep same reference when id unchanged to avoid re-renders
+      if ((current as Message).id === found.id) return current;
+      return found;
+    });
+  }, [messages]);
+
+  // Real-time updates: listen for internal events and attempt WebSocket, fallback to polling
+  const pollRef = useRef<number | null>(null);
+  useEffect(() => {
+    const handleUpdate = () => {
+      void fetchMessages();
+    };
+
+    window.addEventListener('lh-messages-updated', handleUpdate);
+
+    let ws: WebSocket | null = null;
+    const startPolling = () => {
+      if (pollRef.current == null) {
+        pollRef.current = window.setInterval(() => {
+          void fetchMessages();
+        }, 5000) as unknown as number;
       }
     };
 
-    fetchMessages();
-  }, []);
+    // start polling immediately as a reliable fallback
+    startPolling();
 
-  const unreadCount = messages.filter(m => m.status === 'Unread').length;
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/api/messages/ws`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data || '{}');
+          if (data && (data.message || data.messages)) {
+            void fetchMessages();
+          }
+        } catch (e) {
+          void fetchMessages();
+        }
+      };
+
+      ws.onopen = () => {
+        // stop polling while WS is open to avoid duplicate fetches
+        if (pollRef.current) {
+          clearInterval(pollRef.current as number);
+          pollRef.current = null;
+        }
+      };
+
+      ws.onerror = () => {
+        if (ws) {
+          try { ws.close(); } catch {};
+        }
+        // ensure polling is running
+        startPolling();
+      };
+
+      ws.onclose = () => {
+        // resume polling when WS closes
+        startPolling();
+      };
+    } catch (err) {
+      // ensure polling if WS creation fails
+      startPolling();
+    }
+
+    return () => {
+      window.removeEventListener('lh-messages-updated', handleUpdate);
+      if (ws) {
+        try { ws.close(); } catch {}
+      }
+      if (pollRef.current) {
+        clearInterval(pollRef.current as number);
+        pollRef.current = null;
+      }
+    };
+  }, [fetchMessages]);
 
   useEffect(() => {
     // minimal loader behavior until messages are fetched from API
@@ -193,23 +293,23 @@ export default function AdminMessages() {
           </div>
         </div>
         <nav className={styles.nav}>
-          <Link href="/admin/dashboard" className={styles.navItem} onClick={() => setActiveNav('dashboard')}>
+          <Link href="/admin/dashboard" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('dashboard'); router.push('/admin/dashboard'); }}>
             <span>📊</span> Dashboard
           </Link>
-          <Link href="/admin/residents" className={styles.navItem} onClick={() => setActiveNav('residents')}>
+          <Link href="/admin/residents" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('residents'); router.push('/admin/residents'); }}>
             <span>👥</span> Residents
           </Link>
-          <Link href="/admin/payments" className={styles.navItem} onClick={() => setActiveNav('payments')}>
+          <Link href="/admin/payments" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('payments'); router.push('/admin/payments'); }}>
             <span>💳</span> Payments
           </Link>
-          <Link href="/admin/qr-scanner" className={styles.navItem} onClick={() => setActiveNav('qr-scanner')}>
+          <Link href="/admin/qr-scanner" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('qr-scanner'); router.push('/admin/qr-scanner'); }}>
             <span>📱</span> QR Scanner
           </Link>
-          <Link href="/admin/messages" className={`${styles.navItem} ${activeNav === 'messages' ? styles.active : ''}`} onClick={() => setActiveNav('messages')}>
+          <Link href="/admin/messages" className={`${styles.navItem} ${activeNav === 'messages' ? styles.active : ''}`} onClick={(e) => { e.preventDefault(); setActiveNav('messages'); router.push('/admin/messages'); }}>
             <span>💬</span> Messages
             <UnreadMessagesBadge />
           </Link>
-          <Link href="/admin/reports" className={styles.navItem} onClick={() => setActiveNav('reports')}>
+          <Link href="/admin/reports" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('reports'); router.push('/admin/reports'); }}>
             <span>📑</span> Reports
           </Link>
         </nav>

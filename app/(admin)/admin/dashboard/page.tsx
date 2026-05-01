@@ -177,7 +177,7 @@ export default function AdminDashboard() {
           <Link 
             href="/admin/dashboard" 
             className={`${styles.navItem} ${activeNav === 'dashboard' ? styles.active : ''}`}
-            onClick={() => setActiveNav('dashboard')}
+            onClick={(e) => { e.preventDefault(); setActiveNav('dashboard'); router.push('/admin/dashboard'); }}
           >
             <span className={styles.navIcon}>📊</span>
             <span className={styles.navLabel}>Dashboard</span>
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
           <Link 
             href="/admin/residents" 
             className={`${styles.navItem} ${activeNav === 'residents' ? styles.active : ''}`}
-            onClick={() => setActiveNav('residents')}
+            onClick={(e) => { e.preventDefault(); setActiveNav('residents'); router.push('/admin/residents'); }}
           >
             <span className={styles.navIcon}>👥</span>
             <span className={styles.navLabel}>Residents</span>
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
           <Link 
             href="/admin/payments" 
             className={`${styles.navItem} ${activeNav === 'payments' ? styles.active : ''}`}
-            onClick={() => setActiveNav('payments')}
+            onClick={(e) => { e.preventDefault(); setActiveNav('payments'); router.push('/admin/payments'); }}
           >
             <span className={styles.navIcon}>💳</span>
             <span className={styles.navLabel}>Payments</span>
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
           <Link 
             href="/admin/qr-scanner" 
             className={`${styles.navItem} ${activeNav === 'qr-scanner' ? styles.active : ''}`}
-            onClick={() => setActiveNav('qr-scanner')}
+            onClick={(e) => { e.preventDefault(); setActiveNav('qr-scanner'); router.push('/admin/qr-scanner'); }}
           >
             <span className={styles.navIcon}>📱</span>
             <span className={styles.navLabel}>QR Scanner</span>
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
           <Link 
             href="/admin/messages" 
             className={`${styles.navItem} ${activeNav === 'messages' ? styles.active : ''}`}
-            onClick={() => setActiveNav('messages')}
+            onClick={(e) => { e.preventDefault(); setActiveNav('messages'); router.push('/admin/messages'); }}
           >
             <span className={styles.navIcon}>💬</span>
             <span className={styles.navLabel}>Messages</span>
@@ -218,7 +218,7 @@ export default function AdminDashboard() {
           <Link 
             href="/admin/reports" 
             className={`${styles.navItem} ${activeNav === 'reports' ? styles.active : ''}`}
-            onClick={() => setActiveNav('reports')}
+            onClick={(e) => { e.preventDefault(); setActiveNav('reports'); router.push('/admin/reports'); }}
           >
             <span className={styles.navIcon}>📑</span>
             <span className={styles.navLabel}>Reports</span>

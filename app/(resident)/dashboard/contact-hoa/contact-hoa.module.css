@@ -143,24 +143,7 @@
   margin: 0;
 }
 
-.newBtn {
-  background: #1a1a1a;
-  color: #ffffff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
 
-.newBtn:hover {
-  background: #333333;
-  transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(26, 26, 26, 0.2);
-}
 
 .messagesList {
   display: flex;
@@ -498,10 +481,7 @@
     font-size: 1rem;
   }
 
-  .newBtn {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.8rem;
-  }
+  
 
   .messagesList {
     gap: 0.5rem;
@@ -648,11 +628,7 @@
     font-size: 0.9rem;
   }
 
-  .newBtn {
-    padding: 0.4rem 0.7rem;
-    font-size: 0.75rem;
-    white-space: nowrap;
-  }
+  
 
   .messagesList {
     gap: 0.35rem;

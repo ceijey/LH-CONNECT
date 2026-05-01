@@ -239,7 +239,6 @@ export default function ContactHOAPage() {
           <aside className={styles.sidebar}>
             <div className={styles.messagesHeader}>
               <h2 className={styles.messagesTitle}>Your Messages</h2>
-              <button className={styles.newBtn}>✏ New</button>
             </div>
 
             <div className={styles.messagesList}>

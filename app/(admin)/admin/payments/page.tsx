@@ -86,23 +86,23 @@ export default function AdminPayments() {
           </div>
         </div>
         <nav className={styles.nav}>
-          <Link href="/admin/dashboard" className={styles.navItem} onClick={() => setActiveNav('dashboard')}>
+          <Link href="/admin/dashboard" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('dashboard'); router.push('/admin/dashboard'); }}>
             <span>📊</span> Dashboard
           </Link>
-          <Link href="/admin/residents" className={styles.navItem} onClick={() => setActiveNav('residents')}>
+          <Link href="/admin/residents" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('residents'); router.push('/admin/residents'); }}>
             <span>👥</span> Residents
           </Link>
-          <Link href="/admin/payments" className={`${styles.navItem} ${activeNav === 'payments' ? styles.active : ''}`} onClick={() => setActiveNav('payments')}>
+          <Link href="/admin/payments" className={`${styles.navItem} ${activeNav === 'payments' ? styles.active : ''}`} onClick={(e) => { e.preventDefault(); setActiveNav('payments'); router.push('/admin/payments'); }}>
             <span>💳</span> Payments
           </Link>
-          <Link href="/admin/qr-scanner" className={styles.navItem} onClick={() => setActiveNav('qr-scanner')}>
+          <Link href="/admin/qr-scanner" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('qr-scanner'); router.push('/admin/qr-scanner'); }}>
             <span>📱</span> QR Scanner
           </Link>
-          <Link href="/admin/messages" className={styles.navItem} onClick={() => setActiveNav('messages')}>
+          <Link href="/admin/messages" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('messages'); router.push('/admin/messages'); }}>
             <span>💬</span> Messages
             <UnreadMessagesBadge />
           </Link>
-          <Link href="/admin/reports" className={styles.navItem} onClick={() => setActiveNav('reports')}>
+          <Link href="/admin/reports" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('reports'); router.push('/admin/reports'); }}>
             <span>📑</span> Reports
           </Link>
         </nav>
