@@ -8,22 +8,25 @@
 ## Files to Update
 
 ### CSS Files
-- [ ] `app/globals.css`
-- [ ] `app/page.module.css`
-- [ ] `app/(auth)/login/login.module.css`
-- [ ] `app/(resident)/dashboard/dashboard.module.css`
-- [ ] `app/(resident)/dashboard/view-statements/view-statements.module.css`
-- [ ] `app/(admin)/admin/dashboard/admin-dashboard.module.css`
-- [ ] `app/(admin)/admin/residents/admin-page.module.css`
-- [ ] `app/(admin)/admin/messages/messenger.module.css`
-- [ ] `app/components/ConfirmationModal.module.css`
+- [x] `app/globals.css`
+- [x] `app/page.module.css`
+- [x] `app/(auth)/login/login.module.css`
+- [x] `app/(resident)/dashboard/dashboard.module.css`
+- [x] `app/(resident)/dashboard/view-statements/view-statements.module.css`
+- [x] `app/(admin)/admin/dashboard/admin-dashboard.module.css`
+- [x] `app/(admin)/admin/residents/admin-page.module.css`
+- [x] `app/(admin)/admin/messages/messenger.module.css`
+- [x] `app/components/ConfirmationModal.module.css`
 
 ### TSX Files (inline styles)
-- [ ] `app/page.tsx`
-- [ ] `app/(admin)/admin/dashboard/page.tsx`
-- [ ] `app/(admin)/admin/residents/page.tsx`
-- [ ] `app/(admin)/admin/qr-scanner/page.tsx`
-- [ ] `app/(admin)/admin/reports/page.tsx`
-- [ ] `app/(resident)/dashboard/page.tsx`
-- [ ] `app/(auth)/login/page.tsx`
+- [x] `app/page.tsx`
+- [x] `app/(admin)/admin/dashboard/page.tsx`
+- [x] `app/(admin)/admin/residents/page.tsx`
+- [x] `app/(admin)/admin/qr-scanner/page.tsx`
+- [x] `app/(admin)/admin/reports/page.tsx`
+- [x] `app/(resident)/dashboard/page.tsx`
+- [x] `app/(auth)/login/page.tsx`
+
+## Status: COMPLETED ✓
+All files have been successfully updated with the new color scheme.
 

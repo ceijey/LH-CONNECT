@@ -1,14 +1,14 @@
 .pageContainer {
   min-height: 100vh;
   display: flex;
-  background-color: #fafcff;
+  background-color: #ffffff;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
 /* Left side - Visuals */
 .visualSection {
   flex: 1;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #1B2A4A 0%, #2C3E6B 100%);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -57,7 +57,7 @@
 
 .visualSubtitle {
   font-size: 1.1rem;
-  color: #94a3b8;
+  color: #E0E0E0;
   line-height: 1.6;
 }
 
@@ -77,8 +77,8 @@
   background: #ffffff;
   border-radius: 24px;
   padding: 3rem;
-  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.05);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 20px 40px -10px rgba(27, 42, 74, 0.05);
+  border: 1px solid rgba(224, 224, 224, 0.8);
   position: relative;
   z-index: 1;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -90,7 +90,7 @@
 }
 
 .title {
-  color: #0f172a;
+  color: #1B2A4A;
   font-size: 2rem;
   font-weight: 800;
   margin-bottom: 0.5rem;
@@ -98,7 +98,7 @@
 }
 
 .subtitle {
-  color: #64748b;
+  color: #9E9E9E;
   font-size: 1rem;
 }
 
@@ -122,19 +122,19 @@
 }
 
 .label {
-  color: #334155;
+  color: #1B2A4A;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .input {
   padding: 0.8rem 1rem;
-  border: 2px solid #e2e8f0;
+  border: 2px solid #E0E0E0;
   border-radius: 12px;
   font-size: 1rem;
   transition: all 0.2s ease;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #F5F5F5;
+  color: #1B2A4A;
   width: 100%;
 }
 
@@ -146,7 +146,7 @@
 }
 
 .input::placeholder {
-  color: #94a3b8;
+  color: #9E9E9E;
 }
 
 .inputError {
@@ -203,7 +203,7 @@
 }
 
 .button {
-  background: linear-gradient(135deg, #0f172a, #1e293b);
+  background: linear-gradient(135deg, #1B2A4A, #2C3E6B);
   color: #ffffff;
   border: none;
   padding: 1rem;
@@ -213,13 +213,13 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 0.5rem;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 4px 12px rgba(27, 42, 74, 0.2);
 }
 
 .button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3);
-  background: linear-gradient(135deg, #1e293b, #334155);
+  box-shadow: 0 8px 20px rgba(27, 42, 74, 0.3);
+  background: linear-gradient(135deg, #2C3E6B, #3d5483);
 }
 
 .button:disabled {
@@ -232,7 +232,7 @@
 .altAuthText {
   margin: 0.1rem 0;
   text-align: center;
-  color: #64748b;
+  color: #9E9E9E;
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -240,8 +240,8 @@
 
 .googleButton {
   background: #ffffff;
-  color: #1e293b;
-  border: 2px solid #d0d7e2;
+  color: #1B2A4A;
+  border: 2px solid #E0E0E0;
   padding: 0.85rem 1rem;
   border-radius: 12px;
   font-size: 0.95rem;
@@ -256,8 +256,8 @@
 }
 
 .googleButton:hover {
-  border-color: #b7c2d4;
-  background: #f8fafc;
+  border-color: #1B2A4A;
+  background: #F5F5F5;
   transform: translateY(-1px);
 }
 
@@ -284,7 +284,7 @@
 .signupPrompt {
   text-align: center;
   margin-top: 0.8rem;
-  color: #64748b;
+  color: #9E9E9E;
   font-size: 0.95rem;
 }
 
@@ -330,7 +330,7 @@
 }
 
 .termsText {
-  color: #475569;
+  color: #9E9E9E;
   font-size: 0.9rem;
   margin: 0;
 }
@@ -372,7 +372,7 @@
     display: none;
   }
   .formSection {
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    background: linear-gradient(135deg, #F5F5F5 0%, #E0E0E0 100%);
   }
   .mobileLogoContainer {
     display: flex;
@@ -414,7 +414,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.6);
+  background-color: rgba(27, 42, 74, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -435,7 +435,7 @@
 
 .modalHeader {
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #E0E0E0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -448,7 +448,7 @@
 .modalTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #1B2A4A;
   margin: 0;
 }
 
@@ -457,23 +457,23 @@
   border: none;
   font-size: 2rem;
   line-height: 1;
-  color: #94a3b8;
+  color: #9E9E9E;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .modalClose:hover {
-  color: #0f172a;
+  color: #1B2A4A;
 }
 
 .modalBody {
   padding: 2rem;
-  color: #334155;
+  color: #1B2A4A;
 }
 
 .modalBody h3 {
   font-size: 1.1rem;
-  color: #0f172a;
+  color: #1B2A4A;
   margin: 1.5rem 0 0.5rem;
 }
 
@@ -488,13 +488,13 @@
 
 .modalFooter {
   padding: 1.5rem 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #E0E0E0;
   display: flex;
   justify-content: flex-end;
 }
 
 .modalButton {
-  background: #0f172a;
+  background: #1B2A4A;
   color: #ffffff;
   border: none;
   padding: 0.8rem 1.5rem;

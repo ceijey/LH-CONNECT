@@ -1,7 +1,7 @@
 .landingContainer {
   min-height: 100vh;
-  background-color: #fafcff;
-  color: #0f172a;
+  background-color: #ffffff;
+  color: #1B2A4A;
   position: relative;
   overflow-x: hidden;
   font-family: 'Inter', system-ui, sans-serif;
@@ -63,7 +63,7 @@
 }
 
 .navLink {
-  color: #64748b;
+  color: #9E9E9E;
   text-decoration: none;
   font-size: 1rem;
   font-weight: 500;
@@ -72,7 +72,7 @@
 }
 
 .navLink:hover {
-  color: #0f172a;
+  color: #1B2A4A;
 }
 
 .navLink::after {
@@ -91,7 +91,7 @@
 }
 
 .loginNavButton {
-  background: #0f172a;
+  background: #1B2A4A;
   color: #ffffff;
   text-decoration: none;
   padding: 0.6rem 1.5rem;
@@ -99,13 +99,13 @@
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 14px 0 rgba(15, 23, 42, 0.2);
+  box-shadow: 0 4px 14px 0 rgba(27, 42, 74, 0.2);
 }
 
 .loginNavButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.3);
-  background: #1e293b;
+  box-shadow: 0 6px 20px rgba(27, 42, 74, 0.3);
+  background: #2C3E6B;
 }
 
 /* Hero Section */
@@ -141,7 +141,7 @@
 .heroTitle {
   font-size: 4.5rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #1B2A4A;
   line-height: 1.1;
   margin-bottom: 0.75rem;
   letter-spacing: -1.5px;
@@ -157,7 +157,7 @@
 
 .heroSubtitle {
   font-size: 1.25rem;
-  color: #475569;
+  color: #9E9E9E;
   margin-bottom: 1.5rem;
   line-height: 1.6;
   opacity: 0;
@@ -194,13 +194,13 @@
 
 .secondaryButton {
   background: rgba(255, 255, 255, 0.8);
-  color: #0f172a;
+  color: #1B2A4A;
   text-decoration: none;
   padding: 1rem 2.5rem;
   border-radius: 12px;
   font-weight: 600;
   font-size: 1.1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E0E0E0;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
@@ -228,13 +228,13 @@
 .sectionTitle {
   font-size: 3rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #1B2A4A;
   margin-bottom: 1rem;
   letter-spacing: -1px;
 }
 
 .sectionSubtitle {
-  color: #64748b;
+  color: #9E9E9E;
   font-size: 1.1rem;
   line-height: 1.6;
 }
@@ -266,7 +266,7 @@
   transform: translateY(-8px) scale(1.02);
   box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.1);
   background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(59, 130, 246, 0.2);
+  border-color: rgba(27, 42, 74, 0.2);
 }
 
 .featureIconWrapper {
@@ -289,13 +289,13 @@
 
 .featureTitle {
   font-size: 1.25rem;
-  color: #0f172a;
+  color: #1B2A4A;
   font-weight: 700;
   letter-spacing: -0.3px;
 }
 
 .featureDescription {
-  color: #64748b;
+  color: #9E9E9E;
   font-size: 0.95rem;
   line-height: 1.6;
 }
@@ -311,7 +311,7 @@
 .ctaWrapper {
   max-width: 1000px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
+  background: linear-gradient(135deg, #1B2A4A, #2C3E6B);
   border-radius: 32px;
   padding: 5rem 2rem;
   color: white;
@@ -345,7 +345,7 @@
 
 .ctaSubtitle {
   font-size: 1.2rem;
-  color: #94a3b8;
+  color: #E0E0E0;
   margin-bottom: 2.5rem;
   max-width: 600px;
   margin-left: auto;
@@ -354,7 +354,7 @@
 
 .ctaButton {
   background: #ffffff;
-  color: #0f172a;
+  color: #1B2A4A;
   text-decoration: none;
   padding: 1.1rem 2.5rem;
   border-radius: 12px;
@@ -376,8 +376,8 @@
 .footer {
   text-align: center;
   padding: 2rem;
-  border-top: 1px solid #e2e8f0;
-  color: #64748b;
+  border-top: 1px solid #E0E0E0;
+  color: #9E9E9E;
   font-size: 0.9rem;
 }
 
