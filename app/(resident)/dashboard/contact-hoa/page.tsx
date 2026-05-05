@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { apiCall } from '@/lib/api-client';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
@@ -48,6 +48,10 @@ export default function ContactHOAPage() {
 
   const getThreadKey = (message: Message | null | undefined) => String(message?.threadId ?? message?.id ?? '');
 
+  const initialLoadRef = useRef(true);
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
   const formatTimestamp = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -86,25 +90,26 @@ export default function ContactHOAPage() {
       .map((entry) => entry.conversation);
   };
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        setIsLoading(true);
-        // Try to fetch resident messages (API may not exist yet)
-        const res = await apiCall('/api/messages');
-        if (res && res.messages) {
-          const threadMessages = (res.messages as any[]).map((message) => ({
-            id: String(message.id),
-            title: String(message.subject ?? message.title ?? 'New HOA Message'),
-            date: String(message.date ?? new Date().toLocaleDateString()),
-            status: String(message.status ?? '').toLowerCase() === 'unread' ? 'New' : 'Replied',
-            preview: String(message.preview ?? message.message ?? '').slice(0, 120),
-            senderId: message.senderId,
-            senderName: message.senderName,
-            threadId: message.threadId ?? message.id,
-            replies: Array.isArray(message.replies) ? mapRepliesToConversation(message.replies) : undefined,
-          })) as Message[];
+  const fetchMessages = useCallback(async () => {
+    try {
+      if (initialLoadRef.current) setIsLoading(true);
+      const res = await apiCall('/api/messages');
+      if (res && res.messages) {
+        const threadMessages = (res.messages as any[]).map((message) => ({
+          id: String(message.id),
+          title: String(message.subject ?? message.title ?? 'New HOA Message'),
+          date: String(message.date ?? new Date().toLocaleDateString()),
+          status: String(message.status ?? '').toLowerCase() === 'unread' ? 'New' : 'Replied',
+          preview: String(message.preview ?? message.message ?? '').slice(0, 120),
+          senderId: message.senderId,
+          senderName: message.senderName,
+          threadId: message.threadId ?? message.id,
+          replies: Array.isArray(message.replies) ? mapRepliesToConversation(message.replies) : undefined,
+        })) as Message[];
 
+        const oldKey = messagesRef.current.map((m) => `${m.id}@${m.threadId ?? m.id}`).join('|');
+        const newKey = threadMessages.map((m) => `${m.id}@${m.threadId ?? m.id}`).join('|');
+        if (oldKey !== newKey) {
           setMessages(threadMessages);
 
           const threadMap = threadMessages.reduce<{ [key: string]: Conversation[] }>((acc, message) => {
@@ -123,20 +128,92 @@ export default function ContactHOAPage() {
 
           setConversations(threadMap);
         }
-        // if no messages returned, leave empty arrays
-        if (res && Array.isArray(res.messages) && res.messages.length > 0) {
-          setSelectedMessage(String(res.messages[0].id));
+        if (initialLoadRef.current && threadMessages.length > 0) {
+          setSelectedMessage(getThreadKey(threadMessages[0]));
         }
-      } catch (err) {
-        // no-op; fall back to empty state
-        console.error('Failed to fetch messages:', err);
-      } finally {
+
+        initialLoadRef.current = false;
+      }
+    } catch (err) {
+      console.error('Failed to fetch messages:', err);
+    } finally {
+      if (initialLoadRef.current === false) {
         setIsLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchMessages();
+  }, [fetchMessages]);
+
+  const pollRef = useRef<number | null>(null);
+  useEffect(() => {
+    const handleUpdate = () => {
+      void fetchMessages();
+    };
+
+    window.addEventListener('lh-messages-updated', handleUpdate);
+
+    let ws: WebSocket | null = null;
+    const startPolling = () => {
+      if (pollRef.current == null) {
+        pollRef.current = window.setInterval(() => {
+          void fetchMessages();
+        }, 5000) as unknown as number;
       }
     };
 
-    fetchMessages();
-  }, [router]);
+    startPolling();
+
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/api/messages/ws`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data || '{}');
+          if (data && (data.message || data.messages)) {
+            void fetchMessages();
+          }
+        } catch (e) {
+          void fetchMessages();
+        }
+      };
+
+      ws.onopen = () => {
+        if (pollRef.current) {
+          clearInterval(pollRef.current as number);
+          pollRef.current = null;
+        }
+      };
+
+      ws.onerror = () => {
+        if (ws) {
+          try { ws.close(); } catch {}
+        }
+        startPolling();
+      };
+
+      ws.onclose = () => {
+        startPolling();
+      };
+    } catch (err) {
+      startPolling();
+    }
+
+    return () => {
+      window.removeEventListener('lh-messages-updated', handleUpdate);
+      if (ws) {
+        try { ws.close(); } catch {}
+      }
+      if (pollRef.current) {
+        clearInterval(pollRef.current as number);
+        pollRef.current = null;
+      }
+    };
+  }, [fetchMessages]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage(message);
