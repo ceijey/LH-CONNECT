@@ -2,6 +2,16 @@ type AnyRecord = Record<string, any>;
 
 const normalizeText = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
+const normalizeSubject = (value: unknown) => {
+  const raw = String(value ?? '').trim();
+  const hasReplyPrefix = /^\s*(re\s*:\s*)+/i.test(raw);
+  const base = raw.replace(/^\s*(re\s*:\s*)+/i, '').trim();
+
+  if (!base) return 'Message';
+
+  return hasReplyPrefix ? `Re: ${base}` : base;
+};
+
 const toMillis = (value: unknown) => {
   if (!value) return 0;
   if (typeof value === 'number') return value;
@@ -45,18 +55,44 @@ const buildThreadKey = (message: AnyRecord) => {
   return [buildParticipantKey(message), subject, block, lot].filter(Boolean).join('::');
 };
 
+const parseOrCreateTimestamp = (createdAt: unknown, fallback: string): string => {
+  if (!createdAt && !fallback) {
+    return new Date().toISOString();
+  }
+
+  const str = String(createdAt || fallback);
+  if (str.includes('T')) {
+    return str;
+  }
+
+  try {
+    return new Date(str).toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+};
+
 const extractReplies = (message: AnyRecord) => {
   if (Array.isArray(message?.replies) && message.replies.length > 0) {
-    return message.replies.map((reply: AnyRecord, index: number) => ({
-      id: String(reply.id ?? `${message.id}-reply-${index}`),
-      senderId: reply.senderId,
-      senderName: reply.senderName,
-      senderRole: reply.senderRole,
-      message: String(reply.message ?? ''),
-      date: String(reply.date ?? ''),
-      time: String(reply.time ?? ''),
-    }));
+    return message.replies.map((reply: AnyRecord, index: number) => {
+      const fallbackTime = `${reply.date ?? ''} ${reply.time ?? ''}`.trim();
+      const createdAt = parseOrCreateTimestamp(reply.createdAt, fallbackTime);
+
+      return {
+        id: String(reply.id ?? `${message.id}-reply-${index}`),
+        senderId: reply.senderId,
+        senderName: reply.senderName,
+        senderRole: reply.senderRole,
+        message: String(reply.message ?? ''),
+        date: String(reply.date ?? ''),
+        time: String(reply.time ?? ''),
+        createdAt,
+      };
+    });
   }
+
+  const fallbackTime = `${message.date ?? ''} ${message.time ?? ''}`.trim();
+  const createdAt = parseOrCreateTimestamp(message.updatedAt ?? message.createdAt, fallbackTime);
 
   return [{
     id: String(message.id),
@@ -66,6 +102,7 @@ const extractReplies = (message: AnyRecord) => {
     message: String(message.message ?? message.preview ?? ''),
     date: String(message.date ?? ''),
     time: String(message.time ?? ''),
+    createdAt,
   }];
 };
 
@@ -86,10 +123,14 @@ export function groupMessagesIntoThreads(messages: AnyRecord[] = []) {
       const replies = sorted.flatMap((message) => extractReplies(message));
       const uniqueReplies = Array.from(
         new Map(replies.map((reply) => [
-          `${reply.senderId ?? ''}|${reply.senderName ?? ''}|${reply.date ?? ''}|${reply.time ?? ''}|${reply.message ?? ''}`,
+          `${reply.senderId ?? ''}|${reply.senderName ?? ''}|${reply.createdAt ?? ''}|${reply.date ?? ''}|${reply.time ?? ''}|${reply.message ?? ''}`,
           reply,
         ])).values(),
-      ).sort((a, b) => toMillis(`${a.date} ${a.time}`) - toMillis(`${b.date} ${b.time}`));
+      ).sort((a, b) => {
+        const left = toMillis(a.createdAt ?? `${a.date} ${a.time}`);
+        const right = toMillis(b.createdAt ?? `${b.date} ${b.time}`);
+        return left - right;
+      });
 
       const unread = sorted.some((message) => isUnreadMessage(message));
 
@@ -105,7 +146,7 @@ export function groupMessagesIntoThreads(messages: AnyRecord[] = []) {
         block: latest.block ?? '',
         lot: latest.lot ?? '',
         phase: latest.phase ?? '',
-        subject: latest.subject ?? latest.title ?? 'Message',
+        subject: normalizeSubject(latest.subject ?? latest.title ?? 'Message'),
         date: latest.date ?? '',
         time: latest.time ?? '',
         message: latest.message ?? latest.preview ?? '',

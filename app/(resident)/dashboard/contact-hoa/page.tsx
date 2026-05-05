@@ -46,12 +46,45 @@ export default function ContactHOAPage() {
     ? null
     : messages.find((m) => m.id === selectedMessage) ?? null;
 
-  const mapRepliesToConversation = (replies: any[] = []): Conversation[] => replies.map((reply, index) => ({
-    id: String(reply.id ?? `${index}-${reply.time ?? Date.now()}`),
-    sender: String(reply.senderRole ?? '').toLowerCase() === 'admin' ? 'HOA Admin' : 'You',
-    content: String(reply.message ?? ''),
-    timestamp: `${reply.date ?? ''} ${reply.time ?? ''}`.trim(),
-  }));
+  const getThreadKey = (message: Message | null | undefined) => String(message?.threadId ?? message?.id ?? '');
+
+  const formatTimestamp = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString([], { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch {
+      return isoString;
+    }
+  };
+
+  const mapRepliesToConversation = (replies: any[] = []): Conversation[] => {
+    const toMillis = (value: unknown) => {
+      if (!value) return 0;
+      if (typeof value === 'number') return value;
+      const parsed = new Date(String(value)).getTime();
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    return replies
+      .map((reply, index) => {
+        const createdAt = reply.createdAt || `${reply.date ?? ''} ${reply.time ?? ''}`.trim() || new Date().toISOString();
+        const sortStamp = toMillis(createdAt);
+        const displayTime = formatTimestamp(createdAt);
+
+        return {
+          conversation: {
+            id: String(reply.id ?? `${index}-${Date.now()}`),
+            sender: String(reply.senderRole ?? '').toLowerCase() === 'admin' ? 'HOA Admin' : 'You',
+            content: String(reply.message ?? ''),
+            timestamp: displayTime,
+          } as Conversation,
+          sortStamp,
+          index,
+        };
+      })
+      .sort((a, b) => (a.sortStamp === b.sortStamp ? a.index - b.index : a.sortStamp - b.sortStamp))
+      .map((entry) => entry.conversation);
+  };
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -75,10 +108,12 @@ export default function ContactHOAPage() {
           setMessages(threadMessages);
 
           const threadMap = threadMessages.reduce<{ [key: string]: Conversation[] }>((acc, message) => {
-            acc[message.id] = message.replies && message.replies.length > 0
+            const threadKey = getThreadKey(message);
+
+            acc[threadKey] = message.replies && message.replies.length > 0
               ? message.replies
               : [{
-                  id: `${message.id}-starter`,
+                  id: `${threadKey}-starter`,
                   sender: 'You',
                   content: message.preview,
                   timestamp: message.date,
@@ -87,9 +122,6 @@ export default function ContactHOAPage() {
           }, {});
 
           setConversations(threadMap);
-        }
-        if (res && res.conversations) {
-          setConversations(res.conversations as { [key: string]: Conversation[] });
         }
         // if no messages returned, leave empty arrays
         if (res && Array.isArray(res.messages) && res.messages.length > 0) {
@@ -138,6 +170,7 @@ export default function ContactHOAPage() {
       const createdMessage = response?.message;
 
       if (createdMessage) {
+        const nextThreadKey = String(createdMessage.threadId ?? createdMessage.id ?? currentMessage?.id ?? Date.now());
         const nextMessage: Message = {
           id: String(createdMessage.id ?? currentMessage?.id ?? Date.now()),
           title: String(createdMessage.subject ?? subject),
@@ -162,10 +195,10 @@ export default function ContactHOAPage() {
 
         setConversations((current) => ({
           ...current,
-          [nextMessage.id]: nextMessage.replies && nextMessage.replies.length > 0
+          [nextThreadKey]: nextMessage.replies && nextMessage.replies.length > 0
             ? nextMessage.replies
             : [
-                ...(current[currentMessage?.id ?? nextMessage.id] ?? []),
+                ...(current[getThreadKey(currentMessage)] ?? current[nextThreadKey] ?? []),
                 {
                   id: `${Date.now()}`,
                   sender: 'You',
@@ -175,7 +208,7 @@ export default function ContactHOAPage() {
               ],
         }));
 
-        setSelectedMessage(nextMessage.id);
+        setSelectedMessage(nextThreadKey);
       }
 
       setReplyText('');

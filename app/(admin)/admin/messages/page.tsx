@@ -115,7 +115,7 @@ export default function AdminMessages() {
       const response = await apiCall('/api/messages', {
         method: 'POST',
         body: JSON.stringify({
-          subject: `Re: ${selectedMessage.subject}`,
+          subject: selectedMessage.subject,
           message: trimmedReply,
           recipientId: selectedMessage.senderId,
           recipientRole: 'resident',
@@ -181,8 +181,6 @@ export default function AdminMessages() {
       if (!current) return messages[0] ?? null;
       const found = messages.find((m) => m.id === (current as Message).id);
       if (!found) return messages[0] ?? null;
-      // keep same reference when id unchanged to avoid re-renders
-      if ((current as Message).id === found.id) return current;
       return found;
     });
   }, [messages]);

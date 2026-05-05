@@ -18,15 +18,32 @@ const buildReply = (
   senderRole: string,
   date: string,
   time: string,
-) => ({
-  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  senderId,
-  senderName,
-  senderRole,
-  message: messageText,
-  date,
-  time,
-});
+  createdAt: string,
+) => {
+  const isoCreatedAt = createdAt && createdAt.includes('T') ? createdAt : new Date(createdAt).toISOString();
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    senderId,
+    senderName,
+    senderRole,
+    message: messageText,
+    date,
+    time,
+    createdAt: isoCreatedAt,
+  };
+};
+
+const normalizeSubject = (value: unknown) => {
+  const raw = String(value ?? '').trim();
+  const hasReplyPrefix = /^\s*(re\s*:\s*)+/i.test(raw);
+  const base = raw.replace(/^\s*(re\s*:\s*)+/i, '').trim();
+
+  if (!base) {
+    return '';
+  }
+
+  return hasReplyPrefix ? `Re: ${base}` : base;
+};
 
 export async function GET(request: NextRequest) {
   const tokenVerification = await verifyToken(request);
@@ -109,8 +126,8 @@ export async function POST(request: NextRequest) {
       .join(' ');
     const now = new Date();
     const { date, time } = formatTimestamp(now);
-    const subject = subjectText || `Message from ${senderName}`;
-    const reply = buildReply(messageText, decoded.uid, senderName, senderRole, date, time);
+    const subject = normalizeSubject(subjectText || `Message from ${senderName}`);
+    const reply = buildReply(messageText, decoded.uid, senderName, senderRole, date, time, now.toISOString());
 
     if (threadId) {
       const threadRef = adminDb.collection('messages').doc(threadId);
@@ -123,6 +140,7 @@ export async function POST(request: NextRequest) {
       const existingThread = threadDoc.data() ?? {};
       const existingReplies = Array.isArray(existingThread.replies) ? existingThread.replies : [];
       const updatedReplies = [...existingReplies, reply];
+      const threadSubject = normalizeSubject(existingThread.subject ?? subject);
 
       const updatedThread = {
         ...existingThread,
@@ -135,7 +153,7 @@ export async function POST(request: NextRequest) {
         phase: userData.phase ?? existingThread.phase ?? '',
         block: userData.block ?? existingThread.block ?? '',
         lot: userData.lot ?? existingThread.lot ?? '',
-        subject,
+        subject: threadSubject,
         message: messageText,
         preview: messageText.slice(0, 120),
         status: 'Unread',
@@ -164,7 +182,7 @@ export async function POST(request: NextRequest) {
       phase: userData.phase ?? '',
       block: userData.block ?? '',
       lot: userData.lot ?? '',
-      subject,
+      subject: normalizeSubject(subject),
       message: messageText,
       preview: messageText.slice(0, 120),
       status: 'Unread',
