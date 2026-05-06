@@ -23,6 +23,41 @@ interface StatCard {
   icon: string;
 }
 
+type PaymentRecord = {
+  amount?: number;
+  paymentAmount?: number;
+  method?: string;
+  status?: string;
+  createdAt?: string | number | { toMillis?: () => number; toDate?: () => Date };
+};
+
+type ResidentRecord = {
+  id: string;
+  balance?: number;
+  phase?: string;
+};
+
+type SubmissionRecord = {
+  status?: string;
+};
+
+type ChartPoint = {
+  month: string;
+  value: number;
+};
+
+type PiePoint = {
+  name: string;
+  value: number;
+};
+
+type BarPoint = {
+  phase: string;
+  delinquent: number;
+};
+
+const MONTH_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export default function AdminDashboard() {
   const router = useRouter();
   useAuthPageshow('admin');
@@ -31,86 +66,170 @@ export default function AdminDashboard() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [userName, setUserName] = useState('Admin User');
 
-  // Chart data
-  const collectionTrendsData = [
-    { month: 'Aug', value: 45000 },
-    { month: 'Sep', value: 52000 },
-    { month: 'Oct', value: 48000 },
-    { month: 'Nov', value: 55000 },
-    { month: 'Dec', value: 58000 },
-    { month: 'Jan', value: 62000 },
-  ];
-
-  const fundBreakdownData = [
-    { name: 'Maintenance', value: 35 },
-    { name: 'Security', value: 25 },
-    { name: 'Reserve', value: 20 },
-    { name: 'Utilities', value: 20 },
-  ];
-
-  const delinquencyData = [
-    { phase: 'Phase 1', delinquent: 2 },
-    { phase: 'Phase 2', delinquent: 7 },
-    { phase: 'Phase 3', delinquent: 3 },
-    { phase: 'Phase 4', delinquent: 5 },
-  ];
-
   const [statCards, setStatCards] = useState<StatCard[]>([
     {
       title: "Today's Collections",
-      value: '₱8,500',
-      change: '+12% vs yesterday',
-      changeType: 'positive',
+      value: '₱0',
+      change: 'Loading live data',
+      changeType: 'neutral',
       icon: '💵',
     },
     {
       title: 'Monthly Total',
-      value: '₱62,000',
-      change: '85% collected',
-      changeType: 'positive',
+      value: '₱0',
+      change: 'Loading live data',
+      changeType: 'neutral',
       icon: '📊',
     },
     {
       title: 'Pending Verifications',
-      value: '12',
-      change: 'Requires action',
+      value: '0',
+      change: 'Loading live data',
       changeType: 'neutral',
       icon: '⏳',
     },
     {
       title: 'Delinquent Accounts',
-      value: '17',
-      change: '-2 from last month',
-      changeType: 'positive',
+      value: '0',
+      change: 'Loading live data',
+      changeType: 'neutral',
       icon: '⚠️',
     },
   ]);
 
+  const [collectionTrendsData, setCollectionTrendsData] = useState<ChartPoint[]>([]);
+  const [paymentMethodData, setPaymentMethodData] = useState<PiePoint[]>([]);
+  const [delinquencyData, setDelinquencyData] = useState<BarPoint[]>([]);
+
   const COLORS = ['#1B2A4A', '#4caf50', '#ff9800', '#9c27b0'];
+
+  const formatAmount = (amount: number) => `₱${amount.toLocaleString()}`;
+
+  const toMillis = (value: PaymentRecord['createdAt']) => {
+    if (!value) return 0;
+    if (typeof value === 'object') {
+      if (typeof value.toMillis === 'function') return value.toMillis();
+      if (typeof value.toDate === 'function') return value.toDate().getTime();
+      return 0;
+    }
+    if (typeof value === 'number') return value;
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const [profilePayload, residentsPayload] = await Promise.all([
+        const [profilePayload, residentsPayload, paymentsPayload, submissionsPayload] = await Promise.all([
           apiCall('/api/auth/profile'),
           apiCall('/api/residents'),
+          apiCall('/api/payments'),
+          apiCall('/api/payment-submissions'),
         ]);
 
         setUserName(profilePayload.user?.fullName ?? 'Admin User');
 
-        const residents = (residentsPayload.residents ?? []) as Array<{ balance?: number }>;
+        const residents = (residentsPayload.residents ?? []) as ResidentRecord[];
+        const payments = (paymentsPayload.payments ?? []) as PaymentRecord[];
+        const submissions = (submissionsPayload.submissions ?? []) as SubmissionRecord[];
+
         const delinquentCount = residents.filter((resident) => Number(resident.balance ?? 0) > 0).length;
+        const pendingVerifications = submissions.filter((submission) => submission.status === 'Pending').length;
+
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const todayCollections = payments.reduce((sum, payment) => {
+          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
+          if (!Number.isFinite(amount)) return sum;
+          if (toMillis(payment.createdAt) >= todayStart) return sum + amount;
+          return sum;
+        }, 0);
+
+        const monthlyTotal = payments.reduce((sum, payment) => {
+          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
+          const createdAt = toMillis(payment.createdAt);
+          if (!Number.isFinite(amount) || !createdAt) return sum;
+          const createdDate = new Date(createdAt);
+          if (createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear) {
+            return sum + amount;
+          }
+          return sum;
+        }, 0);
+
+        const previousMonth = (currentMonth + 11) % 12;
+        const previousMonthCollections = payments.reduce((sum, payment) => {
+          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
+          const createdAt = toMillis(payment.createdAt);
+          if (!Number.isFinite(amount) || !createdAt) return sum;
+          const createdDate = new Date(createdAt);
+          if (createdDate.getMonth() === previousMonth && createdDate.getFullYear() === (currentMonth === 0 ? currentYear - 1 : currentYear)) {
+            return sum + amount;
+          }
+          return sum;
+        }, 0);
+
+        const collectionTrendMap = new Map<string, number>();
+        payments.forEach((payment) => {
+          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
+          const createdAt = toMillis(payment.createdAt);
+          if (!Number.isFinite(amount) || !createdAt) return;
+          const createdDate = new Date(createdAt);
+          const label = MONTH_ORDER[createdDate.getMonth()];
+          collectionTrendMap.set(label, (collectionTrendMap.get(label) ?? 0) + amount);
+        });
+
+        const trendData = MONTH_ORDER
+          .map((month) => ({ month, value: collectionTrendMap.get(month) ?? 0 }))
+          .filter((entry) => entry.value > 0);
+
+        const paymentMethodMap = new Map<string, number>();
+        payments.forEach((payment) => {
+          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
+          const method = payment.method?.trim() || 'Unknown';
+          if (!Number.isFinite(amount)) return;
+          paymentMethodMap.set(method, (paymentMethodMap.get(method) ?? 0) + amount);
+        });
+
+        const methodData = Array.from(paymentMethodMap.entries()).map(([name, value]) => ({ name, value }));
+
+        const phaseMap = new Map<string, number>();
+        residents.forEach((resident) => {
+          if (Number(resident.balance ?? 0) <= 0) return;
+          const phase = resident.phase || 'Unknown';
+          phaseMap.set(phase, (phaseMap.get(phase) ?? 0) + 1);
+        });
+
+        const phaseData = Array.from(phaseMap.entries())
+          .map(([phase, delinquent]) => ({ phase, delinquent }))
+          .sort((left, right) => left.phase.localeCompare(right.phase));
+
+        setCollectionTrendsData(trendData);
+        setPaymentMethodData(methodData.length > 0 ? methodData : [{ name: 'No payments yet', value: 1 }]);
+        setDelinquencyData(phaseData.length > 0 ? phaseData : [{ phase: 'No data', delinquent: 0 }]);
 
         setStatCards((previousCards) => [
-          previousCards[0],
+          {
+            ...previousCards[0],
+            value: formatAmount(todayCollections),
+            change: todayCollections > 0 ? 'Live collections today' : 'No collections today',
+            changeType: todayCollections > 0 ? 'positive' : 'neutral',
+          },
           {
             ...previousCards[1],
-            value: `₱${residents.length * 500}`,
+            value: formatAmount(monthlyTotal),
+            change: previousMonthCollections > 0
+              ? `${(((monthlyTotal - previousMonthCollections) / previousMonthCollections) * 100).toFixed(1)}% vs last month`
+              : 'Compared with last month',
+            changeType: monthlyTotal >= previousMonthCollections ? 'positive' : 'negative',
           },
           {
             ...previousCards[2],
-            value: `${residents.length}`,
-            change: residents.length > 0 ? 'Live resident records' : 'No resident records yet',
+            value: `${pendingVerifications}`,
+            change: pendingVerifications > 0 ? 'Requires action' : 'No pending verifications',
+            changeType: pendingVerifications > 0 ? 'neutral' : 'positive',
           },
           {
             ...previousCards[3],
@@ -286,20 +405,20 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={fundBreakdownData}
+                  data={paymentMethodData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.name} ${entry.value}%`}
+                  label={(entry: any) => `${entry.name} ₱${Number(entry.value).toLocaleString()}`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {fundBreakdownData.map((entry, index) => (
+                  {paymentMethodData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${value}%`} />
+                <Tooltip formatter={(value) => `₱${Number(value).toLocaleString()}`} />
               </PieChart>
             </ResponsiveContainer>
           </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
 import Toast from '@/app/components/Toast';
+import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
@@ -19,6 +20,23 @@ interface ReportData {
   status: 'Paid' | 'Pending' | 'Delinquent';
 }
 
+type ResidentRecord = {
+  id: string;
+  fullName?: string;
+  block?: string;
+  lot?: string;
+  balance?: number;
+};
+
+type PaymentRecord = {
+  residentId?: string;
+  amount?: number;
+  paymentAmount?: number;
+  status?: string;
+};
+
+const MONTHLY_DUES = 500;
+
 export default function AdminReports() {
   const router = useRouter();
   useAuthPageshow('admin');
@@ -29,14 +47,8 @@ export default function AdminReports() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
-
-  const financialData: ReportData[] = [
-    { block: '1', lot: '15', resident: 'Juan dela Cruz', monthlyDues: 500, amountPaid: 500, balance: 0, status: 'Paid' },
-    { block: '2', lot: '8', resident: 'Maria Santos', monthlyDues: 500, amountPaid: 500, balance: 0, status: 'Paid' },
-    { block: '3', lot: '22', resident: 'Pedro Reyes', monthlyDues: 500, amountPaid: 0, balance: 3500, status: 'Delinquent' },
-    { block: '4', lot: '3', resident: 'Ana Gomez', monthlyDues: 500, amountPaid: 500, balance: 0, status: 'Paid' },
-    { block: '2', lot: '19', resident: 'Carlos Mendoza', monthlyDues: 500, amountPaid: 0, balance: 1000, status: 'Pending' },
-  ];
+  const [financialData, setFinancialData] = useState<ReportData[]>([]);
+  const [loadError, setLoadError] = useState('');
 
   const totalDues = financialData.reduce((sum, d) => sum + d.monthlyDues, 0);
   const totalCollected = financialData.reduce((sum, d) => sum + d.amountPaid, 0);
@@ -56,7 +68,65 @@ export default function AdminReports() {
     if (!isAuthenticated || userRole !== 'admin') {
       router.replace('/login');
     } else {
-      setIsLoading(false);
+      const loadReports = async () => {
+        try {
+          setLoadError('');
+          const [residentsPayload, paymentsPayload] = await Promise.all([
+            apiCall('/api/residents'),
+            apiCall('/api/payments'),
+          ]);
+
+          const residents = (residentsPayload.residents ?? []) as ResidentRecord[];
+          const payments = (paymentsPayload.payments ?? []) as PaymentRecord[];
+
+          const paymentsByResident = payments.reduce<Record<string, number>>((accumulator, payment) => {
+            const status = String(payment.status ?? '').toLowerCase();
+            if (status !== 'paid' && status !== 'verified') {
+              return accumulator;
+            }
+
+            const residentId = payment.residentId;
+            const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
+
+            if (!residentId || !Number.isFinite(amount)) {
+              return accumulator;
+            }
+
+            accumulator[residentId] = (accumulator[residentId] ?? 0) + amount;
+            return accumulator;
+          }, {});
+
+          const derivedData: ReportData[] = residents.map((resident) => {
+            const balance = Number(resident.balance ?? 0);
+            const amountPaid = paymentsByResident[resident.id] ?? Math.max(0, MONTHLY_DUES - balance);
+            const status: ReportData['status'] = balance <= 0
+              ? 'Paid'
+              : balance > MONTHLY_DUES
+                ? 'Delinquent'
+                : 'Pending';
+
+            return {
+              block: resident.block || '-',
+              lot: resident.lot || '-',
+              resident: resident.fullName || 'Unknown Resident',
+              monthlyDues: MONTHLY_DUES,
+              amountPaid,
+              balance,
+              status,
+            };
+          });
+
+          setFinancialData(derivedData);
+        } catch (error) {
+          console.error('Failed to load admin reports data:', error);
+          setLoadError('Failed to load live report data.');
+          setFinancialData([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadReports();
     }
   }, [router]);
 
@@ -229,6 +299,11 @@ export default function AdminReports() {
 
           <div style={{ background: '#fff', padding: '30px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
             <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1rem', fontWeight: 600, color: '#1B2A4A' }}>{selectedReportType} - {selectedMonth}</h2>
+            {loadError && (
+              <div style={{ marginBottom: '16px', color: '#d32f2f', fontWeight: 600 }}>
+                {loadError}
+              </div>
+            )}
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
@@ -242,8 +317,8 @@ export default function AdminReports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {financialData.map((row, idx) => (
-                    <tr key={idx}>
+                  {financialData.length > 0 ? financialData.map((row, idx) => (
+                    <tr key={`${row.block}-${row.lot}-${idx}`}>
                       <td>Blk {row.block} Lot {row.lot}</td>
                       <td>{row.resident}</td>
                       <td>₱{row.monthlyDues}</td>
@@ -262,7 +337,13 @@ export default function AdminReports() {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#666' }}>
+                        No live report data available.
+                      </td>
+                    </tr>
+                  )}
                   <tr style={{ fontWeight: 'bold', borderTop: '2px solid #e0e0e0', background: '#fafafa' }}>
                     <td colSpan={2}>TOTAL</td>
                     <td>₱{totalDues.toLocaleString()}</td>

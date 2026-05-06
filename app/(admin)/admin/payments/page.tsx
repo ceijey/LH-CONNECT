@@ -29,17 +29,37 @@ export default function AdminPayments() {
   const [activeTab, setActiveTab] = useState<'Pending' | 'Verified' | 'Rejected'>('Pending');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const allPayments: Payment[] = [
-    { id: 'P001', resident: 'Maria Santos', phase: 'Phase 2', block: '2', lot: '8', amount: 500, date: '2026-02-23', time: '10:30 AM', method: 'GCash', status: 'Pending' },
-    { id: 'P002', resident: 'Carlos Mendoza', phase: 'Phase 3', block: '3', lot: '19', amount: 1000, date: '2026-02-23', time: '10:15 AM', method: 'Maya', status: 'Pending' },
-    { id: 'P003', resident: 'Ana Gomez', phase: 'Phase 3', block: '2', lot: '3', amount: 500, date: '2026-02-22', time: '03:45 PM', method: 'GCash', status: 'Pending' },
-    { id: 'P004', resident: 'Juan Dela Cruz', phase: 'Phase 1', block: '1', lot: '15', amount: 500, date: 'Feb 22, 2026', time: '02:30 PM', method: 'GCash', status: 'Verified' },
-    { id: 'P005', resident: 'Sofia Ruiz', phase: 'Phase 3', block: '2', lot: '20', amount: 500, date: 'Feb 21, 2026', time: '11:20 AM', method: 'Bank Transfer', status: 'Verified' },
-    { id: 'P006', resident: 'Luis Lopez', phase: 'Phase 1', block: '1', lot: '5', amount: 1500, date: 'Feb 20, 2026', time: '04:10 PM', method: 'Maya', status: 'Rejected' },
-  ];
+  // State to hold real payments fetched from the API (replaces mock data)
+  const [allPayments, setAllPayments] = useState<Payment[]>([]);
 
   useEffect(() => {
-    setIsLoading(false);
+    let mounted = true;
+
+    async function loadPayments() {
+      try {
+        const res = await fetch('/api/payments', { credentials: 'include' });
+        if (!res.ok) {
+          console.error('Failed to load payments', res.status);
+          setAllPayments([]);
+          return;
+        }
+
+        const data = await res.json();
+        // API returns { payments, user }
+        if (mounted && Array.isArray(data.payments)) {
+          setAllPayments(data.payments as Payment[]);
+        }
+      } catch (err) {
+        console.error('Error fetching payments:', err);
+        setAllPayments([]);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    loadPayments();
+
+    return () => { mounted = false; };
   }, [router]);
 
   const handleLogout = async () => {
