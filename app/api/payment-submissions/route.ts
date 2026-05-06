@@ -23,7 +23,28 @@ type PaymentSubmission = {
 function toSubmission(doc: any): PaymentSubmission {
   const data = doc.data();
   const submittedAt = data.submittedAt;
-  const submittedDate = data.submittedDate || (submittedAt?.toDate ? submittedAt.toDate().toLocaleString() : new Date().toLocaleString());
+  
+  // Convert Firestore Timestamp to Date
+  let submittedDate = data.submittedDate;
+  let month = data.month;
+  
+  if (!submittedDate || submittedDate === 'Invalid Date') {
+    const dateObj = submittedAt?.toDate?.() 
+      ? submittedAt.toDate() 
+      : typeof submittedAt === 'string' ? new Date(submittedAt) : new Date();
+    
+    if (dateObj && dateObj.getTime && !isNaN(dateObj.getTime())) {
+      submittedDate = dateObj.toLocaleString();
+      if (!month) {
+        month = dateObj.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      }
+    } else {
+      submittedDate = new Date().toLocaleString();
+      if (!month) {
+        month = new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      }
+    }
+  }
 
   return {
     id: doc.id,
@@ -260,7 +281,8 @@ export async function POST(request: NextRequest) {
         read: false,
       });
     } catch (notifyErr) {
-      console.error('Failed to create admin notification:', notifyErr?.message ?? notifyErr);
+      // Avoid assuming structure of the caught value; log it directly for diagnostics
+      console.error('Failed to create admin notification:', notifyErr);
     }
 
     return NextResponse.json({ submission });

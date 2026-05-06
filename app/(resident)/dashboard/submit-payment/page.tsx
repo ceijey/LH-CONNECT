@@ -100,13 +100,31 @@ export default function SubmitPaymentPage() {
         if (isMounted) setRecentLoading(true);
         const payload = await apiCall('/api/payment-submissions');
         if (isMounted) {
-          setRecentSubmissions((payload.submissions ?? []).map((submission: any) => ({
-            ...submission,
-            month: submission.month ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(undefined, { month: 'long', year: 'numeric' }),
-            amount: Number(submission.paymentAmount ?? 0),
-            status: submission.status === 'Verified' ? 'Verified' : 'Pending',
-            submittedDate: submission.submittedDate ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(),
-          })));
+          setRecentSubmissions((payload.submissions ?? []).map((submission: any) => {
+            // Parse the submitted date from the string provided by the API
+            let month = submission.month;
+            if (!month || month === 'Invalid Date') {
+              // If month is missing or invalid, try to extract from submittedDate string
+              try {
+                if (submission.submittedDate && submission.submittedDate !== 'Invalid Date') {
+                  const dateObj = new Date(submission.submittedDate);
+                  if (!isNaN(dateObj.getTime())) {
+                    month = dateObj.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+                  }
+                }
+              } catch (e) {
+                console.error('Failed to parse submission date:', submission.submittedDate);
+              }
+            }
+            
+            return {
+              ...submission,
+              month: month || 'Unknown Date',
+              amount: Number(submission.paymentAmount ?? 0),
+              status: submission.status === 'Verified' ? 'Verified' : 'Pending',
+              submittedDate: submission.submittedDate || new Date().toLocaleString(),
+            };
+          }));
         }
       } catch (error) {
         console.error('Failed to load recent submissions:', error);
