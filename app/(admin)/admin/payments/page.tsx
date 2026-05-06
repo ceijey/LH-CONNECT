@@ -132,6 +132,38 @@ export default function AdminPayments() {
     }
   };
 
+  // Update submission status (admin only)
+  const changeSubmissionStatus = async (id: string, newStatus: 'Verified' | 'Rejected') => {
+    const confirmMsg = newStatus === 'Verified' ? 'Mark this submission as VERIFIED?' : 'Mark this submission as REJECTED?';
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/payment-submissions/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || `Failed to update status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const updated = data.submission;
+
+      // Update local state
+      setAllPayments((current) => current.map((p) => (p.id === id ? { ...p, status: updated.status === 'Verified' ? 'Verified' : updated.status === 'Rejected' ? 'Rejected' : p.status } : p)));
+    } catch (error) {
+      console.error('Failed to change submission status:', error);
+      alert(String(error));
+    }
+  };
+
+  const handleApprove = (id: string) => changeSubmissionStatus(id, 'Verified');
+  const handleReject = (id: string) => changeSubmissionStatus(id, 'Rejected');
+
   const filteredPayments = allPayments.filter((payment) => {
     const matchesStatus = payment.status === activeTab;
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -278,8 +310,8 @@ export default function AdminPayments() {
                         <button className={styles.viewProofBtn} title="View Proof">👁️ View Proof</button>
                         {activeTab === 'Pending' && (
                           <>
-                            <button className={styles.approveBtn} title="Approve">✓</button>
-                            <button className={styles.rejectBtn} title="Reject">✕</button>
+                            <button onClick={() => handleApprove(payment.id)} className={styles.approveBtn} title="Approve">✓</button>
+                            <button onClick={() => handleReject(payment.id)} className={styles.rejectBtn} title="Reject">✕</button>
                           </>
                         )}
                         <button className={styles.deleteBtn} title="Delete">🗑️</button>
