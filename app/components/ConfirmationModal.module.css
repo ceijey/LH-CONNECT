@@ -169,3 +169,28 @@
     font-size: 0.95rem;
   }
 }
+
+.modalInput {
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.modalInput:focus {
+  border-color: #1b2a4a;
+  box-shadow: 0 0 0 4px rgba(27, 42, 74, 0.1);
+}
+
+.confirmBtn:disabled {
+  background: #ccc !important;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}

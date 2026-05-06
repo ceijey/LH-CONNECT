@@ -13,8 +13,10 @@ const isUnreadMessage = (message: any) => {
   return status === 'unread' || status === 'new';
 };
 
-export async function PATCH(request: NextRequest, context: any) {
-  const { params } = context || {};
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const tokenVerification = await verifyToken(request);
 
   if (tokenVerification.error) {
@@ -22,7 +24,7 @@ export async function PATCH(request: NextRequest, context: any) {
   }
 
   const decoded = tokenVerification.decoded!;
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const userDoc = await adminDb.collection('users').doc(decoded.uid).get();

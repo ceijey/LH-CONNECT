@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
-import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
-import { logoutAndRedirect } from '@/lib/auth-session';
-import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 import styles from './admin-page.module.css';
 
 interface Resident {
@@ -24,12 +21,15 @@ interface Resident {
 
 export default function AdminResidents() {
   const router = useRouter();
-  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState('residents');
   const [searchTerm, setSearchTerm] = useState('');
   const [allResidents, setAllResidents] = useState<Resident[]>([]);
   const [filteredResidents, setFilteredResidents] = useState<Resident[]>([]);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string; name: string }>({
+    isOpen: false,
+    id: '',
+    name: ''
+  });
 
   const totalResidents = allResidents.length;
   const activeCount = allResidents.filter((resident) => resident.status === 'Active').length;
@@ -47,46 +47,47 @@ export default function AdminResidents() {
     );
   }).length;
 
+  const loadResidents = async () => {
+    try {
+      setIsLoading(true);
+      const payload = await apiCall('/api/residents');
+      const residents = (payload.residents ?? []).map((resident: any, index: number) => {
+        const balance = Number(resident.balance ?? 0);
+        const status: Resident['status'] =
+          resident.status === 'Inactive'
+            ? 'Inactive'
+            : balance > 0
+              ? 'Delinquent'
+              : 'Active';
+
+        return {
+          id: resident.id ?? `R${String(index + 1).padStart(3, '0')}`,
+          name: resident.fullName ?? resident.name ?? 'Unknown Resident',
+          phase: resident.phase ?? 'Phase N/A',
+          block: resident.block ?? '-',
+          lot: resident.lot ?? '-',
+          email: resident.email ?? '-',
+          phone: resident.phone ?? '-',
+          status,
+          balance,
+          createdAt: resident.createdAt,
+        } as Resident;
+      });
+
+      setAllResidents(residents);
+      setFilteredResidents(residents);
+    } catch (error) {
+      console.error('Failed to load residents:', error);
+      setAllResidents([]);
+      setFilteredResidents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadResidents = async () => {
-      try {
-        const payload = await apiCall('/api/residents');
-        const residents = (payload.residents ?? []).map((resident: any, index: number) => {
-          const balance = Number(resident.balance ?? 0);
-          const status: Resident['status'] =
-            resident.status === 'Inactive'
-              ? 'Inactive'
-              : balance > 0
-                ? 'Delinquent'
-                : 'Active';
-
-          return {
-            id: resident.id ?? `R${String(index + 1).padStart(3, '0')}`,
-            name: resident.fullName ?? resident.name ?? 'Unknown Resident',
-            phase: resident.phase ?? 'Phase N/A',
-            block: resident.block ?? '-',
-            lot: resident.lot ?? '-',
-            email: resident.email ?? '-',
-            phone: resident.phone ?? '-',
-            status,
-            balance,
-            createdAt: resident.createdAt,
-          } as Resident;
-        });
-
-        setAllResidents(residents);
-        setFilteredResidents(residents);
-      } catch (error) {
-        console.error('Failed to load residents:', error);
-        setAllResidents([]);
-        setFilteredResidents([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadResidents();
-  }, [router]);
+  }, []);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -103,61 +104,32 @@ export default function AdminResidents() {
     }
   };
 
-  const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      await logoutAndRedirect(router, '/');
+  const handleConfirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal(prev => ({ ...prev, isOpen: false }));
+    try {
+      await apiCall(`/api/residents/${id}`, { method: 'DELETE' });
+      loadResidents();
+    } catch (error: any) {
+      alert(`Delete failed: ${error.message}`);
     }
   };
 
-  if (isLoading) return <div className={styles.loading}>Loading...</div>;
+  if (isLoading) return <div className={styles.loading}>Loading residents...</div>;
 
   return (
-    <div className={styles.container}>
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>
-            <span className={styles.logoIcon}>🏠</span>
-            <div>
-              <div className={styles.logoText}>LH-Connect</div>
-              <div className={styles.logoSubtext}>Admin</div>
-            </div>
-          </div>
-        </div>
-        <nav className={styles.nav}>
-          <Link href="/admin/dashboard" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('dashboard'); router.push('/admin/dashboard'); }}>
-            <span>📊</span> Dashboard
-          </Link>
-          <Link href="/admin/residents" className={`${styles.navItem} ${activeNav === 'residents' ? styles.active : ''}`} onClick={(e) => { e.preventDefault(); setActiveNav('residents'); router.push('/admin/residents'); }}>
-            <span>👥</span> Residents
-          </Link>
-          <Link href="/admin/payments" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('payments'); router.push('/admin/payments'); }}>
-            <span>💳</span> Payments
-          </Link>
-          <Link href="/admin/qr-scanner" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('qr-scanner'); router.push('/admin/qr-scanner'); }}>
-            <span>📱</span> QR Scanner
-          </Link>
-          <Link href="/admin/messages" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('messages'); router.push('/admin/messages'); }}>
-            <span>💬</span> Messages
-            <UnreadMessagesBadge />
-          </Link>
-          <Link href="/admin/reports" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('reports'); router.push('/admin/reports'); }}>
-            <span>📑</span> Reports
-          </Link>
-        </nav>
-        <button className={styles.logoutBtn} onClick={handleLogout}>🚪 Logout</button>
-      </aside>
+    <>
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        title="Delete Resident"
+        message={`Are you sure you want to permanently delete ${deleteModal.name}? This will also remove their login access.`}
+        confirmText="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        isDangerous={true}
+      />
 
-      <main className={styles.main}>
-        <header className={styles.header}>
-          <h1 className={styles.pageTitle}>Digital Resident Registry</h1>
-          <div className={styles.headerRight}>
-            <span className={styles.userLabel}>Admin User</span>
-            <div className={styles.userAvatar}>👤</div>
-          </div>
-        </header>
-
-        {/* Stat Cards */}
-        <div className={styles.statsGrid}>
+      <div className={styles.statsGrid}>
           <div className={styles.registryStat}>
             <div className={styles.registryStatLabel}>Total Residents</div>
             <div className={styles.registryStatValue}>{totalResidents}</div>
@@ -185,7 +157,9 @@ export default function AdminResidents() {
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
             />
-            <button className={styles.addBtn}>+ Add Resident</button>
+            <button className={styles.addBtn} onClick={() => router.push('/admin/residents/new')}>
+              + Add Resident
+            </button>
           </div>
           
           <div className={styles.tableWrapper}>
@@ -205,31 +179,48 @@ export default function AdminResidents() {
                 {filteredResidents.map((resident) => (
                   <tr key={resident.id}>
                     <td>
-                      <span className={styles.idBadge}>{resident.id}</span>
+                      <span className={styles.idBadge} title={resident.id}>
+                        {resident.id}
+                      </span>
                     </td>
                     <td className={styles.nameTd}>{resident.name}</td>
-                    <td><span className={styles.phaseBadge}>{resident.phase}</span> Blk {resident.block} Lot {resident.lot}</td>
+                    <td>
+                      <div className={styles.blockLot}>
+                        <span className={styles.phaseBadge}>{resident.phase}</span>
+                        <span className={styles.blockLotText}>Blk {resident.block} Lot {resident.lot}</span>
+                      </div>
+                    </td>
                     <td>
                       <span className={`${styles.badge} ${styles[resident.status.toLowerCase()]}`}>
                         {resident.status}
                       </span>
                     </td>
                     <td className={`${styles.balanceTd} ${resident.balance > 0 ? styles.debit : ''}`}>
-                      ₱{resident.balance}
+                      ₱{resident.balance.toLocaleString()}
                     </td>
                     <td>{resident.phone}</td>
                     <td className={styles.actionsTd}>
-                      <button className={styles.iconBtn} title="View">📋</button>
-                      <button className={styles.iconBtn} title="Edit">✏️</button>
-                      <button className={styles.iconBtn} title="Delete">🗑️</button>
+                      <button 
+                        className={styles.iconBtn} 
+                        title="View Details"
+                        onClick={() => router.push(`/admin/residents/${resident.id}`)}
+                      >
+                        📋
+                      </button>
+                      <button 
+                        className={styles.iconBtn} 
+                        title="Edit Resident"
+                        onClick={() => router.push(`/admin/residents/${resident.id}/edit`)}
+                      >
+                        ✏️
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

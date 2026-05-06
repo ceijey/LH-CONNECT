@@ -13,9 +13,10 @@ interface Transaction {
   date: string;
   type: 'Payment' | 'Fine' | 'Adjustment';
   amount: number;
-  status: 'Paid' | 'Pending' | 'Failed';
+  status: 'Paid' | 'Pending' | 'Failed' | 'Rejected';
   description: string;
   paymentMethod: 'GCash' | 'Maya' | 'Bank Transfer' | 'Cash' | 'System';
+  rejectionReason?: string;
 }
 
 export default function TransactionsPage() {
@@ -23,7 +24,7 @@ export default function TransactionsPage() {
   useAuthPageshow('resident');
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<'All' | 'Paid' | 'Pending' | 'Failed'>('All');
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Paid' | 'Pending' | 'Failed' | 'Rejected'>('All');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadError, setLoadError] = useState('');
 
@@ -41,18 +42,26 @@ export default function TransactionsPage() {
             return Number.isFinite(numeric) ? numeric : new Date(value).getTime() || 0;
           };
 
-          const createdAt = payment.createdAt ? new Date(toMillis(payment.createdAt)) : new Date();
-          const month = createdAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+          const displayDate = (payment.status === 'Verified' && payment.verifiedAt) 
+            ? payment.verifiedAt 
+            : payment.createdAt;
+          
+          const dateObj = displayDate ? new Date(toMillis(displayDate)) : new Date();
+          const month = payment.month || dateObj.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+          const dateStr = (payment.status === 'Verified' && payment.verifiedDate)
+            ? new Date(payment.verifiedDate).toLocaleDateString()
+            : (payment.submittedDate ? new Date(payment.submittedDate).toLocaleDateString() : dateObj.toLocaleDateString());
 
           return {
             id: payment.id,
             month,
-            date: createdAt.toLocaleDateString(),
-            type: payment.status?.toLowerCase() === 'pending' ? 'Adjustment' : 'Payment',
+            date: dateStr,
+            type: 'Payment',
             amount: Number(payment.amount ?? 0),
-            status: payment.status === 'Failed' ? 'Failed' : payment.status === 'Pending' ? 'Pending' : 'Paid',
+            status: payment.status === 'Verified' ? 'Paid' : (payment.status || 'Pending'),
             description: payment.reference ? `Payment reference ${payment.reference}` : `Monthly dues - ${month}`,
             paymentMethod: (payment.method || 'System') as Transaction['paymentMethod'],
+            rejectionReason: payment.rejectionReason,
           } as Transaction;
         }) as Transaction[];
 
@@ -188,7 +197,14 @@ export default function TransactionsPage() {
                           {transaction.type}
                         </span>
                       </td>
-                      <td className={styles.descCell}>{transaction.description}</td>
+                      <td className={styles.descCell}>
+                        <div>{transaction.description}</div>
+                        {transaction.status === 'Rejected' && transaction.rejectionReason && (
+                          <div className={styles.rejectionReason}>
+                            ⚠️ Reason: {transaction.rejectionReason}
+                          </div>
+                        )}
+                      </td>
                       <td className={styles.amountCell}>₱{transaction.amount}</td>
                       <td className={styles.methodCell}>{transaction.paymentMethod}</td>
                       <td className={styles.statusCell}>

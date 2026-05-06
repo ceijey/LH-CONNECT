@@ -2,199 +2,92 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
-import Toast from '@/app/components/Toast';
+import { apiCall } from '@/lib/api-client';
+import ConfirmationModal from '@/app/components/ConfirmationModal';
 import ImageModal from '@/app/components/ImageModal';
-import { logoutAndRedirect } from '@/lib/auth-session';
-import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
 
-interface Payment {
+interface PaymentSubmission {
   id: string;
-  resident: string;
-  phase: string;
-  block: string;
-  lot: string;
-  amount: number;
-  date: string;
-  time: string;
-  method: string;
-  fileUrl?: string | null;
+  residentId: string;
+  residentName: string;
+  blockLot: string;
+  paymentAmount: number;
+  paymentMethod: string;
+  referenceNumber: string;
+  fileUrl?: string;
   status: 'Verified' | 'Pending' | 'Rejected';
-}
-
-function parseBlockLot(blockLot: string) {
-  const normalized = blockLot.trim();
-  const phaseMatch = normalized.match(/^(Phase\s*\d+|P\d+|Phase\s*[A-Za-z0-9]+)\s+/i);
-  const blockMatch = normalized.match(/Blk\s*([A-Za-z0-9-]+)/i) || normalized.match(/Block\s*([A-Za-z0-9-]+)/i);
-  const lotMatch = normalized.match(/Lot\s*([A-Za-z0-9-]+)/i);
-
-  return {
-    phase: phaseMatch?.[1] ?? '',
-    block: blockMatch?.[1] ?? '',
-    lot: lotMatch?.[1] ?? '',
-  };
-}
-
-function formatPaymentDate(submittedDate?: string, submittedAt?: string | number | { toDate?: () => Date } | null) {
-  if (submittedDate && submittedDate !== 'Invalid Date') {
-    const parsed = new Date(submittedDate);
-    if (!Number.isNaN(parsed.getTime())) {
-      return {
-        date: parsed.toLocaleDateString(),
-        time: parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-    }
-  }
-
-  let timestampDate: Date | null = null;
-
-  if (submittedAt && typeof submittedAt === 'object' && typeof submittedAt.toDate === 'function') {
-    timestampDate = submittedAt.toDate();
-  } else if (typeof submittedAt === 'string' || typeof submittedAt === 'number') {
-    timestampDate = new Date(submittedAt);
-  }
-
-  if (timestampDate && !Number.isNaN(timestampDate.getTime())) {
-    return {
-      date: timestampDate.toLocaleDateString(),
-      time: timestampDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-  }
-
-  const fallback = new Date();
-  return {
-    date: fallback.toLocaleDateString(),
-    time: fallback.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  };
+  submittedDate: string;
+  verifiedDate?: string;
 }
 
 export default function AdminPayments() {
   const router = useRouter();
-  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState('payments');
   const [activeTab, setActiveTab] = useState<'Pending' | 'Verified' | 'Rejected'>('Pending');
   const [searchTerm, setSearchTerm] = useState('');
+  const [allPayments, setAllPayments] = useState<PaymentSubmission[]>([]);
+  
+  // Modal states
+  const [proofModal, setProofModal] = useState<{ isOpen: boolean; url: string; title: string }>({
+    isOpen: false,
+    url: '',
+    title: ''
+  });
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    type: 'Approve' | 'Reject' | 'Delete';
+    id: string;
+    name: string;
+  }>({
+    isOpen: false,
+    type: 'Approve',
+    id: '',
+    name: ''
+  });
+  const [rejectionReason, setRejectionReason] = useState('');
 
-  // State to hold real payments fetched from the API (replaces mock data)
-  const [allPayments, setAllPayments] = useState<Payment[]>([]);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const fetchPayments = async () => {
+    try {
+      const data = await apiCall('/api/payment-submissions');
+      setAllPayments(data.submissions || []);
+    } catch (error) {
+      console.error('Failed to fetch payments:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
+    fetchPayments();
+  }, []);
 
-    async function loadPayments() {
-      try {
-        const res = await fetch('/api/payment-submissions', { credentials: 'include' });
-        if (!res.ok) {
-          console.error('Failed to load payment submissions', res.status);
-          setAllPayments([]);
-          return;
-        }
-
-        const data = await res.json();
-        // API returns { submissions, user }
-          if (mounted && Array.isArray(data.submissions)) {
-          const mappedPayments: Payment[] = data.submissions.map((submission: any) => {
-            const { phase, block, lot } = parseBlockLot(String(submission.blockLot ?? ''));
-            const { date, time } = formatPaymentDate(submission.submittedDate, submission.submittedAt);
-
-            return {
-              id: String(submission.id ?? ''),
-              resident: String(submission.residentName ?? 'Unknown Resident'),
-              phase: phase || 'N/A',
-              block: block || 'N/A',
-              lot: lot || 'N/A',
-              amount: Number(submission.paymentAmount ?? 0),
-              date,
-              time,
-              method: String(submission.paymentMethod ?? 'Unknown'),
-              fileUrl: submission.fileUrl ?? null,
-              status: submission.status === 'Verified' ? 'Verified' : submission.status === 'Rejected' ? 'Rejected' : 'Pending',
-            };
-          });
-
-          setAllPayments(mappedPayments);
-        }
-      } catch (err) {
-        console.error('Error fetching payment submissions:', err);
-        setAllPayments([]);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    }
-
-    loadPayments();
-
-    return () => { mounted = false; };
-  }, [router]);
-
-  const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      await logoutAndRedirect(router, '/');
-    }
-  };
-
-  // Update submission status (admin only)
-  const changeSubmissionStatus = async (id: string, newStatus: 'Verified' | 'Rejected') => {
-    const confirmMsg = newStatus === 'Verified' ? 'Mark this submission as VERIFIED?' : 'Mark this submission as REJECTED?';
-    if (!window.confirm(confirmMsg)) return;
-
+  const handleAction = async () => {
+    const { type, id } = actionModal;
+    const reason = rejectionReason;
+    
+    // Close modal and reset reason immediately for UI feedback
+    setActionModal(prev => ({ ...prev, isOpen: false }));
+    setRejectionReason('');
+    
     try {
-      const res = await fetch(`/api/payment-submissions/${encodeURIComponent(id)}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || `Failed to update status: ${res.status}`);
+      if (type === 'Delete') {
+        await apiCall(`/api/payment-submissions/${id}`, { method: 'DELETE' });
+      } else {
+        const status = type === 'Approve' ? 'Verified' : 'Rejected';
+        await apiCall(`/api/payment-submissions/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ 
+            status,
+            rejectionReason: status === 'Rejected' ? reason : undefined
+          })
+        });
       }
-
-      const data = await res.json();
-      const updated = data.submission;
-
-      // Update local state
-      setAllPayments((current) => current.map((p) => (p.id === id ? { ...p, status: updated.status === 'Verified' ? 'Verified' : updated.status === 'Rejected' ? 'Rejected' : p.status } : p)));
-
-      // Show success toast
-      setToastType('success');
-      setToastMessage(`Submission ${newStatus === 'Verified' ? 'verified' : 'rejected'} successfully`);
-      setToastVisible(true);
-    } catch (error) {
-      console.error('Failed to change submission status:', error);
-      setToastType('error');
-      setToastMessage(String(error ?? 'Failed to update status'));
-      setToastVisible(true);
+      // Refresh list
+      fetchPayments();
+    } catch (error: any) {
+      alert(`Error: ${error.message || 'Operation failed'}`);
     }
-  };
-
-  const handleApprove = (id: string) => changeSubmissionStatus(id, 'Verified');
-  const handleReject = (id: string) => changeSubmissionStatus(id, 'Rejected');
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
-
-  const handleViewProof = (fileUrl?: string | null) => {
-    if (fileUrl) {
-      setModalImageUrl(fileUrl);
-      setIsModalOpen(true);
-    } else {
-      setToastType('info');
-      setToastMessage('No proof file available for this submission.');
-      setToastVisible(true);
-    }
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setModalImageUrl(null);
   };
 
   const filteredPayments = allPayments.filter((payment) => {
@@ -205,76 +98,57 @@ export default function AdminPayments() {
       return matchesStatus;
     }
 
-    const matchesSearch = [
+    return matchesStatus && [
       payment.id,
-      payment.resident,
-      payment.phase,
-      `blk ${payment.block} lot ${payment.lot}`,
-      payment.method,
-      payment.date,
-    ].some((value) => value.toLowerCase().includes(normalizedSearch));
-
-    return matchesStatus && matchesSearch;
+      payment.residentName,
+      payment.blockLot,
+      payment.paymentMethod,
+      payment.submittedDate,
+      payment.referenceNumber
+    ].some((value) => String(value ?? '').toLowerCase().includes(normalizedSearch));
   });
+
   const pendingCount = allPayments.filter(p => p.status === 'Pending').length;
   const verifiedCount = allPayments.filter(p => p.status === 'Verified').length;
   const rejectedCount = allPayments.filter(p => p.status === 'Rejected').length;
 
-  if (isLoading) return <div className={styles.loading}>Loading...</div>;
+  if (isLoading) return <div className={styles.loading}>Loading payments...</div>;
 
   return (
-    <div className={styles.container}>
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>
-            <span className={styles.logoIcon}>🏠</span>
-            <div>
-              <div className={styles.logoText}>LH-Connect</div>
-              <div className={styles.logoSubtext}>Admin</div>
-            </div>
-          </div>
-        </div>
-        <nav className={styles.nav}>
-          <Link href="/admin/dashboard" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('dashboard'); router.push('/admin/dashboard'); }}>
-            <span>📊</span> Dashboard
-          </Link>
-          <Link href="/admin/residents" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('residents'); router.push('/admin/residents'); }}>
-            <span>👥</span> Residents
-          </Link>
-          <Link href="/admin/payments" className={`${styles.navItem} ${activeNav === 'payments' ? styles.active : ''}`} onClick={(e) => { e.preventDefault(); setActiveNav('payments'); router.push('/admin/payments'); }}>
-            <span>💳</span> Payments
-          </Link>
-          <Link href="/admin/qr-scanner" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('qr-scanner'); router.push('/admin/qr-scanner'); }}>
-            <span>📱</span> QR Scanner
-          </Link>
-          <Link href="/admin/messages" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('messages'); router.push('/admin/messages'); }}>
-            <span>💬</span> Messages
-            <UnreadMessagesBadge />
-          </Link>
-          <Link href="/admin/reports" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('reports'); router.push('/admin/reports'); }}>
-            <span>📑</span> Reports
-          </Link>
-        </nav>
-        <button className={styles.logoutBtn} onClick={handleLogout}>🚪 Logout</button>
-      </aside>
+    <>
+      <ConfirmationModal
+        isOpen={actionModal.isOpen}
+        title={`${actionModal.type} Payment`}
+        message={
+          actionModal.type === 'Reject' 
+            ? `Please provide a reason for rejecting the payment from ${actionModal.name}.`
+            : `Are you sure you want to ${actionModal.type.toLowerCase()} this payment from ${actionModal.name}?`
+        }
+        confirmText={actionModal.type === 'Approve' ? 'Verify' : actionModal.type}
+        onConfirm={handleAction}
+        onCancel={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
+        isDangerous={actionModal.type !== 'Approve'}
+        showInput={actionModal.type === 'Reject'}
+        inputValue={rejectionReason}
+        onInputChange={setRejectionReason}
+        inputPlaceholder="Reason for rejection (e.g., Invalid reference number, amount mismatch...)"
+      />
 
-      <main className={styles.main}>
-        <header className={styles.header}>
-          <h1 className={styles.pageTitle}>Payment Verification - 60-Second Proof-of-Payment</h1>
-          <div className={styles.headerRight}>
-            <span className={styles.userLabel}>Admin User</span>
-            <div className={styles.userAvatar}>👤</div>
-          </div>
-        </header>
+      <ImageModal
+        isOpen={proofModal.isOpen}
+        imageUrl={proofModal.url}
+        title={proofModal.title}
+        onClose={() => setProofModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
-        <div className={styles.content}>
+      <div className={styles.content}>
           <div className={styles.controlsSection} style={{ marginBottom: '20px' }}>
             <input
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search by resident, payment ID, block, lot, method, or date"
-              className={styles.filterSelect}
+              placeholder="Search by resident, payment ID, block, lot, or method..."
+              className={styles.searchInput}
               style={{ width: '100%', maxWidth: '420px' }}
             />
           </div>
@@ -306,12 +180,6 @@ export default function AdminPayments() {
             {activeTab === 'Verified' && '✓ Verified Payments'}
             {activeTab === 'Rejected' && '✕ Rejected Payments'}
           </div>
-
-          {searchTerm && (
-            <div style={{ marginBottom: '12px', color: '#666', fontSize: '0.95rem' }}>
-              Showing {filteredPayments.length} result{filteredPayments.length === 1 ? '' : 's'} for "{searchTerm.trim()}"
-            </div>
-          )}
           
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
@@ -328,46 +196,90 @@ export default function AdminPayments() {
               </thead>
               <tbody>
                 {filteredPayments.length > 0 ? (
-                  filteredPayments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td className={styles.paymentId}>{payment.id}</td>
-                      <td className={styles.resident}>{payment.resident}</td>
-                      <td><span className={styles.phaseBadge}>{payment.phase}</span> Blk {payment.block} Lot {payment.lot}</td>
-                      <td className={styles.amount}>₱{payment.amount}</td>
-                      <td className={styles.datetime}>
-                        <div>{payment.date}</div>
-                        <div className={styles.time}>{payment.time}</div>
-                      </td>
-                      <td>{payment.method}</td>
-                      <td className={styles.paymentActions}>
-                        <button onClick={() => handleViewProof(payment.fileUrl)} className={styles.viewProofBtn} title="View Proof">👁️ View Proof</button>
-                        {activeTab === 'Pending' && (
-                          <>
-                            <button onClick={() => handleApprove(payment.id)} className={styles.approveBtn} title="Approve">✓</button>
-                            <button onClick={() => handleReject(payment.id)} className={styles.rejectBtn} title="Reject">✕</button>
-                          </>
-                        )}
-                        <button className={styles.deleteBtn} title="Delete">🗑️</button>
-                      </td>
-                    </tr>
-                  ))
+                  filteredPayments.map((payment) => {
+                    // Extract block/lot/phase from string "Phase X Blk Y Lot Z" if possible
+                    const addressParts = payment.blockLot.split(' ');
+                    const phase = addressParts[0] === 'Phase' ? `${addressParts[0]} ${addressParts[1]}` : 'N/A';
+                    const blkLot = payment.blockLot.replace(phase, '').trim();
+
+                    return (
+                      <tr key={payment.id}>
+                        <td className={styles.paymentId}>
+                          <span className={styles.idBadge} title={payment.id}>{payment.id}</span>
+                        </td>
+                        <td className={styles.resident}>{payment.residentName}</td>
+                        <td>
+                          <div className={styles.blockLot}>
+                            <span className={styles.phaseBadge}>{phase}</span>
+                            <span className={styles.blockLotText}>{blkLot}</span>
+                          </div>
+                        </td>
+                        <td className={styles.amount}>₱{payment.paymentAmount.toLocaleString()}</td>
+                        <td className={styles.datetime}>
+                          <div>{payment.status === 'Verified' ? payment.verifiedDate : payment.submittedDate}</div>
+                        </td>
+                        <td>{payment.paymentMethod}</td>
+                        <td className={styles.paymentActions}>
+                          <button 
+                            className={styles.viewProofBtn} 
+                            title="View Proof"
+                            onClick={() => {
+                              if (!payment.fileUrl) {
+                                alert('No proof of payment was uploaded for this submission.');
+                                return;
+                              }
+                              setProofModal({
+                                isOpen: true,
+                                url: payment.fileUrl,
+                                title: `Payment Proof - ${payment.residentName}`
+                              });
+                            }}
+                          >
+                            🖼️ View Proof
+                          </button>
+                          {payment.status === 'Pending' && (
+                            <>
+                              <button 
+                                className={styles.approveBtn} 
+                                title="Approve"
+                                onClick={() => setActionModal({
+                                  isOpen: true,
+                                  type: 'Approve',
+                                  id: payment.id,
+                                  name: payment.residentName
+                                })}
+                              >
+                                ✓
+                              </button>
+                              <button 
+                                className={styles.rejectBtn} 
+                                title="Reject"
+                                onClick={() => setActionModal({
+                                  isOpen: true,
+                                  type: 'Reject',
+                                  id: payment.id,
+                                  name: payment.residentName
+                                })}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#666' }}>
-                      No payments match the current filters.
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: '#9E9E9E' }}>
+                      No {activeTab.toLowerCase()} payments found.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
-        {/* Toast notifications */}
-        <Toast message={toastMessage} type={toastType} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
-        {/* Image preview modal */}
-        {/* ImageModal is client-side only */}
-        <ImageModal isOpen={isModalOpen} imageUrl={modalImageUrl} onClose={closeModal} />
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

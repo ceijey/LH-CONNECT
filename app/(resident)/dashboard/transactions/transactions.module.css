@@ -321,6 +321,16 @@
   color: #f57c00;
 }
 
+.statusBadge.verified {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.statusBadge.rejected {
+  background: #ffebee;
+  color: #c62828;
+}
+
 .statusBadge.failed {
   background: #ffebee;
   color: #c62828;
@@ -579,4 +589,16 @@
     font-size: 0.8rem;
     border-radius: 4px;
   }
+}
+
+.rejectionReason {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff5f5;
+  border-left: 3px solid #f44336;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #c62828;
+  font-weight: 500;
+  line-height: 1.4;
 }

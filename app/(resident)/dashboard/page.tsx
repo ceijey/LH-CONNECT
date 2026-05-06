@@ -19,6 +19,11 @@ interface PaymentRecord {
   method?: string;
   reference?: string;
   residentId?: string;
+  month?: string;
+  verifiedDate?: string;
+  submittedDate?: string;
+  verifiedAt?: any;
+  rejectionReason?: string;
 }
 
 interface UserProfile {
@@ -37,6 +42,8 @@ export default function DashboardPage() {
   const [userId, setUserId] = useState<string>('LH-Connect Resident');
   const [isLoading, setIsLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const currentBalance = profile.balance ?? 0;
   const [nextDueDateStr, setNextDueDateStr] = useState<string>('');
@@ -49,6 +56,15 @@ export default function DashboardPage() {
   const [statements, setStatements] = useState<any[]>([]);
   const [statementsLoading, setStatementsLoading] = useState(true);
 
+  const loadNotifications = async () => {
+    try {
+      const payload = await apiCall('/api/notifications');
+      setNotifications(payload.notifications || []);
+    } catch (e) {
+      console.error('Failed to load notifications:', e);
+    }
+  };
+
   useEffect(() => {
     const loadResidentProfile = async () => {
       try {
@@ -57,6 +73,9 @@ export default function DashboardPage() {
         const userProfile = (profilePayload.user ?? {}) as UserProfile;
         setProfile(userProfile);
         setUserName(userProfile.fullName ?? localStorage.getItem('userName') ?? 'Resident');
+        
+        // Also load notifications once profile is loaded
+        loadNotifications();
       } catch {
         setUserName(localStorage.getItem('userName') ?? 'Resident');
       } finally {
@@ -66,6 +85,20 @@ export default function DashboardPage() {
 
     loadResidentProfile();
   }, [router]);
+
+  const markAsRead = async (id: string) => {
+    try {
+      await apiCall('/api/notifications', {
+        method: 'PATCH',
+        body: JSON.stringify({ notificationId: id, read: true })
+      });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (e) {
+      console.error('Failed to mark notification as read:', e);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const loadPayments = async () => {
@@ -168,6 +201,52 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className={styles.headerActions}>
+            <div className={styles.notificationWrapper}>
+              <button 
+                className={`${styles.iconBtn} ${unreadCount > 0 ? styles.hasUnread : ''}`}
+                onClick={() => setShowNotifications(!showNotifications)}
+                title="Notifications"
+              >
+                🔔 {unreadCount > 0 && <span className={styles.badge}>{unreadCount}</span>}
+              </button>
+              
+              {showNotifications && (
+                <div className={styles.notificationDropdown}>
+                  <div className={styles.notificationHeader}>
+                    <h3>Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button 
+                        className={styles.markAllRead}
+                        onClick={() => {
+                          notifications.filter(n => !n.read).forEach(n => markAsRead(n.id));
+                        }}
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className={styles.notificationList}>
+                    {notifications.length === 0 ? (
+                      <div className={styles.emptyNotifications}>No notifications yet</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id} 
+                          className={`${styles.notificationItem} ${!n.read ? styles.unread : ''}`}
+                          onClick={() => !n.read && markAsRead(n.id)}
+                        >
+                          <div className={styles.notificationTitle}>{n.title}</div>
+                          <div className={styles.notificationMessage}>{n.message}</div>
+                          <div className={styles.notificationTime}>
+                            {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <Link href="/dashboard/account" className={styles.accountBtn}>
               👤 My Account
             </Link>
@@ -276,13 +355,24 @@ export default function DashboardPage() {
                   return Number.isFinite(n) ? n : new Date(v).getTime() || 0;
                 };
 
-                const date = payment.createdAt ? new Date(toMillis(payment.createdAt)) : null;
-                const dateStr = date ? date.toLocaleDateString() : '—';
+                const displayDate = (payment.status === 'Verified' && payment.verifiedAt) 
+                  ? payment.verifiedAt 
+                  : payment.createdAt;
+
+                const date = displayDate ? new Date(toMillis(displayDate)) : null;
+                
+                // Use stored month if available, otherwise format from date
+                const monthStr = payment.month || (date ? date.toLocaleString(undefined, { month: 'short', year: 'numeric' }) : '—');
+                
+                // Use stored date string or format from date
+                const dateStr = (payment.status === 'Verified' && payment.verifiedDate)
+                  ? new Date(payment.verifiedDate).toLocaleDateString()
+                  : (payment.submittedDate ? new Date(payment.submittedDate).toLocaleDateString() : (date ? date.toLocaleDateString() : '—'));
 
                 return (
                   <div key={payment.id ?? dateStr} className={styles.paymentItem}>
                     <div className={styles.paymentInfo}>
-                      <div className={styles.paymentMonth}>{date ? date.toLocaleString(undefined, { month: 'short', year: 'numeric' }) : '—'}</div>
+                      <div className={styles.paymentMonth}>{monthStr}</div>
                       <div className={styles.paymentDate}>{dateStr}</div>
                     </div>
                     <div className={styles.paymentAmount}>

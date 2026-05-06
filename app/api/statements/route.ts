@@ -31,34 +31,66 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('Only residents can view statements', 403);
     }
 
-    console.log('[API] User is a resident, fetching statements...');
+    console.log('[API] User is a resident, fetching statements and submissions...');
 
-    // Fetch resident's statements from Firestore
+    // Fetch resident's statements and submissions from Firestore
     let statements: any[] = [];
+    let submissions: any[] = [];
+    
     try {
+      // Fetch statements
       const statementsSnapshot = await adminDb
         .collection('statements')
         .where('residentId', '==', userId)
         .get();
 
-      statements = statementsSnapshot.docs
-        .map((doc: any) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      statements = statementsSnapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       
-      console.log('[API] Firestore query successful, found', statements.length, 'statements');
+      // Fetch submissions
+      const submissionsSnapshot = await adminDb
+        .collection('payment_submissions')
+        .where('residentId', '==', userId)
+        .get();
+        
+      submissions = submissionsSnapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Attach matching submissions to statements
+      statements = statements.map(stmt => {
+        const stmtMonth = stmt.month;
+        const stmtYear = Number(stmt.year);
+        
+        const matchingSubmissions = submissions.filter(sub => {
+          // submissions collection has a 'month' field like "May 2026"
+          // We need to match it with statement's month and year
+          if (!sub.month) return false;
+          const subMonthStr = String(sub.month).toLowerCase();
+          const targetMonthStr = `${stmtMonth} ${stmtYear}`.toLowerCase();
+          return subMonthStr.includes(targetMonthStr) || 
+                 (subMonthStr.includes(stmtMonth.toLowerCase()) && subMonthStr.includes(String(stmtYear)));
+        });
+        
+        return {
+          ...stmt,
+          relatedSubmissions: matchingSubmissions
+        };
+      });
+
+      statements.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      console.log('[API] Firestore queries successful, found', statements.length, 'statements');
     } catch (firestoreError: any) {
-      console.warn('Firestore query error (returning sample data):', firestoreError.message);
-      // Continue with sample data if collection doesn't exist
+      console.warn('Firestore query error:', firestoreError.message);
     }
 
-    console.log('[API] Returning', statements.length, 'statements from database');
     return NextResponse.json({ statements });
   } catch (error: any) {
     console.error('Error fetching statements:', error.message);
-    console.error('Full error:', error);
     return createErrorResponse('Internal server error', 500);
   }
 }

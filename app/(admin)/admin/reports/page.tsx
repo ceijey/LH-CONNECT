@@ -2,13 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
-import Toast from '@/app/components/Toast';
 import { apiCall } from '@/lib/api-client';
-import { logoutAndRedirect } from '@/lib/auth-session';
-import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import Toast from '@/app/components/Toast';
 import styles from '../residents/admin-page.module.css';
+import reportsStyles from './reports.module.css';
 
 interface ReportData {
   block: string;
@@ -20,40 +17,50 @@ interface ReportData {
   status: 'Paid' | 'Pending' | 'Delinquent';
 }
 
-type ResidentRecord = {
-  id: string;
-  fullName?: string;
-  block?: string;
-  lot?: string;
-  balance?: number;
-};
-
-type PaymentRecord = {
-  residentId?: string;
-  amount?: number;
-  paymentAmount?: number;
-  status?: string;
-};
-
-const MONTHLY_DUES = 500;
-
 export default function AdminReports() {
   const router = useRouter();
-  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState('reports');
   const [selectedMonth, setSelectedMonth] = useState('February 2026');
   const [selectedReportType, setSelectedReportType] = useState('Monthly Report');
+  const [financialData, setFinancialData] = useState<ReportData[]>([]);
+  const [summary, setSummary] = useState({
+    totalDues: 0,
+    totalCollected: 0,
+    outstandingBalance: 0,
+    collectionRate: '0'
+  });
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
-  const [financialData, setFinancialData] = useState<ReportData[]>([]);
-  const [loadError, setLoadError] = useState('');
 
-  const totalDues = financialData.reduce((sum, d) => sum + d.monthlyDues, 0);
-  const totalCollected = financialData.reduce((sum, d) => sum + d.amountPaid, 0);
-  const outstandingBalance = financialData.reduce((sum, d) => sum + d.balance, 0);
-  const collectionRate = totalDues > 0 ? ((totalCollected / totalDues) * 100).toFixed(1) : '0';
+  const months = [
+    'January 2026', 'February 2026', 'March 2026', 'April 2026', 
+    'May 2026', 'June 2026', 'July 2026', 'August 2026', 
+    'September 2026', 'October 2026', 'November 2026', 'December 2026'
+  ];
+
+  const fetchReport = async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiCall(`/api/reports?month=${selectedMonth}&type=${selectedReportType}`);
+      setFinancialData(data.financialData || []);
+      setSummary(data.summary || {
+        totalDues: 0,
+        totalCollected: 0,
+        outstandingBalance: 0,
+        collectionRate: '0'
+      });
+    } catch (error) {
+      console.error('Failed to fetch report:', error);
+      showToast('Failed to load report data', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReport();
+  }, [selectedMonth, selectedReportType]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage(message);
@@ -61,249 +68,100 @@ export default function AdminReports() {
     setIsToastVisible(true);
   };
 
-  useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const userRole = localStorage.getItem('userRole');
-
-    if (!isAuthenticated || userRole !== 'admin') {
-      router.replace('/login');
-    } else {
-      const loadReports = async () => {
-        try {
-          setLoadError('');
-          const [residentsPayload, paymentsPayload] = await Promise.all([
-            apiCall('/api/residents'),
-            apiCall('/api/payments'),
-          ]);
-
-          const residents = (residentsPayload.residents ?? []) as ResidentRecord[];
-          const payments = (paymentsPayload.payments ?? []) as PaymentRecord[];
-
-          const paymentsByResident = payments.reduce<Record<string, number>>((accumulator, payment) => {
-            const status = String(payment.status ?? '').toLowerCase();
-            if (status !== 'paid' && status !== 'verified') {
-              return accumulator;
-            }
-
-            const residentId = payment.residentId;
-            const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
-
-            if (!residentId || !Number.isFinite(amount)) {
-              return accumulator;
-            }
-
-            accumulator[residentId] = (accumulator[residentId] ?? 0) + amount;
-            return accumulator;
-          }, {});
-
-          const derivedData: ReportData[] = residents.map((resident) => {
-            const balance = Number(resident.balance ?? 0);
-            const amountPaid = paymentsByResident[resident.id] ?? Math.max(0, MONTHLY_DUES - balance);
-            const status: ReportData['status'] = balance <= 0
-              ? 'Paid'
-              : balance > MONTHLY_DUES
-                ? 'Delinquent'
-                : 'Pending';
-
-            return {
-              block: resident.block || '-',
-              lot: resident.lot || '-',
-              resident: resident.fullName || 'Unknown Resident',
-              monthlyDues: MONTHLY_DUES,
-              amountPaid,
-              balance,
-              status,
-            };
-          });
-
-          setFinancialData(derivedData);
-        } catch (error) {
-          console.error('Failed to load admin reports data:', error);
-          setLoadError('Failed to load live report data.');
-          setFinancialData([]);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadReports();
-    }
-  }, [router]);
-
-  const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      await logoutAndRedirect(router, '/');
-    }
-  };
-
   const handleExportPDF = () => {
-    showToast('Exporting report as PDF...', 'info');
+    window.print();
   };
 
   const handleExportExcel = () => {
-    showToast('Exporting report as Excel...', 'info');
+    if (financialData.length === 0) return;
+    
+    const headers = ['Block', 'Lot', 'Resident', 'Monthly Dues', 'Amount Paid', 'Balance', 'Status'];
+    const rows = financialData.map(d => [
+      d.block, d.lot, d.resident, d.monthlyDues, d.amountPaid, d.balance, d.status
+    ]);
+    
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `LH-Connect_Report_${selectedMonth.replace(' ', '_')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Report exported as CSV', 'success');
   };
 
-  if (isLoading) return <div className={styles.loading}>Loading...</div>;
+  if (isLoading) return <div className={styles.loading}>Loading report...</div>;
 
   return (
-    <div className={styles.container}>
+    <>
       <Toast
         message={toastMessage}
         type={toastType}
         isVisible={isToastVisible}
         onClose={() => setIsToastVisible(false)}
       />
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>
-            <span className={styles.logoIcon}>🏠</span>
-            <div>
-              <div className={styles.logoText}>LH-Connect</div>
-              <div className={styles.logoSubtext}>Admin</div>
-            </div>
-          </div>
-        </div>
-        <nav className={styles.nav}>
-          <Link href="/admin/dashboard" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('dashboard'); router.push('/admin/dashboard'); }}>
-            <span>📊</span> Dashboard
-          </Link>
-          <Link href="/admin/residents" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('residents'); router.push('/admin/residents'); }}>
-            <span>👥</span> Residents
-          </Link>
-          <Link href="/admin/payments" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('payments'); router.push('/admin/payments'); }}>
-            <span>💳</span> Payments
-          </Link>
-          <Link href="/admin/qr-scanner" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('qr-scanner'); router.push('/admin/qr-scanner'); }}>
-            <span>📱</span> QR Scanner
-          </Link>
-          <Link href="/admin/messages" className={styles.navItem} onClick={(e) => { e.preventDefault(); setActiveNav('messages'); router.push('/admin/messages'); }}>
-            <span>💬</span> Messages
-            <UnreadMessagesBadge />
-          </Link>
-          <Link href="/admin/reports" className={`${styles.navItem} ${activeNav === 'reports' ? styles.active : ''}`} onClick={(e) => { e.preventDefault(); setActiveNav('reports'); router.push('/admin/reports'); }}>
-            <span>📑</span> Reports
-          </Link>
-        </nav>
-        <button className={styles.logoutBtn} onClick={handleLogout}>🚪 Logout</button>
-      </aside>
-
-      <main className={styles.main}>
-        <header className={styles.header}>
-          <h1 className={styles.pageTitle}>Auto-Generated Reports</h1>
-          <div className={styles.headerRight}>
-            <span className={styles.userLabel}>Admin User</span>
-            <div className={styles.userAvatar}>👤</div>
-          </div>
-        </header>
-
-        <div className={styles.content}>
-          <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '15px', flex: 1 }}>
+      <div className={styles.content}>
+          <div className={`${reportsStyles.controlsRow} no-print`}>
+            <div className={reportsStyles.selectGroup}>
               <select 
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{
-                  padding: '10px 15px',
-                  border: '2px solid #E0E0E0',
-                  borderRadius: '8px',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  backgroundColor: '#fff',
-                  color: '#1B2A4A',
-                  fontWeight: 500
-                }}
+                className={reportsStyles.select}
               >
-                <option>January 2026</option>
-                <option>February 2026</option>
-                <option>March 2026</option>
+                {months.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
               <select 
                 value={selectedReportType}
                 onChange={(e) => setSelectedReportType(e.target.value)}
-                style={{
-                  padding: '10px 15px',
-                  border: '2px solid #E0E0E0',
-                  borderRadius: '8px',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  backgroundColor: '#fff',
-                  color: '#1B2A4A',
-                  fontWeight: 500
-                }}
+                className={reportsStyles.select}
               >
-                <option>Daily Report</option>
                 <option>Monthly Report</option>
                 <option>Annual Report</option>
                 <option>Delinquency Report</option>
               </select>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className={reportsStyles.exportButtons}>
               <button 
                 onClick={handleExportPDF}
-                style={{
-                  background: '#1B2A4A',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
+                className={reportsStyles.exportBtn}
+                style={{ borderRadius: '8px' }}
               >
-                ⬇ Export PDF
+                📄 Export PDF
               </button>
               <button 
                 onClick={handleExportExcel}
-                style={{
-                  background: '#1B2A4A',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
+                className={reportsStyles.exportBtn}
+                style={{ borderRadius: '8px' }}
               >
-                ⬇ Export Excel
+                📊 Export Excel
               </button>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
-            <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Total Dues</div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1B2A4A' }}>₱{totalDues.toLocaleString()}</div>
+          <div className={reportsStyles.statsGrid}>
+            <div className={reportsStyles.statCard}>
+              <div className={reportsStyles.statLabel}>Total Dues</div>
+              <div className={reportsStyles.statValue}>₱{summary.totalDues.toLocaleString()}</div>
             </div>
-            <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Total Collected</div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2e7d32' }}>₱{totalCollected.toLocaleString()}</div>
+            <div className={reportsStyles.statCard}>
+              <div className={reportsStyles.statLabel}>Total Collected</div>
+              <div className={reportsStyles.statValue} style={{ color: '#2e7d32' }}>₱{summary.totalCollected.toLocaleString()}</div>
             </div>
-            <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Outstanding Balance</div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#d32f2f' }}>₱{outstandingBalance.toLocaleString()}</div>
+            <div className={reportsStyles.statCard}>
+              <div className={reportsStyles.statLabel}>Outstanding Balance</div>
+              <div className={reportsStyles.statValue} style={{ color: '#d32f2f' }}>₱{summary.outstandingBalance.toLocaleString()}</div>
             </div>
-            <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '0.85rem', color: '#9E9E9E', marginBottom: '10px' }}>Collection Rate</div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1976d2' }}>{collectionRate}%</div>
+            <div className={reportsStyles.statCard}>
+              <div className={reportsStyles.statLabel}>Collection Rate</div>
+              <div className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary.collectionRate}%</div>
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '30px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-            <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.1rem', fontWeight: 600, color: '#1B2A4A' }}>{selectedReportType} - {selectedMonth}</h2>
-            {loadError && (
-              <div style={{ marginBottom: '16px', color: '#d32f2f', fontWeight: 600 }}>
-                {loadError}
-              </div>
-            )}
+          <div className={reportsStyles.reportContent}>
+            <h2 className={reportsStyles.reportTitle}>{selectedReportType} - {selectedMonth}</h2>
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
@@ -317,8 +175,8 @@ export default function AdminReports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {financialData.length > 0 ? financialData.map((row, idx) => (
-                    <tr key={`${row.block}-${row.lot}-${idx}`}>
+                  {financialData.map((row, idx) => (
+                    <tr key={idx}>
                       <td>Blk {row.block} Lot {row.lot}</td>
                       <td>{row.resident}</td>
                       <td>₱{row.monthlyDues}</td>
@@ -337,26 +195,33 @@ export default function AdminReports() {
                         </span>
                       </td>
                     </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#666' }}>
-                        No live report data available.
-                      </td>
-                    </tr>
-                  )}
+                  ))}
                   <tr style={{ fontWeight: 'bold', borderTop: '2px solid #e0e0e0', background: '#fafafa' }}>
                     <td colSpan={2}>TOTAL</td>
-                    <td>₱{totalDues.toLocaleString()}</td>
-                    <td style={{ color: '#2e7d32' }}>₱{totalCollected.toLocaleString()}</td>
-                    <td style={{ color: '#d32f2f' }}>₱{outstandingBalance.toLocaleString()}</td>
+                    <td>₱{summary.totalDues.toLocaleString()}</td>
+                    <td style={{ color: '#2e7d32' }}>₱{summary.totalCollected.toLocaleString()}</td>
+                    <td style={{ color: '#d32f2f' }}>₱{summary.outstandingBalance.toLocaleString()}</td>
                     <td></td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
         </div>
-      </main>
-    </div>
+      </div>
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          body {
+            background: white !important;
+          }
+          .content {
+            box-shadow: none !important;
+            padding: 0 !important;
+          }
+        }
+      `}</style>
+    </>
   );
 }

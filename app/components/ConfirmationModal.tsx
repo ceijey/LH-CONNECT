@@ -12,6 +12,10 @@ interface ConfirmationModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isDangerous?: boolean;
+  showInput?: boolean;
+  inputValue?: string;
+  onInputChange?: (value: string) => void;
+  inputPlaceholder?: string;
 }
 
 export default function ConfirmationModal({
@@ -23,6 +27,10 @@ export default function ConfirmationModal({
   onConfirm,
   onCancel,
   isDangerous = false,
+  showInput = false,
+  inputValue = '',
+  onInputChange,
+  inputPlaceholder = 'Type your reason here...',
 }: ConfirmationModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -54,6 +62,15 @@ export default function ConfirmationModal({
 
         <div className={styles.content}>
           <p className={styles.message}>{message}</p>
+          {showInput && onInputChange && (
+            <textarea
+              className={styles.modalInput}
+              value={inputValue}
+              onChange={(e) => onInputChange(e.target.value)}
+              placeholder={inputPlaceholder}
+              rows={3}
+            />
+          )}
         </div>
 
         <div className={styles.footer}>
@@ -63,6 +80,7 @@ export default function ConfirmationModal({
           <button
             className={`${styles.confirmBtn} ${isDangerous ? styles.dangerous : ''}`}
             onClick={onConfirm}
+            disabled={showInput && !inputValue.trim()}
           >
             {confirmText}
           </button>

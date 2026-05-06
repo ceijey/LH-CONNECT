@@ -3,12 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import { apiCall } from '@/lib/api-client';
 import styles from './qr-scanner.module.css';
-import adminStyles from '../residents/admin-page.module.css';
-import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
-import { logoutAndRedirect } from '@/lib/auth-session';
 
 interface ResidentData {
   id: string;
@@ -29,7 +25,6 @@ function isValidFirebaseUid(value: string) {
 
 export default function QRScannerPage() {
   const router = useRouter();
-  useAuthPageshow('admin');
   
   const scannerRef = useRef<any>(null);
   const [scannedResident, setScannedResident] = useState<ResidentData | null>(null);
@@ -47,6 +42,7 @@ export default function QRScannerPage() {
         setIsLoadingResidents(true);
         const data = await apiCall('/api/residents');
         console.log('Residents fetched:', data.residents?.length, 'residents');
+        console.log('Sample resident:', data.residents?.[0]);
         setResidentsCache(data.residents || []);
       } catch (error) {
         console.error('Failed to fetch residents:', error);
@@ -189,103 +185,8 @@ export default function QRScannerPage() {
   };
 
   return (
-    <div className={adminStyles.container}>
-      <aside className={adminStyles.sidebar}>
-        <div className={adminStyles.sidebarHeader}>
-          <div className={adminStyles.logo}>
-            <span className={adminStyles.logoIcon}>🏠</span>
-            <div>
-              <div className={adminStyles.logoText}>LH-Connect</div>
-              <div className={adminStyles.logoSubtext}>Admin</div>
-            </div>
-          </div>
-        </div>
-
-        <nav className={adminStyles.nav}>
-          <Link
-            href="/admin/dashboard"
-            className={adminStyles.navItem}
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/admin/dashboard');
-            }}
-          >
-            <span>📊</span> Dashboard
-          </Link>
-          <Link
-            href="/admin/residents"
-            className={adminStyles.navItem}
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/admin/residents');
-            }}
-          >
-            <span>👥</span> Residents
-          </Link>
-          <Link
-            href="/admin/payments"
-            className={adminStyles.navItem}
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/admin/payments');
-            }}
-          >
-            <span>💳</span> Payments
-          </Link>
-          <Link
-            href="/admin/qr-scanner"
-            className={`${adminStyles.navItem} ${adminStyles.active}`}
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/admin/qr-scanner');
-            }}
-          >
-            <span>📱</span> QR Scanner
-          </Link>
-          <Link
-            href="/admin/messages"
-            className={adminStyles.navItem}
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/admin/messages');
-            }}
-          >
-            <span>💬</span> Messages
-            <UnreadMessagesBadge />
-          </Link>
-          <Link
-            href="/admin/reports"
-            className={adminStyles.navItem}
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/admin/reports');
-            }}
-          >
-            <span>📑</span> Reports
-          </Link>
-        </nav>
-
-        <button className={adminStyles.logoutBtn} onClick={() => logoutAndRedirect(router, '/')}>
-          🚪 Logout
-        </button>
-      </aside>
-
-      <main className={adminStyles.main}>
-        {/* Header */}
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
-            <div className={styles.headerBrand}>
-              <span className={styles.headerIcon}>📱</span>
-              <div>
-                <h1 className={styles.headerTitle}>QR Code Scanner</h1>
-                <p className={styles.headerSubtitle}>Scan resident QR code for instant info</p>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className={styles.contentWrapper}>
+    <>
+      <div className={styles.contentWrapper}>
           {/* Scanner Section */}
           <div className={styles.scannerSection}>
             {!isScanning && !scannedResident && (
@@ -427,7 +328,7 @@ export default function QRScannerPage() {
                       🔄 Scan Another
                     </button>
                     <Link
-                      href={`/admin/residents`}
+                      href={`/admin/residents/${scannedResident.id}`}
                       className={styles.viewDetailsBtn}
                     >
                       📋 View Full Details
@@ -461,10 +362,10 @@ export default function QRScannerPage() {
             </div>
 
             <div className={styles.infoCard}>
-              <h3 className={styles.infoCardTitle}>Resident Lookup</h3>
-              <p className={styles.testText}>Scan a resident QR code to load their live profile from the database.</p>
+              <h3 className={styles.infoCardTitle}>Test QR Codes</h3>
+              <p className={styles.testText}>Use resident IDs to test scanning</p>
               <p className={styles.testNote}>
-                The scanner matches the decoded Firebase user ID against resident records.
+                Each resident's QR code encodes their Firebase user ID for lookup
               </p>
             </div>
 
@@ -479,8 +380,7 @@ export default function QRScannerPage() {
               </ul>
             </div>
           </aside>
-        </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
