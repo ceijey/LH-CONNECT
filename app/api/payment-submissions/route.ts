@@ -62,10 +62,13 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('User not found', 404);
     }
 
-    const submissionsSnapshot = await adminDb
-      .collection('payment_submissions')
-      .where('residentId', '==', userId)
-      .get();
+    // If the user is an admin, return all submissions; otherwise return only the resident's submissions
+    const isAdmin = (userData.role ?? '') === 'admin';
+    const submissionsQuery = isAdmin
+      ? adminDb.collection('payment_submissions')
+      : adminDb.collection('payment_submissions').where('residentId', '==', userId);
+
+    const submissionsSnapshot = await submissionsQuery.get();
 
     const submissions = submissionsSnapshot.docs
       .map((doc: any) => toSubmission(doc))
