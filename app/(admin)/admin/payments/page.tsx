@@ -34,7 +34,7 @@ function parseBlockLot(blockLot: string) {
   };
 }
 
-function formatPaymentDate(submittedDate?: string, submittedAt?: string | number | { toDate?: () => Date }) {
+function formatPaymentDate(submittedDate?: string, submittedAt?: string | number | { toDate?: () => Date } | null) {
   if (submittedDate && submittedDate !== 'Invalid Date') {
     const parsed = new Date(submittedDate);
     if (!Number.isNaN(parsed.getTime())) {
@@ -45,11 +45,13 @@ function formatPaymentDate(submittedDate?: string, submittedAt?: string | number
     }
   }
 
-  const timestampDate = submittedAt && typeof submittedAt === 'object' && typeof submittedAt.toDate === 'function'
-    ? submittedAt.toDate()
-    : submittedAt
-      ? new Date(submittedAt)
-      : null;
+  let timestampDate: Date | null = null;
+
+  if (submittedAt && typeof submittedAt === 'object' && typeof submittedAt.toDate === 'function') {
+    timestampDate = submittedAt.toDate();
+  } else if (typeof submittedAt === 'string' || typeof submittedAt === 'number') {
+    timestampDate = new Date(submittedAt);
+  }
 
   if (timestampDate && !Number.isNaN(timestampDate.getTime())) {
     return {
