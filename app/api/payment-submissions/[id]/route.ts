@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id;
+export async function PATCH(request: NextRequest, context: any) {
+  const id = context?.params?.id;
   const tokenVerification = await verifyToken(request);
 
   if (tokenVerification.error) {

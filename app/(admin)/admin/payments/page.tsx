@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
+import Toast from '@/app/components/Toast';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
@@ -18,6 +19,7 @@ interface Payment {
   date: string;
   time: string;
   method: string;
+  fileUrl?: string | null;
   status: 'Verified' | 'Pending' | 'Rejected';
 }
 
@@ -77,6 +79,9 @@ export default function AdminPayments() {
 
   // State to hold real payments fetched from the API (replaces mock data)
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
 
   useEffect(() => {
     let mounted = true;
@@ -92,7 +97,7 @@ export default function AdminPayments() {
 
         const data = await res.json();
         // API returns { submissions, user }
-        if (mounted && Array.isArray(data.submissions)) {
+          if (mounted && Array.isArray(data.submissions)) {
           const mappedPayments: Payment[] = data.submissions.map((submission: any) => {
             const { phase, block, lot } = parseBlockLot(String(submission.blockLot ?? ''));
             const { date, time } = formatPaymentDate(submission.submittedDate, submission.submittedAt);
@@ -107,7 +112,8 @@ export default function AdminPayments() {
               date,
               time,
               method: String(submission.paymentMethod ?? 'Unknown'),
-              status: submission.status === 'Verified' ? 'Verified' : 'Pending',
+              fileUrl: submission.fileUrl ?? null,
+              status: submission.status === 'Verified' ? 'Verified' : submission.status === 'Rejected' ? 'Rejected' : 'Pending',
             };
           });
 
@@ -157,12 +163,30 @@ export default function AdminPayments() {
       setAllPayments((current) => current.map((p) => (p.id === id ? { ...p, status: updated.status === 'Verified' ? 'Verified' : updated.status === 'Rejected' ? 'Rejected' : p.status } : p)));
     } catch (error) {
       console.error('Failed to change submission status:', error);
-      alert(String(error));
+      setToastType('error');
+      setToastMessage(String(error ?? 'Failed to update status'));
+      setToastVisible(true);
     }
   };
 
   const handleApprove = (id: string) => changeSubmissionStatus(id, 'Verified');
   const handleReject = (id: string) => changeSubmissionStatus(id, 'Rejected');
+
+  const handleViewProof = (fileUrl?: string | null) => {
+    if (fileUrl) {
+      try {
+        window.open(fileUrl, '_blank', 'noopener,noreferrer');
+      } catch (err) {
+        setToastType('error');
+        setToastMessage('Unable to open proof.');
+        setToastVisible(true);
+      }
+    } else {
+      setToastType('info');
+      setToastMessage('No proof file available for this submission.');
+      setToastVisible(true);
+    }
+  };
 
   const filteredPayments = allPayments.filter((payment) => {
     const matchesStatus = payment.status === activeTab;
@@ -307,7 +331,7 @@ export default function AdminPayments() {
                       </td>
                       <td>{payment.method}</td>
                       <td className={styles.paymentActions}>
-                        <button className={styles.viewProofBtn} title="View Proof">👁️ View Proof</button>
+                        <button onClick={() => handleViewProof(payment.fileUrl)} className={styles.viewProofBtn} title="View Proof">👁️ View Proof</button>
                         {activeTab === 'Pending' && (
                           <>
                             <button onClick={() => handleApprove(payment.id)} className={styles.approveBtn} title="Approve">✓</button>
@@ -329,6 +353,8 @@ export default function AdminPayments() {
             </table>
           </div>
         </div>
+        {/* Toast notifications */}
+        <Toast message={toastMessage} type={toastType} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
       </main>
     </div>
   );
