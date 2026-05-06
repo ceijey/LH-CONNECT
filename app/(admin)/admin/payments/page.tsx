@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
 import Toast from '@/app/components/Toast';
+import ImageModal from '@/app/components/ImageModal';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from '../residents/admin-page.module.css';
@@ -161,6 +162,11 @@ export default function AdminPayments() {
 
       // Update local state
       setAllPayments((current) => current.map((p) => (p.id === id ? { ...p, status: updated.status === 'Verified' ? 'Verified' : updated.status === 'Rejected' ? 'Rejected' : p.status } : p)));
+
+      // Show success toast
+      setToastType('success');
+      setToastMessage(`Submission ${newStatus === 'Verified' ? 'verified' : 'rejected'} successfully`);
+      setToastVisible(true);
     } catch (error) {
       console.error('Failed to change submission status:', error);
       setToastType('error');
@@ -172,20 +178,23 @@ export default function AdminPayments() {
   const handleApprove = (id: string) => changeSubmissionStatus(id, 'Verified');
   const handleReject = (id: string) => changeSubmissionStatus(id, 'Rejected');
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
+
   const handleViewProof = (fileUrl?: string | null) => {
     if (fileUrl) {
-      try {
-        window.open(fileUrl, '_blank', 'noopener,noreferrer');
-      } catch (err) {
-        setToastType('error');
-        setToastMessage('Unable to open proof.');
-        setToastVisible(true);
-      }
+      setModalImageUrl(fileUrl);
+      setIsModalOpen(true);
     } else {
       setToastType('info');
       setToastMessage('No proof file available for this submission.');
       setToastVisible(true);
     }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalImageUrl(null);
   };
 
   const filteredPayments = allPayments.filter((payment) => {
@@ -355,6 +364,9 @@ export default function AdminPayments() {
         </div>
         {/* Toast notifications */}
         <Toast message={toastMessage} type={toastType} isVisible={toastVisible} onClose={() => setToastVisible(false)} />
+        {/* Image preview modal */}
+        {/* ImageModal is client-side only */}
+        <ImageModal isOpen={isModalOpen} imageUrl={modalImageUrl} onClose={closeModal} />
       </main>
     </div>
   );
