@@ -21,6 +21,50 @@ interface Payment {
   status: 'Verified' | 'Pending' | 'Rejected';
 }
 
+function parseBlockLot(blockLot: string) {
+  const normalized = blockLot.trim();
+  const phaseMatch = normalized.match(/^(Phase\s*\d+|P\d+|Phase\s*[A-Za-z0-9]+)\s+/i);
+  const blockMatch = normalized.match(/Blk\s*([A-Za-z0-9-]+)/i) || normalized.match(/Block\s*([A-Za-z0-9-]+)/i);
+  const lotMatch = normalized.match(/Lot\s*([A-Za-z0-9-]+)/i);
+
+  return {
+    phase: phaseMatch?.[1] ?? '',
+    block: blockMatch?.[1] ?? '',
+    lot: lotMatch?.[1] ?? '',
+  };
+}
+
+function formatPaymentDate(submittedDate?: string, submittedAt?: string | number | { toDate?: () => Date }) {
+  if (submittedDate && submittedDate !== 'Invalid Date') {
+    const parsed = new Date(submittedDate);
+    if (!Number.isNaN(parsed.getTime())) {
+      return {
+        date: parsed.toLocaleDateString(),
+        time: parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+    }
+  }
+
+  const timestampDate = submittedAt && typeof submittedAt === 'object' && typeof submittedAt.toDate === 'function'
+    ? submittedAt.toDate()
+    : submittedAt
+      ? new Date(submittedAt)
+      : null;
+
+  if (timestampDate && !Number.isNaN(timestampDate.getTime())) {
+    return {
+      date: timestampDate.toLocaleDateString(),
+      time: timestampDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+  }
+
+  const fallback = new Date();
+  return {
+    date: fallback.toLocaleDateString(),
+    time: fallback.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  };
+}
+
 export default function AdminPayments() {
   const router = useRouter();
   useAuthPageshow('admin');
@@ -37,20 +81,38 @@ export default function AdminPayments() {
 
     async function loadPayments() {
       try {
-        const res = await fetch('/api/payments', { credentials: 'include' });
+        const res = await fetch('/api/payment-submissions', { credentials: 'include' });
         if (!res.ok) {
-          console.error('Failed to load payments', res.status);
+          console.error('Failed to load payment submissions', res.status);
           setAllPayments([]);
           return;
         }
 
         const data = await res.json();
-        // API returns { payments, user }
-        if (mounted && Array.isArray(data.payments)) {
-          setAllPayments(data.payments as Payment[]);
+        // API returns { submissions, user }
+        if (mounted && Array.isArray(data.submissions)) {
+          const mappedPayments: Payment[] = data.submissions.map((submission: any) => {
+            const { phase, block, lot } = parseBlockLot(String(submission.blockLot ?? ''));
+            const { date, time } = formatPaymentDate(submission.submittedDate, submission.submittedAt);
+
+            return {
+              id: String(submission.id ?? ''),
+              resident: String(submission.residentName ?? 'Unknown Resident'),
+              phase: phase || 'N/A',
+              block: block || 'N/A',
+              lot: lot || 'N/A',
+              amount: Number(submission.paymentAmount ?? 0),
+              date,
+              time,
+              method: String(submission.paymentMethod ?? 'Unknown'),
+              status: submission.status === 'Verified' ? 'Verified' : 'Pending',
+            };
+          });
+
+          setAllPayments(mappedPayments);
         }
       } catch (err) {
-        console.error('Error fetching payments:', err);
+        console.error('Error fetching payment submissions:', err);
         setAllPayments([]);
       } finally {
         if (mounted) setIsLoading(false);
