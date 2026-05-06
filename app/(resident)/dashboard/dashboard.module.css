@@ -71,6 +71,32 @@
   margin: 0;
 }
 
+.headerActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.accountBtn {
+  background: transparent;
+  border: 2px solid rgba(27, 42, 74, 0.2);
+  color: #1B2A4A;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.accountBtn:hover {
+  background: rgba(27, 42, 74, 0.05);
+  border-color: #1B2A4A;
+  color: #2C3E6B;
+}
+
 .logoutBtn {
   background: transparent;
   border: 2px solid rgba(27, 42, 74, 0.2);
@@ -437,6 +463,11 @@
   }
 
   .infoCard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
     padding: 1rem;
   }
 
@@ -445,6 +476,10 @@
   }
 }
 
+
+  .actionBadge {
+    margin-left: 0;
+  }
 @media (max-width: 480px) {
   .container {
     min-height: 100vh;

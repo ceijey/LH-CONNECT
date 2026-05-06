@@ -167,9 +167,14 @@ export default function DashboardPage() {
               <p className={styles.logoSubtext}>Resident Portal</p>
             </div>
           </div>
-          <button className={styles.logoutBtn} onClick={handleLogout}>
-            ⬅ Logout
-          </button>
+          <div className={styles.headerActions}>
+            <Link href="/dashboard/account" className={styles.accountBtn}>
+              👤 My Account
+            </Link>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              ⬅ Logout
+            </button>
+          </div>
         </div>
       </header>
 

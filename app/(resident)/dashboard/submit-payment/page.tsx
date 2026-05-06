@@ -58,6 +58,13 @@ export default function SubmitPaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState('gcash');
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   useEffect(() => {
       const loadResidentProfile = async () => {
@@ -66,45 +73,53 @@ export default function SubmitPaymentPage() {
           const userProfile = (profilePayload.user ?? {}) as UserProfile;
         
           // Prefill form with resident information
-          setFormData(prev => ({
-            ...prev,
-            residentName: userProfile.fullName ?? '',
-            blockLot: userProfile.block && userProfile.lot 
-              ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
-              : '',
-          }));
+          if (isMounted) {
+            setFormData(prev => ({
+              ...prev,
+              residentName: userProfile.fullName ?? '',
+              blockLot: userProfile.block && userProfile.lot 
+                ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
+                : '',
+            }));
+          }
         } catch (error) {
           console.error('Failed to load resident profile:', error);
         } finally {
-          setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       };
 
       loadResidentProfile();
-    }, [router]);
+    }, [router, isMounted]);
 
   useEffect(() => {
     const loadRecentSubmissions = async () => {
       try {
-        setRecentLoading(true);
+        if (isMounted) setRecentLoading(true);
         const payload = await apiCall('/api/payment-submissions');
-        setRecentSubmissions((payload.submissions ?? []).map((submission: any) => ({
-          ...submission,
-          month: submission.month ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(undefined, { month: 'long', year: 'numeric' }),
-          amount: Number(submission.paymentAmount ?? 0),
-          status: submission.status === 'Verified' ? 'Verified' : 'Pending',
-          submittedDate: submission.submittedDate ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(),
-        })));
+        if (isMounted) {
+          setRecentSubmissions((payload.submissions ?? []).map((submission: any) => ({
+            ...submission,
+            month: submission.month ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+            amount: Number(submission.paymentAmount ?? 0),
+            status: submission.status === 'Verified' ? 'Verified' : 'Pending',
+            submittedDate: submission.submittedDate ?? new Date(submission.submittedAt ?? Date.now()).toLocaleString(),
+          })));
+        }
       } catch (error) {
         console.error('Failed to load recent submissions:', error);
-        setRecentSubmissions([]);
+        if (isMounted) setRecentSubmissions([]);
       } finally {
-        setRecentLoading(false);
+        if (isMounted) setRecentLoading(false);
       }
     };
 
-    loadRecentSubmissions();
-  }, []);
+    if (isMounted) {
+      loadRecentSubmissions();
+    }
+  }, [isMounted]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,8 +129,25 @@ export default function SubmitPaymentPage() {
         setToast({ message: 'File size must be less than 10MB', type: 'error' });
         return;
       }
-      setFormData({ ...formData, file });
-      setFileName(file.name);
+      if (isMounted) {
+        setFormData({ ...formData, file });
+        setFileName(file.name);
+      }
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (isMounted) {
+          setPreview(reader.result as string);
+        }
+      };
+      reader.onerror = () => {
+        console.error('Failed to read file');
+        if (isMounted) {
+          setPreview(null);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -128,6 +160,22 @@ export default function SubmitPaymentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
+    if (!formData.residentName.trim()) {
+      setToast({ message: 'Please enter your resident name', type: 'error' });
+      return;
+    }
+
+    if (!formData.blockLot.trim()) {
+      setToast({ message: 'Please enter your block/lot information', type: 'error' });
+      return;
+    }
+
+    if (!formData.paymentAmount.trim()) {
+      setToast({ message: 'Please enter the payment amount', type: 'error' });
+      return;
+    }
 
     if (!formData.file) {
       setToast({ message: 'Please upload a payment proof', type: 'error' });
@@ -143,12 +191,12 @@ export default function SubmitPaymentPage() {
 
     try {
       const payload = new FormData();
-      payload.append('residentName', formData.residentName);
-      payload.append('blockLot', formData.blockLot);
-      payload.append('paymentAmount', formData.paymentAmount);
+      payload.append('residentName', formData.residentName.trim());
+      payload.append('blockLot', formData.blockLot.trim());
+      payload.append('paymentAmount', formData.paymentAmount.trim());
       payload.append('paymentMethod', paymentMethod);
-      payload.append('referenceNumber', formData.referenceNumber);
-      payload.append('notes', formData.notes);
+      payload.append('referenceNumber', formData.referenceNumber.trim());
+      payload.append('notes', formData.notes.trim());
       payload.append('file', formData.file);
 
       const response = await fetch('/api/payment-submissions', {
@@ -157,10 +205,26 @@ export default function SubmitPaymentPage() {
         credentials: 'include',
       });
 
-      const data = await response.json();
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers));
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        const text = await response.text();
+        console.error('Response text:', text);
+        data = {};
+      }
 
       if (!response.ok) {
-        throw new Error(data?.error || 'Failed to submit payment proof');
+        console.error('Payment submission error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
+        throw new Error(data?.error || `Server error: ${response.status} ${response.statusText}`);
       }
 
       const submission = data.submission as Submission;
@@ -179,6 +243,7 @@ export default function SubmitPaymentPage() {
       setToast({ message: 'Payment proof submitted successfully!', type: 'success' });
       setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: '' });
       setFileName('');
+      setPreview(null);
     } catch (error: any) {
       setToast({ message: error.message || 'Failed to submit payment proof', type: 'error' });
     } finally {
@@ -336,6 +401,19 @@ export default function SubmitPaymentPage() {
                       )}
                     </label>
                   </div>
+                  {preview && (
+                    <div className={styles.previewContainer}>
+                      <img 
+                        src={preview} 
+                        alt="Preview" 
+                        className={styles.previewImage}
+                        onError={(e) => {
+                          console.error('Preview image failed to load:', e);
+                          setPreview(null);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Notes */}
@@ -415,38 +493,91 @@ export default function SubmitPaymentPage() {
               </div>
             </div>
 
-            {/* Recent Submissions */}
+            {/* Submission Status Timeline */}
             <div className={styles.card}>
-              <h3 className={styles.cardTitle}>Recent Submissions</h3>
-              <div className={styles.submissionsList}>
-                {recentLoading ? (
-                  <p className={styles.uploadSmall}>Loading recent submissions...</p>
-                ) : recentSubmissions.length === 0 ? (
-                  <p className={styles.uploadSmall}>No recent submissions yet.</p>
-                ) : (
-                  recentSubmissions.map((submission) => (
-                    <div key={submission.id ?? `${submission.submittedDate}-${submission.referenceNumber ?? ''}`} className={styles.submissionItem}>
-                      <div className={styles.submissionHeader}>
-                        <div>
-                          <h4 className={styles.submissionMonth}>{submission.month}</h4>
-                          <p className={styles.submissionAmount}>₱{submission.amount}</p>
+              <h3 className={styles.cardTitle}>Submission Status</h3>
+              <p className={styles.cardDescription}>Track the verification progress of your payment submissions</p>
+              
+              {recentLoading ? (
+                <p className={styles.uploadSmall}>Loading submissions...</p>
+              ) : recentSubmissions.length === 0 ? (
+                <div className={styles.emptyStateBox}>
+                  <p className={styles.emptyStateText}>No submissions yet</p>
+                  <p className={styles.uploadSmall}>Submit your first payment proof above to track it here.</p>
+                </div>
+              ) : (
+                <div className={styles.submissionsList}>
+                  {recentSubmissions.map((submission) => {
+                    const isVerified = submission.status === 'Verified';
+                    const daysAgo = submission.submittedDate 
+                      ? Math.floor((Date.now() - new Date(submission.submittedDate).getTime()) / (1000 * 60 * 60 * 24))
+                      : 0;
+
+                    return (
+                      <div key={submission.id ?? `${submission.submittedDate}-${submission.referenceNumber ?? ''}`} className={`${styles.submissionItem} ${isVerified ? styles.verified : styles.pending}`}>
+                        {/* Timeline Progress */}
+                        <div className={styles.timelineProgress}>
+                          <div className={`${styles.timelineStep} ${styles.active}`}>
+                            <span className={styles.timelineMarker}>✓</span>
+                            <span className={styles.timelineLabel}>Submitted</span>
+                          </div>
+                          <div className={styles.timelineConnector}></div>
+                          <div className={`${styles.timelineStep} ${isVerified ? styles.active : ''}`}>
+                            <span className={styles.timelineMarker}>{isVerified ? '✓' : '◯'}</span>
+                            <span className={styles.timelineLabel}>In Review</span>
+                          </div>
+                          <div className={styles.timelineConnector}></div>
+                          <div className={`${styles.timelineStep} ${isVerified ? styles.active : ''}`}>
+                            <span className={styles.timelineMarker}>{isVerified ? '✓' : '◯'}</span>
+                            <span className={styles.timelineLabel}>Verified</span>
+                          </div>
                         </div>
-                        <span className={`${styles.badge} ${styles[submission.status.toLowerCase()]}`}>
-                          ✓ {submission.status}
-                        </span>
+
+                        {/* Submission Details */}
+                        <div className={styles.submissionDetails}>
+                          <div className={styles.detailsHeader}>
+                            <div className={styles.detailsLeft}>
+                              <h4 className={styles.submissionMonth}>{submission.month}</h4>
+                              <p className={styles.submissionAmount}>₱{submission.amount?.toLocaleString()}</p>
+                            </div>
+                            <div className={styles.detailsRight}>
+                              <span className={`${styles.statusBadge} ${styles[submission.status.toLowerCase()]}`}>
+                                {isVerified ? '✓ Verified' : '⏳ Pending'}
+                              </span>
+                              {daysAgo > 0 && !isVerified && (
+                                <p className={styles.timeText}>{daysAgo}d ago</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className={styles.detailsGrid}>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Method</span>
+                              <span className={styles.detailValue}>{submission.paymentMethod || 'Unknown'}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Reference</span>
+                              <span className={styles.detailValue}>{submission.referenceNumber || '—'}</span>
+                            </div>
+                          </div>
+
+                          <div className={styles.statusMessage}>
+                            {isVerified ? (
+                              <p className={styles.successMsg}>
+                                ✓ Your payment has been verified and recorded. Thank you!
+                              </p>
+                            ) : (
+                              <p className={styles.pendingMsg}>
+                                Your submission is being reviewed by the HOA. This usually takes 1-2 business days. You'll receive a notification once verified.
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <p className={styles.submissionDate}>
-                        Submitted: {submission.submittedDate}
-                      </p>
-                      {submission.verifiedDate && (
-                        <p className={styles.verifiedDate}>
-                          Verified: {submission.verifiedDate}
-                        </p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </aside>
         </div>

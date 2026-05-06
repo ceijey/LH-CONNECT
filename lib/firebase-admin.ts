@@ -25,6 +25,7 @@ function normalizePrivateKey(value?: string) {
 let projectId = process.env.FIREBASE_PROJECT_ID;
 let clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 let privateKey = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
+let storageBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
 
 if ((!projectId || !clientEmail || !privateKey) && process.env.FIREBASE_ADMIN_SDK_KEY) {
   try {
@@ -43,16 +44,24 @@ if (!projectId || !clientEmail || !privateKey) {
   );
 }
 
-const adminApp =
-  getApps().length > 0
-    ? getApps()[0]
-    : initializeApp({
+const adminApp = getApps().length > 0 ? getApps()[0] : initializeApp(
+  storageBucket
+    ? {
         credential: cert({
           projectId,
           clientEmail,
           privateKey,
         }),
-      });
+        storageBucket,
+      }
+    : {
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
+      }
+);
 
 export const adminAuth = getAuth(adminApp);
 export const adminDb = getFirestore(adminApp);

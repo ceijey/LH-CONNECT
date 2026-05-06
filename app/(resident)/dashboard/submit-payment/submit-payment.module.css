@@ -255,6 +255,26 @@
   border-color: #0d47a1;
 }
 
+/* Preview */
+.previewContainer {
+  margin-top: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 400px;
+}
+
+.previewImage {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  display: block;
+}
+
 /* Submit Button */
 .submitBtn {
   background: #1a1a1a;
@@ -436,6 +456,194 @@
 
 .verifiedDate {
   color: #2e7d32;
+}
+
+/* Card Description */
+.cardDescription {
+  color: #546e7a;
+  font-size: 0.85rem;
+  margin: -0.75rem 0 1rem 0;
+}
+
+/* Empty State */
+.emptyStateBox {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px dashed #1976d2;
+}
+
+.emptyStateText {
+  color: #0d47a1;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+/* Timeline Progress */
+.timelineProgress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+}
+
+.timelineStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  text-align: center;
+}
+
+.timelineMarker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ecf0f7;
+  color: #90caf9;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.timelineStep.active .timelineMarker {
+  background: #1976d2;
+  color: #ffffff;
+}
+
+.timelineLabel {
+  font-size: 0.75rem;
+  color: #546e7a;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.timelineStep.active .timelineLabel {
+  color: #0d47a1;
+  font-weight: 600;
+}
+
+.timelineConnector {
+  flex: 0.8;
+  height: 2px;
+  background: #ecf0f7;
+  margin-bottom: 1.8rem;
+}
+
+.submissionItem.verified .timelineConnector {
+  background: #1976d2;
+}
+
+/* Submission Details */
+.submissionDetails {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+}
+
+.submissionItem.verified .submissionDetails {
+  border-left-color: #2e7d32;
+  background: #f1f8f4;
+}
+
+.detailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.detailsLeft {
+  flex: 1;
+}
+
+.detailsRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.statusBadge {
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.statusBadge.verified {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.statusBadge.pending {
+  background: #fff9c4;
+  color: #f57f17;
+}
+
+.timeText {
+  color: #90caf9;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+/* Details Grid */
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.detailLabel {
+  color: #546e7a;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detailValue {
+  color: #0d47a1;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Status Message */
+.statusMessage {
+  padding: 0.85rem;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.successMsg,
+.pendingMsg {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.successMsg {
+  color: #2e7d32;
+}
+
+.pendingMsg {
+  color: #f57f17;
 }
 
 /* Responsive */

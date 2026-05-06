@@ -109,14 +109,36 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const residentName = String(formData.get('residentName') ?? '').trim();
     const blockLot = String(formData.get('blockLot') ?? '').trim();
-    const paymentAmount = Number(formData.get('paymentAmount') ?? 0);
+    const paymentAmountStr = String(formData.get('paymentAmount') ?? '').trim();
+    const paymentAmount = Number(paymentAmountStr) || 0;
     const paymentMethod = String(formData.get('paymentMethod') ?? '').trim();
     const referenceNumber = String(formData.get('referenceNumber') ?? '').trim();
     const notes = String(formData.get('notes') ?? '').trim();
     const file = formData.get('file');
 
-    if (!residentName || !blockLot || !paymentMethod || !referenceNumber) {
-      return createErrorResponse('Missing required fields', 400);
+    // Detailed validation
+    if (!residentName) {
+      return createErrorResponse('Resident name is required', 400);
+    }
+
+    if (!blockLot) {
+      return createErrorResponse('Block/Lot information is required', 400);
+    }
+
+    if (!paymentAmountStr) {
+      return createErrorResponse('Payment amount is required', 400);
+    }
+
+    if (paymentAmount <= 0) {
+      return createErrorResponse('Payment amount must be greater than 0', 400);
+    }
+
+    if (!paymentMethod) {
+      return createErrorResponse('Payment method is required', 400);
+    }
+
+    if (!referenceNumber) {
+      return createErrorResponse('Reference number is required', 400);
     }
 
     if (!(file instanceof File)) {
@@ -125,21 +147,53 @@ export async function POST(request: NextRequest) {
 
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filePath = `payment-submissions/${userId}/${Date.now()}-${safeFileName}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const bucket = adminStorage.bucket();
-    const storageFile = bucket.file(filePath);
+      const buffer = Buffer.from(await file.arrayBuffer());
+      let fileUrl: string | null = null;
+      let usedFilePath: string | null = null;
+      let fileUploadError: any = null;
 
-    await storageFile.save(buffer, {
-      metadata: {
-        contentType: file.type || 'application/octet-stream',
-      },
-      resumable: false,
-    });
+      try {
+        // Use configured bucket if present, otherwise default
+        const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+        const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
 
-    const [fileUrl] = await storageFile.getSignedUrl({
-      action: 'read',
-      expires: '01-01-2500',
-    });
+        // Check bucket existence to provide clearer errors
+        try {
+          const [exists] = await bucket.exists();
+          if (!exists) {
+            throw new Error(`Bucket does not exist: ${envBucket || '<default>'}`);
+          }
+        } catch (chkErr) {
+          // If bucket existence check fails, surface concise error
+          throw chkErr;
+        }
+
+        const storageFile = bucket.file(filePath);
+        await storageFile.save(buffer, {
+          metadata: {
+            contentType: file.type || 'application/octet-stream',
+          },
+          resumable: false,
+        });
+
+        const [signedUrl] = await storageFile.getSignedUrl({
+          action: 'read',
+          expires: '01-01-2500',
+        });
+
+        fileUrl = signedUrl;
+        usedFilePath = filePath;
+      } catch (uploadError: any) {
+        console.error('File upload failed:', {
+          message: uploadError?.message ?? uploadError,
+          code: uploadError?.code,
+        });
+        fileUploadError = {
+          message: uploadError?.message ?? String(uploadError),
+          code: uploadError?.code ?? null,
+        };
+        // Continue: we will still create a submission record so admins can follow up
+      }
 
     const submittedAt = new Date();
     const currentMonth = submittedAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
@@ -176,15 +230,44 @@ export async function POST(request: NextRequest) {
       notes,
       fileName: file.name,
       fileUrl,
+      filePath: usedFilePath,
+      fileUploadError: fileUploadError ?? null,
       status: 'Pending' as const,
       month: currentMonth,
       submittedDate: submittedAt.toLocaleString(),
       verifiedDate: undefined,
     };
 
+    // Create an admin notification so admins immediately see new submissions (including failed uploads)
+    try {
+      await adminDb.collection('admin_notifications').add({
+        type: 'payment_submission',
+        submissionId: docRef.id,
+        residentId: userId,
+        residentName,
+        blockLot,
+        paymentAmount,
+        paymentMethod,
+        referenceNumber,
+        fileName: file.name,
+        fileUrl: fileUrl ?? null,
+        fileUploadError: fileUploadError ?? null,
+        status: 'pending',
+        createdAt: new Date(),
+        read: false,
+      });
+    } catch (notifyErr) {
+      console.error('Failed to create admin notification:', notifyErr?.message ?? notifyErr);
+    }
+
     return NextResponse.json({ submission });
   } catch (error: any) {
-    console.error('Error creating payment submission:', error.message || error);
-    return createErrorResponse('Failed to submit payment proof', 500);
+    console.error('Error creating payment submission:', {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+      fullError: error,
+    });
+    return createErrorResponse(`Failed to submit payment proof: ${error?.message || 'Unknown error'}`, 500);
   }
 }
