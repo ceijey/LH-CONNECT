@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
 
 type PaymentSubmission = {
@@ -66,7 +66,7 @@ function toSubmission(doc: any): PaymentSubmission {
 }
 
 export async function GET(request: NextRequest) {
-  const tokenVerification = await verifyToken(request);
+  const tokenVerification = await requireApprovedUser(request);
 
   if (tokenVerification.error) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const tokenVerification = await verifyToken(request);
+  const tokenVerification = await requireApprovedUser(request);
 
   if (tokenVerification.error) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);

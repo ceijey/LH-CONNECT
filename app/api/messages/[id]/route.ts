@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
 const isUnreadMessage = (message: any) => {
@@ -17,7 +17,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const tokenVerification = await verifyToken(request);
+  const tokenVerification = await requireApprovedUser(request);
 
   if (tokenVerification.error) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);

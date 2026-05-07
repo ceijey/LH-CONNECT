@@ -204,12 +204,14 @@ export default function LoginPage() {
     const profilePayload = await parseApiResponse(profileResponse);
     const userData = profilePayload.user ?? {};
     const role = userData.role === 'admin' ? 'admin' : 'resident';
+    const accountStatus = userData.approvalStatus === 'Pending' ? 'Pending' : 'Approved';
 
     localStorage.setItem('isAuthenticated', 'true');
     localStorage.setItem('userEmail', email ?? formData.email);
     localStorage.setItem('userName', userData.fullName ?? fallbackName);
     localStorage.setItem('userRole', role);
     localStorage.setItem('userId', profilePayload.user?.uid ?? auth.currentUser?.uid ?? '');
+    localStorage.setItem('accountStatus', accountStatus);
 
     const sessionResponse = await fetch('/api/auth/session', {
       method: 'POST',
@@ -222,7 +224,7 @@ export default function LoginPage() {
       throw new Error(sessionError?.error ?? 'Failed to create secure session.');
     }
 
-    router.replace(role === 'admin' ? '/admin/dashboard' : '/dashboard');
+    router.replace(role === 'admin' ? '/admin/dashboard' : accountStatus === 'Pending' ? '/pending-approval' : '/dashboard');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

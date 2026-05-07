@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { countUnreadThreads } from '@/lib/message-threads';
 
 export async function GET(request: NextRequest) {
-  const tokenVerification = await verifyToken(request);
+  const tokenVerification = await requireApprovedUser(request);
 
   if (tokenVerification.error) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);

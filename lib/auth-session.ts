@@ -14,6 +14,7 @@ const AUTH_STORAGE_KEYS = [
   'userName',
   'userRole',
   'userId',
+  'accountStatus',
 ];
 
 export function clearAuthSession() {

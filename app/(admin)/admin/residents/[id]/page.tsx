@@ -14,6 +14,7 @@ interface Resident {
   block: string;
   lot: string;
   status: 'Active' | 'Inactive' | 'Delinquent';
+  approvalStatus?: 'Pending' | 'Approved' | 'Rejected';
   balance: number;
   createdAt?: string;
   updatedAt?: string;
@@ -69,8 +70,13 @@ export default function ResidentDetailsPage({ params }: { params: Promise<{ id: 
           <div className={styles.balanceLabel}>Current Outstanding Balance</div>
           <div className={styles.balanceValue}>₱{(resident.balance ?? 0).toLocaleString()}</div>
         </div>
-        <div className={`${styles.statusBadge} ${styles[(resident.status || 'Active').toLowerCase()]}`}>
-          {resident.status || 'Active'}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className={`${styles.statusBadge} ${styles[(resident.status || 'Active').toLowerCase()]}`}>
+            {resident.status || 'Active'}
+          </div>
+          <div className={`${styles.statusBadge} ${styles[(resident.approvalStatus || 'Pending').toLowerCase()]}`}>
+            {resident.approvalStatus || 'Pending'}
+          </div>
         </div>
       </div>
 

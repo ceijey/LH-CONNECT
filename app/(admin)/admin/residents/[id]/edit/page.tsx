@@ -17,6 +17,7 @@ export default function EditResidentPage({ params }: { params: Promise<{ id: str
     block: '',
     lot: '',
     status: 'Active',
+    approvalStatus: 'Pending',
     balance: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +35,7 @@ export default function EditResidentPage({ params }: { params: Promise<{ id: str
           block: data.block || '',
           lot: data.lot || '',
           status: data.status || 'Active',
+          approvalStatus: data.approvalStatus || 'Pending',
           balance: Number(data.balance ?? 0),
         });
       } catch (err: any) {
@@ -161,6 +163,19 @@ export default function EditResidentPage({ params }: { params: Promise<{ id: str
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
                 <option value="Delinquent">Delinquent</option>
+              </select>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>HOA Verification</label>
+              <select
+                name="approvalStatus"
+                className={styles.select}
+                value={formData.approvalStatus}
+                onChange={handleChange}
+              >
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
               </select>
             </div>
             <div className={styles.field}>

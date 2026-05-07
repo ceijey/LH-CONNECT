@@ -7,6 +7,7 @@ import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import UnreadMessagesBadge from './UnreadMessagesBadge';
+import ConfirmationModal from './ConfirmationModal';
 import styles from './AdminLayout.module.css';
 
 interface AdminLayoutProps {
@@ -44,9 +45,19 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   }, [pathname]);
 
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      await logoutAndRedirect(router, '/');
-    }
+    // show modal instead of native confirm
+    setIsLogoutModalOpen(true);
+  };
+
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const confirmLogout = async () => {
+    setIsLogoutModalOpen(false);
+    await logoutAndRedirect(router, '/');
+  };
+
+  const cancelLogout = () => {
+    setIsLogoutModalOpen(false);
   };
 
   const toggleSidebar = () => {
@@ -106,6 +117,16 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
         <button className={styles.logoutBtn} onClick={handleLogout}>
           <span>🚪</span> <span className={styles.navLabel}>Logout</span>
         </button>
+        <ConfirmationModal
+          isOpen={isLogoutModalOpen}
+          title="Logout Confirmation"
+          message="Are you sure you want to logout?"
+          confirmText="Logout"
+          cancelText="Cancel"
+          isDangerous={true}
+          onConfirm={confirmLogout}
+          onCancel={cancelLogout}
+        />
       </aside>
 
       <main className={styles.main}>

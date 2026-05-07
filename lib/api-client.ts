@@ -18,6 +18,21 @@ export async function apiCall(
   console.log(`[API] ${endpoint}: status=${response.status}, ok=${response.ok}`);
 
   if (response.status === 401 || response.status === 403) {
+    const errorText = await response.text();
+    let errorMessage = errorText;
+
+    try {
+      const parsed = JSON.parse(errorText);
+      errorMessage = parsed.error || errorText;
+    } catch {
+      // keep raw text
+    }
+
+    if (response.status === 403 && /pending.*approval|hoa approval/i.test(errorMessage)) {
+      window.location.href = '/pending-approval';
+      throw new Error(errorMessage);
+    }
+
     clearAuthSession();
     await destroyServerSession();
     window.location.href = '/login';

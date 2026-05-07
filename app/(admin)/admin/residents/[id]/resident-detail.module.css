@@ -198,6 +198,9 @@
 .active { background: #E8F5E9; color: #2E7D32; }
 .delinquent { background: #FFEBEE; color: #C62828; }
 .inactive { background: #F5F5F5; color: #616161; }
+.pending { background: #FFF3E0; color: #E65100; }
+.approved { background: #E8F5E9; color: #2E7D32; }
+.rejected { background: #FFEBEE; color: #C62828; }
 
 .balanceCard {
   background: linear-gradient(135deg, #1B2A4A 0%, #2C3E6B 100%);

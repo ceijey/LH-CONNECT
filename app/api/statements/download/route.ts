@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
@@ -83,7 +83,7 @@ function generateCSV(statements: any[], residentName: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const tokenVerification = await verifyToken(request);
+  const tokenVerification = await requireApprovedUser(request);
 
   if (tokenVerification.error) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);

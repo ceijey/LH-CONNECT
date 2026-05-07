@@ -55,7 +55,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updatePayload: any = {};
 
     // Only allow updating certain fields
-    const allowedFields = ['fullName', 'phone', 'phase', 'block', 'lot', 'status', 'balance'];
+    const allowedFields = ['fullName', 'phone', 'phase', 'block', 'lot', 'status', 'balance', 'approvalStatus'];
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
         updatePayload[field] = body[field];

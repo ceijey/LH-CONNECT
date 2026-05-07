@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
       block: block || '',
       lot: lot || '',
       role: 'resident',
+      approvalStatus: 'Approved',
       status: 'Active',
       balance: 0,
       createdAt: now,

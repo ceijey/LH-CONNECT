@@ -15,6 +15,7 @@ interface Resident {
   email: string;
   phone: string;
   status: 'Active' | 'Inactive' | 'Delinquent';
+  approvalStatus: 'Pending' | 'Approved' | 'Rejected';
   balance: number;
   createdAt?: string;
 }
@@ -34,6 +35,7 @@ export default function AdminResidents() {
   const totalResidents = allResidents.length;
   const activeCount = allResidents.filter((resident) => resident.status === 'Active').length;
   const delinquentCount = allResidents.filter((resident) => resident.status === 'Delinquent').length;
+  const pendingApprovalCount = allResidents.filter((resident) => resident.approvalStatus === 'Pending').length;
   const newThisMonth = allResidents.filter((resident) => {
     if (!resident.createdAt) {
       return false;
@@ -69,6 +71,11 @@ export default function AdminResidents() {
           email: resident.email ?? '-',
           phone: resident.phone ?? '-',
           status,
+          approvalStatus: resident.approvalStatus === 'Approved'
+            ? 'Approved'
+            : resident.approvalStatus === 'Rejected'
+              ? 'Rejected'
+              : 'Pending',
           balance,
           createdAt: resident.createdAt,
         } as Resident;
@@ -152,6 +159,10 @@ export default function AdminResidents() {
             <div className={styles.registryStatValue} style={{ color: '#f44336' }}>{delinquentCount}</div>
           </div>
           <div className={styles.registryStat}>
+            <div className={styles.registryStatLabel}>Pending Approval</div>
+            <div className={styles.registryStatValue} style={{ color: '#e65100' }}>{pendingApprovalCount}</div>
+          </div>
+          <div className={styles.registryStat}>
             <div className={styles.registryStatLabel}>New This Month</div>
             <div className={styles.registryStatValue} style={{ color: '#2196f3' }}>{newThisMonth}</div>
           </div>
@@ -179,6 +190,7 @@ export default function AdminResidents() {
                   <th>Name</th>
                   <th>Block/Lot</th>
                   <th>Status</th>
+                  <th>Verification</th>
                   <th>Balance</th>
                   <th>Contact</th>
                   <th>Actions</th>
@@ -202,6 +214,11 @@ export default function AdminResidents() {
                     <td>
                       <span className={`${styles.badge} ${styles[resident.status.toLowerCase()]}`}>
                         {resident.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`${styles.badge} ${styles[resident.approvalStatus.toLowerCase()]}`}>
+                        {resident.approvalStatus}
                       </span>
                     </td>
                     <td className={`${styles.balanceTd} ${resident.balance > 0 ? styles.debit : ''}`}>

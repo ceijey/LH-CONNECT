@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
@@ -157,19 +157,19 @@ export default function AdminPayments() {
           <div className={styles.tabsContainer}>
             <button 
               className={`${styles.tab} ${activeTab === 'Pending' ? styles.active : ''}`}
-              onClick={() => setActiveTab('Pending')}
+              onClick={() => startTransition(() => setActiveTab('Pending'))}
             >
               ⏳ Pending ({pendingCount})
             </button>
             <button 
               className={`${styles.tab} ${activeTab === 'Verified' ? styles.active : ''}`}
-              onClick={() => setActiveTab('Verified')}
+              onClick={() => startTransition(() => setActiveTab('Verified'))}
             >
               ✓ Verified ({verifiedCount})
             </button>
             <button 
               className={`${styles.tab} ${activeTab === 'Rejected' ? styles.active : ''}`}
-              onClick={() => setActiveTab('Rejected')}
+              onClick={() => startTransition(() => setActiveTab('Rejected'))}
             >
               ✕ Rejected ({rejectedCount})
             </button>

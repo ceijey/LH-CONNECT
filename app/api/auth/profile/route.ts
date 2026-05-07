@@ -10,6 +10,7 @@ interface ProfilePayload {
   lot: string;
   phone: string;
   role?: 'admin' | 'resident';
+  approvalStatus?: 'Pending' | 'Approved' | 'Rejected';
 }
 
 export async function GET(request: NextRequest) {
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
         fullName: 'User',
         email: email ?? '',
         role: 'resident' as const,
+        approvalStatus: 'Pending' as const,
         createdAt: new Date().toISOString(),
       };
 
@@ -74,9 +76,16 @@ export async function POST(request: NextRequest) {
       lot: body.lot,
       phone: body.phone,
       role: body.role === 'admin' ? 'admin' : 'resident',
+      approvalStatus: body.role === 'admin' ? 'Approved' : 'Pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    const existingDoc = await adminDb.collection('users').doc(uid).get();
+    if (existingDoc.exists) {
+      const existingData = existingDoc.data();
+      userProfile.approvalStatus = existingData?.approvalStatus ?? userProfile.approvalStatus;
+    }
 
     await adminDb.collection('users').doc(uid).set(userProfile, { merge: true });
 
