@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import ResidentDetailModal from '@/app/components/ResidentDetailModal';
+import ResidentEditModal from '@/app/components/ResidentEditModal';
 import styles from './admin-page.module.css';
 
 interface Resident {
@@ -31,6 +33,10 @@ export default function AdminResidents() {
     id: '',
     name: ''
   });
+  const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null);
+  const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const totalResidents = allResidents.length;
   const activeCount = allResidents.filter((resident) => resident.status === 'Active').length;
@@ -131,6 +137,22 @@ export default function AdminResidents() {
     }
   };
 
+  const handleViewDetails = (resident: Resident) => {
+    setSelectedResident(resident);
+    setSelectedResidentId(resident.id);
+    setDetailModalOpen(true);
+  };
+
+  const handleEditResident = (resident: Resident) => {
+    setSelectedResident(resident);
+    setSelectedResidentId(resident.id);
+    setEditModalOpen(true);
+  };
+
+  const handleEditModalSuccess = () => {
+    loadResidents();
+  };
+
   if (isLoading) return <div className={styles.loading}>Loading residents...</div>;
 
   return (
@@ -229,14 +251,14 @@ export default function AdminResidents() {
                       <button 
                         className={styles.iconBtn} 
                         title="View Details"
-                        onClick={() => router.push(`/admin/residents/${resident.id}`)}
+                        onClick={() => handleViewDetails(resident)}
                       >
                         📋
                       </button>
                       <button 
                         className={styles.iconBtn} 
                         title="Edit Resident"
-                        onClick={() => router.push(`/admin/residents/${resident.id}/edit`)}
+                        onClick={() => handleEditResident(resident)}
                       >
                         ✏️
                       </button>
@@ -247,6 +269,57 @@ export default function AdminResidents() {
             </table>
           </div>
       </div>
+
+      <ResidentDetailModal
+        isOpen={detailModalOpen}
+        residentId={selectedResidentId}
+        residentData={selectedResident ? {
+          id: selectedResident.id,
+          fullName: selectedResident.name,
+          email: selectedResident.email,
+          phone: selectedResident.phone,
+          phase: selectedResident.phase,
+          block: selectedResident.block,
+          lot: selectedResident.lot,
+          status: selectedResident.status,
+          approvalStatus: selectedResident.approvalStatus,
+          balance: selectedResident.balance,
+        } : null}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setSelectedResidentId(null);
+          setSelectedResident(null);
+        }}
+        onEdit={(id) => {
+          setDetailModalOpen(false);
+          const resident = allResidents.find(r => r.id === id);
+          if (resident) {
+            handleEditResident(resident);
+          }
+        }}
+      />
+
+      <ResidentEditModal
+        isOpen={editModalOpen}
+        residentId={selectedResidentId}
+        residentData={selectedResident ? {
+          id: selectedResident.id,
+          fullName: selectedResident.name,
+          phone: selectedResident.phone,
+          phase: selectedResident.phase,
+          block: selectedResident.block,
+          lot: selectedResident.lot,
+          status: selectedResident.status,
+          approvalStatus: selectedResident.approvalStatus,
+          balance: selectedResident.balance,
+        } : null}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedResidentId(null);
+          setSelectedResident(null);
+        }}
+        onSuccess={handleEditModalSuccess}
+      />
     </>
   );
 }
