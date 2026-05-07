@@ -1,0 +1,316 @@
+/* Payment Details Page Styles */
+
+.container {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background-color: #1a1f35;
+  color: white;
+  padding: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoIcon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.logoText {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.logoSubtext {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+}
+
+.logoutBtn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logoutBtn:hover {
+  background-color: #c0392b;
+}
+
+.main {
+  flex: 1;
+  padding: 32px 16px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.contentWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color 0.3s ease;
+}
+
+.backBtn:hover {
+  color: #764ba2;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 18px;
+  color: #666;
+}
+
+.detailsCard {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+  border: 1px solid #e9ecef;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #1a1f35;
+}
+
+.statusBadge {
+  background-color: #667eea;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.amountSection {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 32px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.amountLabel {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.amount {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.month {
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+.propertyInfo {
+  margin-bottom: 32px;
+}
+
+.propertyInfo h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #1a1f35;
+  font-weight: 600;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.infoItem label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.infoItem span {
+  font-size: 16px;
+  color: #1a1f35;
+  font-weight: 500;
+}
+
+.instructions {
+  margin-bottom: 32px;
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.instructions h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #1a1f35;
+  font-weight: 600;
+}
+
+.instructions ol {
+  margin: 0;
+  padding-left: 20px;
+  color: #555;
+  line-height: 1.8;
+}
+
+.instructions li {
+  margin-bottom: 8px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #e9ecef;
+  margin: 24px 0;
+}
+
+.notice {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #664d03;
+  line-height: 1.6;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.secondaryBtn,
+.payNowBtn {
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.secondaryBtn {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.secondaryBtn:hover {
+  background-color: #dee2e6;
+}
+
+.payNowBtn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  min-width: 200px;
+}
+
+.payNowBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.payNowBtn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .detailsCard {
+    padding: 20px;
+  }
+
+  .amount {
+    font-size: 36px;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+  }
+
+  .secondaryBtn,
+  .payNowBtn {
+    width: 100%;
+  }
+}
