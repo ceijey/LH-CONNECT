@@ -1,13 +1,14 @@
 'use client';
 
+import type { CSSProperties, HTMLAttributes } from 'react';
 import styles from './Skeleton.module.css';
 
-interface SkeletonProps {
+interface SkeletonProps extends Omit<HTMLAttributes<HTMLDivElement>, 'style'> {
   width?: string | number;
   height?: string | number;
   borderRadius?: string;
-  className?: string;
   variant?: 'text' | 'circle' | 'rect' | 'button';
+  style?: CSSProperties;
 }
 
 export default function Skeleton({
@@ -16,17 +17,21 @@ export default function Skeleton({
   borderRadius = '4px',
   className = '',
   variant = 'rect',
+  style,
+  ...rest
 }: SkeletonProps) {
-  const skeletonStyles: React.CSSProperties = {
+  const skeletonStyles: CSSProperties = {
     width: typeof width === 'number' ? `${width}px` : width,
     height: typeof height === 'number' ? `${height}px` : height,
     borderRadius: variant === 'circle' ? '50%' : borderRadius,
+    ...style,
   };
 
   return (
     <div
       className={`${styles.skeleton} ${styles[variant]} ${className}`}
       style={skeletonStyles}
+      {...rest}
     />
   );
 }

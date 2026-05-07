@@ -88,9 +88,12 @@ export default function AdminReports() {
     link.setAttribute("href", url);
     link.setAttribute("download", `LH-Connect_Report_${selectedMonth.replace(' ', '_')}.csv`);
     link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    if (document.body) {
+      document.body.appendChild(link);
+    }
     link.click();
-    document.body.removeChild(link);
+    link.remove();
+    URL.revokeObjectURL(url);
     showToast('Report exported as CSV', 'success');
   };
 
