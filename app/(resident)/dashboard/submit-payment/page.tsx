@@ -80,6 +80,7 @@ export default function SubmitPaymentPage() {
               blockLot: userProfile.block && userProfile.lot 
                 ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
                 : '',
+              paymentAmount: userProfile.balance?.toString() ?? '',
             }));
           }
         } catch (error) {
@@ -176,6 +177,19 @@ export default function SubmitPaymentPage() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const method = e.target.value;
+    setPaymentMethod(method);
+    
+    if (method === 'gcash') {
+      window.open('https://www.gcash.com/', '_blank');
+    } else if (method === 'maya') {
+      window.open('https://www.maya.ph/', '_blank');
+    } else if (method === 'bank') {
+      window.open('https://www.bdo.com.ph/', '_blank');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -201,7 +215,7 @@ export default function SubmitPaymentPage() {
     }
 
     if (!formData.referenceNumber.trim()) {
-      setToast({ message: 'Please enter an OR number', type: 'error' });
+      setToast({ message: 'Please enter a reference number', type: 'error' });
       return;
     }
 
@@ -371,7 +385,7 @@ export default function SubmitPaymentPage() {
                   <select
                     className={styles.select}
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    onChange={handlePaymentMethodChange}
                   >
                     <option value="gcash">GCash</option>
                     <option value="maya">Maya</option>
@@ -380,15 +394,15 @@ export default function SubmitPaymentPage() {
                   </select>
                 </div>
 
-                {/* OR Number */}
+                {/* Reference Number */}
                 <div className={styles.formGroup}>
-                  <label className={styles.label}>OR Number</label>
+                  <label className={styles.label}>Reference Number</label>
                   <input
                     type="text"
                     name="referenceNumber"
                     value={formData.referenceNumber}
                     onChange={handleInputChange}
-                    placeholder="Enter Official Receipt number"
+                    placeholder="Enter payment reference number"
                     className={styles.input}
                   />
                 </div>

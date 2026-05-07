@@ -25,6 +25,10 @@ export default function DueBillPopup({
 
   if (!isOpen) return null;
 
+  // Ensure amount is a number and valid
+  const displayAmount = typeof dueAmount === 'number' ? dueAmount : 0;
+  const displayMonth = dueMonth || new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
+
   return (
     <div className={styles.backdrop} onClick={onDismiss}>
       <div className={styles.popup} onClick={(e) => e.stopPropagation()}>
@@ -38,8 +42,8 @@ export default function DueBillPopup({
         <div className={styles.body}>
           <div className={styles.amountSection}>
             <div className={styles.label}>Amount Due</div>
-            <div className={styles.amount}>₱{dueAmount.toLocaleString()}</div>
-            <div className={styles.month}>For {dueMonth}</div>
+            <div className={styles.amount}>₱{displayAmount.toLocaleString()}</div>
+            <div className={styles.month}>For {displayMonth}</div>
           </div>
 
           <p className={styles.message}>

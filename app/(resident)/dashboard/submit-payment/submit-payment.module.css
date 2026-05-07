@@ -300,6 +300,10 @@
   cursor: not-allowed;
 }
 
+.submitIcon {
+  font-size: 1.25rem;
+}
+
 /* Right Column */
 .rightColumn {
   display: flex;
