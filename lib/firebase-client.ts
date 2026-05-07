@@ -20,11 +20,9 @@ const missingEnvVar = [
   ['NEXT_PUBLIC_FIREBASE_APP_ID', firebaseConfig.appId],
 ].find(([, value]) => !value)?.[0];
 
-if (missingEnvVar) {
-  throw new Error(`Missing Firebase environment variable: ${missingEnvVar}`);
-}
+const app = !missingEnvVar
+  ? (getApps().length > 0 ? getApp() : initializeApp(firebaseConfig))
+  : null;
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const auth = app ? getAuth(app) : null as any;
+export const db = app ? getFirestore(app) : null as any;

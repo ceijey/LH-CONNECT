@@ -1,0 +1,151 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+  background: white;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.backBtn {
+  background: none;
+  border: 1px solid #E0E0E0;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #1B2A4A;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1B2A4A;
+  margin: 0;
+}
+
+.formCard {
+  background: white;
+  border-radius: 12px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.formSection {
+  margin-bottom: 2.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1B2A4A;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #F5F5F5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #546E7A;
+}
+
+.input, .select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #F5F5F5;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #1B2A4A;
+  background: #FAFAFA;
+  transition: all 0.3s;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: #1B2A4A;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(27, 42, 74, 0.05);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #F5F5F5;
+}
+
+.cancelBtn {
+  background: white;
+  color: #546E7A;
+  border: 1px solid #E0E0E0;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.submitBtn {
+  background: #1B2A4A;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #2C3E6B;
+  transform: translateY(-2px);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #1B2A4A;
+}
+
+.error {
+  background: #FFEBEE;
+  color: #C62828;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  font-weight: 500;
+}

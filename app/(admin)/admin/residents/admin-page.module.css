@@ -162,6 +162,13 @@
   margin-bottom: 2rem;
 }
 
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
 .registryStat {
   background: white;
   padding: 1.5rem;
@@ -196,6 +203,13 @@
   gap: 1rem;
   margin-bottom: 1.5rem;
   align-items: center;
+}
+
+@media (max-width: 640px) {
+  .searchSection {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .searchInput {
@@ -343,7 +357,8 @@
   color: #e65100;
 }
 
-.badge.failed {
+.badge.failed,
+.badge.rejected {
   background: #ffebee;
   color: #c62828;
 }
@@ -403,21 +418,40 @@
 .idBadge {
   background: rgba(27, 42, 74, 0.05);
   color: #1B2A4A;
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.6rem;
   border-radius: 4px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-family: monospace;
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .phaseBadge {
   background: #f3e5f5;
   color: #6a1b9a;
-  padding: 0.4rem 0.8rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.75rem;
-  margin-right: 0.5rem;
+  font-weight: 700;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.blockLot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.blockLotText {
+  font-size: 0.85rem;
+  color: #546e7a;
+  white-space: nowrap;
 }
 
 .nameTd {

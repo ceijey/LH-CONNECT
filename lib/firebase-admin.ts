@@ -25,7 +25,6 @@ function normalizePrivateKey(value?: string) {
 let projectId = process.env.FIREBASE_PROJECT_ID;
 let clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 let privateKey = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
-let storageBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
 
 if ((!projectId || !clientEmail || !privateKey) && process.env.FIREBASE_ADMIN_SDK_KEY) {
   try {
@@ -38,31 +37,20 @@ if ((!projectId || !clientEmail || !privateKey) && process.env.FIREBASE_ADMIN_SD
   }
 }
 
-if (!projectId || !clientEmail || !privateKey) {
-  throw new Error(
-    'Missing Firebase Admin environment variables. Set FIREBASE_ADMIN_SDK_KEY or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY.'
-  );
-}
+const adminApp =
+  getApps().length > 0
+    ? getApps()[0]
+    : (projectId && clientEmail && privateKey) 
+      ? initializeApp({
+          credential: cert({
+            projectId,
+            clientEmail,
+            privateKey,
+          }),
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        })
+      : null;
 
-const adminApp = getApps().length > 0 ? getApps()[0] : initializeApp(
-  storageBucket
-    ? {
-        credential: cert({
-          projectId,
-          clientEmail,
-          privateKey,
-        }),
-        storageBucket,
-      }
-    : {
-        credential: cert({
-          projectId,
-          clientEmail,
-          privateKey,
-        }),
-      }
-);
-
-export const adminAuth = getAuth(adminApp);
-export const adminDb = getFirestore(adminApp);
-export const adminStorage = getStorage(adminApp);
+export const adminAuth = adminApp ? getAuth(adminApp) : null as any;
+export const adminDb = adminApp ? getFirestore(adminApp) : null as any;
+export const adminStorage = adminApp ? getStorage(adminApp) : null as any;

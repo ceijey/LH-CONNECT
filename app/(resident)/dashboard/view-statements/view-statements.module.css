@@ -309,6 +309,48 @@
   color: #d84315;
 }
 
+.submissionStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px dashed rgba(255, 193, 7, 0.5);
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+.submissionLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f57c00;
+}
+
+.submissionValue {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.submissionDetail {
+  display: flex;
+  flex-direction: column;
+}
+
+.submissionDate {
+  font-size: 0.7rem;
+  color: #9E9E9E;
+}
+
+.submissionBadge {
+  padding: 0.2rem 0.5rem;
+  background: #fff8e1;
+  color: #f57c00;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 /* Card Footer */
 .cardFooter {
   display: flex;

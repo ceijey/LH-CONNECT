@@ -1,0 +1,125 @@
+.reportsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.controlsRow {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+  align-items: center;
+}
+
+.selectGroup {
+  display: flex;
+  gap: 15px;
+  flex: 1;
+}
+
+.exportButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.statCard {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  color: #9E9E9E;
+  margin-bottom: 10px;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1B2A4A;
+}
+
+.reportContent {
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.reportTitle {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1B2A4A;
+}
+
+.select {
+  padding: 10px 15px;
+  border: 2px solid #E0E0E0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  backgroundColor: #fff;
+  color: #1B2A4A;
+  fontWeight: 500;
+}
+
+.exportBtn {
+  background: #1B2A4A;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  borderRadius: 8px;
+  cursor: pointer;
+  fontSize: 0.9rem;
+  fontWeight: 600;
+  display: flex;
+  alignItems: center;
+  gap: 8px;
+}
+
+/* Responsive Queries */
+@media (max-width: 1024px) {
+  .controlsRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .selectGroup {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .exportButtons {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .reportContent {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .statValue {
+    font-size: 1.5rem;
+  }
+}

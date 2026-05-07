@@ -1,18 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
 } from 'recharts';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import UnreadMessagesBadge from '@/app/components/UnreadMessagesBadge';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
-import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './admin-dashboard.module.css';
 
 interface StatCard {
@@ -23,213 +19,93 @@ interface StatCard {
   icon: string;
 }
 
-type PaymentRecord = {
-  amount?: number;
-  paymentAmount?: number;
-  method?: string;
-  status?: string;
-  createdAt?: string | number | { toMillis?: () => number; toDate?: () => Date };
-};
-
-type ResidentRecord = {
-  id: string;
-  balance?: number;
-  phase?: string;
-};
-
-type SubmissionRecord = {
-  status?: string;
-};
-
-type ChartPoint = {
-  month: string;
-  value: number;
-};
-
-type PiePoint = {
-  name: string;
-  value: number;
-};
-
-type BarPoint = {
-  phase: string;
-  delinquent: number;
-};
-
-const MONTH_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 export default function AdminDashboard() {
   const router = useRouter();
-  useAuthPageshow('admin');
   const [isLoading, setIsLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('dashboard');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [userName, setUserName] = useState('Admin User');
 
+  // Chart data
+  const collectionTrendsData = [
+    { month: 'Aug', value: 45000 },
+    { month: 'Sep', value: 52000 },
+    { month: 'Oct', value: 48000 },
+    { month: 'Nov', value: 55000 },
+    { month: 'Dec', value: 58000 },
+    { month: 'Jan', value: 62000 },
+  ];
+
+  const fundBreakdownData = [
+    { name: 'Maintenance', value: 35 },
+    { name: 'Security', value: 25 },
+    { name: 'Reserve', value: 20 },
+    { name: 'Utilities', value: 20 },
+  ];
+
+  const delinquencyData = [
+    { phase: 'Phase 1', delinquent: 2 },
+    { phase: 'Phase 2', delinquent: 7 },
+    { phase: 'Phase 3', delinquent: 3 },
+    { phase: 'Phase 4', delinquent: 5 },
+  ];
+
   const [statCards, setStatCards] = useState<StatCard[]>([
     {
       title: "Today's Collections",
-      value: '₱0',
-      change: 'Loading live data',
-      changeType: 'neutral',
+      value: '₱8,500',
+      change: '+12% vs yesterday',
+      changeType: 'positive',
       icon: '💵',
     },
     {
       title: 'Monthly Total',
-      value: '₱0',
-      change: 'Loading live data',
-      changeType: 'neutral',
+      value: '₱62,000',
+      change: '85% collected',
+      changeType: 'positive',
       icon: '📊',
     },
     {
       title: 'Pending Verifications',
-      value: '0',
-      change: 'Loading live data',
+      value: '12',
+      change: 'Requires action',
       changeType: 'neutral',
       icon: '⏳',
     },
     {
       title: 'Delinquent Accounts',
-      value: '0',
-      change: 'Loading live data',
-      changeType: 'neutral',
+      value: '17',
+      change: '-2 from last month',
+      changeType: 'positive',
       icon: '⚠️',
     },
   ]);
 
-  const [collectionTrendsData, setCollectionTrendsData] = useState<ChartPoint[]>([]);
-  const [paymentMethodData, setPaymentMethodData] = useState<PiePoint[]>([]);
-  const [delinquencyData, setDelinquencyData] = useState<BarPoint[]>([]);
-
   const COLORS = ['#1B2A4A', '#4caf50', '#ff9800', '#9c27b0'];
-
-  const formatAmount = (amount: number) => `₱${amount.toLocaleString()}`;
-
-  const toMillis = (value: PaymentRecord['createdAt']) => {
-    if (!value) return 0;
-    if (typeof value === 'object') {
-      if (typeof value.toMillis === 'function') return value.toMillis();
-      if (typeof value.toDate === 'function') return value.toDate().getTime();
-      return 0;
-    }
-    if (typeof value === 'number') return value;
-    const parsed = new Date(value).getTime();
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const [profilePayload, residentsPayload, paymentsPayload, submissionsPayload] = await Promise.all([
+        const [profilePayload, residentsPayload] = await Promise.all([
           apiCall('/api/auth/profile'),
           apiCall('/api/residents'),
-          apiCall('/api/payments'),
-          apiCall('/api/payment-submissions'),
         ]);
 
         setUserName(profilePayload.user?.fullName ?? 'Admin User');
 
-        const residents = (residentsPayload.residents ?? []) as ResidentRecord[];
-        const payments = (paymentsPayload.payments ?? []) as PaymentRecord[];
-        const submissions = (submissionsPayload.submissions ?? []) as SubmissionRecord[];
-
+        const residents = (residentsPayload.residents ?? []) as Array<{ balance?: number }>;
         const delinquentCount = residents.filter((resident) => Number(resident.balance ?? 0) > 0).length;
-        const pendingVerifications = submissions.filter((submission) => submission.status === 'Pending').length;
-
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        const todayCollections = payments.reduce((sum, payment) => {
-          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
-          if (!Number.isFinite(amount)) return sum;
-          if (toMillis(payment.createdAt) >= todayStart) return sum + amount;
-          return sum;
-        }, 0);
-
-        const monthlyTotal = payments.reduce((sum, payment) => {
-          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
-          const createdAt = toMillis(payment.createdAt);
-          if (!Number.isFinite(amount) || !createdAt) return sum;
-          const createdDate = new Date(createdAt);
-          if (createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear) {
-            return sum + amount;
-          }
-          return sum;
-        }, 0);
-
-        const previousMonth = (currentMonth + 11) % 12;
-        const previousMonthCollections = payments.reduce((sum, payment) => {
-          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
-          const createdAt = toMillis(payment.createdAt);
-          if (!Number.isFinite(amount) || !createdAt) return sum;
-          const createdDate = new Date(createdAt);
-          if (createdDate.getMonth() === previousMonth && createdDate.getFullYear() === (currentMonth === 0 ? currentYear - 1 : currentYear)) {
-            return sum + amount;
-          }
-          return sum;
-        }, 0);
-
-        const collectionTrendMap = new Map<string, number>();
-        payments.forEach((payment) => {
-          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
-          const createdAt = toMillis(payment.createdAt);
-          if (!Number.isFinite(amount) || !createdAt) return;
-          const createdDate = new Date(createdAt);
-          const label = MONTH_ORDER[createdDate.getMonth()];
-          collectionTrendMap.set(label, (collectionTrendMap.get(label) ?? 0) + amount);
-        });
-
-        const trendData = MONTH_ORDER
-          .map((month) => ({ month, value: collectionTrendMap.get(month) ?? 0 }))
-          .filter((entry) => entry.value > 0);
-
-        const paymentMethodMap = new Map<string, number>();
-        payments.forEach((payment) => {
-          const amount = Number(payment.amount ?? payment.paymentAmount ?? 0);
-          const method = payment.method?.trim() || 'Unknown';
-          if (!Number.isFinite(amount)) return;
-          paymentMethodMap.set(method, (paymentMethodMap.get(method) ?? 0) + amount);
-        });
-
-        const methodData = Array.from(paymentMethodMap.entries()).map(([name, value]) => ({ name, value }));
-
-        const phaseMap = new Map<string, number>();
-        residents.forEach((resident) => {
-          if (Number(resident.balance ?? 0) <= 0) return;
-          const phase = resident.phase || 'Unknown';
-          phaseMap.set(phase, (phaseMap.get(phase) ?? 0) + 1);
-        });
-
-        const phaseData = Array.from(phaseMap.entries())
-          .map(([phase, delinquent]) => ({ phase, delinquent }))
-          .sort((left, right) => left.phase.localeCompare(right.phase));
-
-        setCollectionTrendsData(trendData);
-        setPaymentMethodData(methodData.length > 0 ? methodData : [{ name: 'No payments yet', value: 1 }]);
-        setDelinquencyData(phaseData.length > 0 ? phaseData : [{ phase: 'No data', delinquent: 0 }]);
 
         setStatCards((previousCards) => [
-          {
-            ...previousCards[0],
-            value: formatAmount(todayCollections),
-            change: todayCollections > 0 ? 'Live collections today' : 'No collections today',
-            changeType: todayCollections > 0 ? 'positive' : 'neutral',
-          },
+          previousCards[0],
           {
             ...previousCards[1],
-            value: formatAmount(monthlyTotal),
-            change: previousMonthCollections > 0
-              ? `${(((monthlyTotal - previousMonthCollections) / previousMonthCollections) * 100).toFixed(1)}% vs last month`
-              : 'Compared with last month',
-            changeType: monthlyTotal >= previousMonthCollections ? 'positive' : 'negative',
+            value: `₱${residents.length * 500}`,
           },
           {
             ...previousCards[2],
-            value: `${pendingVerifications}`,
-            change: pendingVerifications > 0 ? 'Requires action' : 'No pending verifications',
-            changeType: pendingVerifications > 0 ? 'neutral' : 'positive',
+            value: `${residents.length}`,
+            change: residents.length > 0 ? 'Live resident records' : 'No resident records yet',
           },
           {
             ...previousCards[3],
@@ -261,7 +137,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className={styles.container}>
+    <>
       <ConfirmationModal
         isOpen={showLogoutModal}
         title="Logout Confirmation"
@@ -273,109 +149,22 @@ export default function AdminDashboard() {
         isDangerous={true}
       />
 
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>
-            <Image
-              src="/lhhoa-logo.png"
-              alt="LHHOA logo"
-              width={44}
-              height={44}
-              className={styles.logoIcon}
-              priority
-            />
-            <div>
-              <div className={styles.logoText}>LH-Connect</div>
-              <div className={styles.logoSubtext}>Admin Dashboard</div>
+      {/* Stat Cards */}
+      <section className={styles.statsGrid}>
+        {statCards.map((card, index) => (
+          <div key={index} className={styles.statCard}>
+            <div className={styles.statHeader}>
+              <span className={styles.statIcon}>{card.icon}</span>
+              <span className={styles.statTitle}>{card.title}</span>
+            </div>
+            <div className={styles.statValue}>{card.value}</div>
+            <div className={`${styles.statChange} ${styles[card.changeType]}`}>
+              {card.changeType === 'positive' && '↑'} {card.change}
             </div>
           </div>
-        </div>
+        ))}
+      </section>
 
-        <nav className={styles.nav}>
-          <Link 
-            href="/admin/dashboard" 
-            className={`${styles.navItem} ${activeNav === 'dashboard' ? styles.active : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveNav('dashboard'); router.push('/admin/dashboard'); }}
-          >
-            <span className={styles.navIcon}>📊</span>
-            <span className={styles.navLabel}>Dashboard</span>
-          </Link>
-          <Link 
-            href="/admin/residents" 
-            className={`${styles.navItem} ${activeNav === 'residents' ? styles.active : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveNav('residents'); router.push('/admin/residents'); }}
-          >
-            <span className={styles.navIcon}>👥</span>
-            <span className={styles.navLabel}>Residents</span>
-          </Link>
-          <Link 
-            href="/admin/payments" 
-            className={`${styles.navItem} ${activeNav === 'payments' ? styles.active : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveNav('payments'); router.push('/admin/payments'); }}
-          >
-            <span className={styles.navIcon}>💳</span>
-            <span className={styles.navLabel}>Payments</span>
-          </Link>
-          <Link 
-            href="/admin/qr-scanner" 
-            className={`${styles.navItem} ${activeNav === 'qr-scanner' ? styles.active : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveNav('qr-scanner'); router.push('/admin/qr-scanner'); }}
-          >
-            <span className={styles.navIcon}>📱</span>
-            <span className={styles.navLabel}>QR Scanner</span>
-          </Link>
-          <Link 
-            href="/admin/messages" 
-            className={`${styles.navItem} ${activeNav === 'messages' ? styles.active : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveNav('messages'); router.push('/admin/messages'); }}
-          >
-            <span className={styles.navIcon}>💬</span>
-            <span className={styles.navLabel}>Messages</span>
-            <UnreadMessagesBadge />
-          </Link>
-          <Link 
-            href="/admin/reports" 
-            className={`${styles.navItem} ${activeNav === 'reports' ? styles.active : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveNav('reports'); router.push('/admin/reports'); }}
-          >
-            <span className={styles.navIcon}>📑</span>
-            <span className={styles.navLabel}>Reports</span>
-          </Link>
-        </nav>
-
-        <button className={styles.logoutBtn} onClick={handleLogout}>
-          <span className={styles.navIcon}>🚪</span>
-          <span className={styles.navLabel}>Logout</span>
-        </button>
-      </aside>
-
-      {/* Main Content */}
-      <main className={styles.main}>
-        {/* Header */}
-        <header className={styles.header}>
-          <h1 className={styles.pageTitle}>Real Time Financial Dashboard</h1>
-          <div className={styles.headerRight}>
-            <span className={styles.userLabel}>{userName}</span>
-            <div className={styles.userAvatar}>👤</div>
-          </div>
-        </header>
-
-        {/* Stat Cards */}
-        <section className={styles.statsGrid}>
-          {statCards.map((card, index) => (
-            <div key={index} className={styles.statCard}>
-              <div className={styles.statHeader}>
-                <span className={styles.statIcon}>{card.icon}</span>
-                <span className={styles.statTitle}>{card.title}</span>
-              </div>
-              <div className={styles.statValue}>{card.value}</div>
-              <div className={`${styles.statChange} ${styles[card.changeType]}`}>
-                {card.changeType === 'positive' && '↑'} {card.change}
-              </div>
-            </div>
-          ))}
-        </section>
 
         {/* Charts Grid */}
         <div className={styles.chartsGrid}>
@@ -405,20 +194,20 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={paymentMethodData}
+                  data={fundBreakdownData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry: any) => `${entry.name} ₱${Number(entry.value).toLocaleString()}`}
+                  label={(entry) => `${entry.name} ${entry.value}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {paymentMethodData.map((entry, index) => (
+                  {fundBreakdownData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `₱${Number(value).toLocaleString()}`} />
+                <Tooltip formatter={(value) => `${value}%`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -436,8 +225,7 @@ export default function AdminDashboard() {
               <Bar dataKey="delinquent" fill="#ff5252" name="Delinquent Accounts" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

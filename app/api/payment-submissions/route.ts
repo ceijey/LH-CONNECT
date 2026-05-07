@@ -13,7 +13,7 @@ type PaymentSubmission = {
   notes?: string;
   fileName?: string;
   fileUrl?: string;
-  status: 'Verified' | 'Pending';
+  status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
   submittedAt?: any;
@@ -57,7 +57,7 @@ function toSubmission(doc: any): PaymentSubmission {
     notes: data.notes,
     fileName: data.fileName,
     fileUrl: data.fileUrl,
-    status: data.status === 'Verified' ? 'Verified' : 'Pending',
+    status: data.status || 'Pending',
     submittedDate,
     verifiedDate: data.verifiedDate,
     submittedAt,

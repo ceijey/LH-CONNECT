@@ -20,6 +20,7 @@ interface Statement {
   balance: number;
   status: 'Paid' | 'Partially Paid' | 'Pending';
   fileFormat: 'PDF' | 'Excel';
+  relatedSubmissions?: any[];
 }
 
 export default function ViewStatementsPage() {
@@ -311,6 +312,29 @@ export default function ViewStatementsPage() {
                       ₱{statement.balance}
                     </span>
                   </div>
+
+                  {statement.relatedSubmissions && statement.relatedSubmissions.length > 0 && (
+                    <div className={styles.submissionStatus}>
+                      <span className={styles.submissionLabel}>Payment Proof Submitted:</span>
+                      {statement.relatedSubmissions.map((sub: any) => {
+                        const displayDate = (sub.status === 'Verified' && sub.verifiedDate)
+                          ? new Date(sub.verifiedDate).toLocaleDateString()
+                          : (sub.submittedDate ? new Date(sub.submittedDate).toLocaleDateString() : '—');
+                        
+                        return (
+                          <div key={sub.id} className={styles.submissionValue}>
+                            <div className={styles.submissionDetail}>
+                              <span className={styles.statValue}>₱{sub.paymentAmount}</span>
+                              <span className={styles.submissionDate}>{displayDate}</span>
+                            </div>
+                            <span className={styles.submissionBadge}>
+                              {sub.status === 'Verified' ? '✓ Verified' : '⏳ Pending'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className={styles.cardFooter}>

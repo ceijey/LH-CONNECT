@@ -150,6 +150,10 @@ export default function LoginPage() {
 
   const getAuthErrorMessage = (error: unknown): string => {
     const firebaseError = error as FirebaseError;
+    if (error instanceof Error && !firebaseError?.code) {
+      return error.message;
+    }
+    
     switch (firebaseError?.code) {
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
