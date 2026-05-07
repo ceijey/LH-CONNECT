@@ -16,6 +16,7 @@ interface ConfirmationModalProps {
   inputValue?: string;
   onInputChange?: (value: string) => void;
   inputPlaceholder?: string;
+  imageUrl?: string;
 }
 
 export default function ConfirmationModal({
@@ -31,6 +32,7 @@ export default function ConfirmationModal({
   inputValue = '',
   onInputChange,
   inputPlaceholder = 'Type your reason here...',
+  imageUrl,
 }: ConfirmationModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -70,6 +72,12 @@ export default function ConfirmationModal({
               placeholder={inputPlaceholder}
               rows={3}
             />
+          )}
+          {imageUrl && (
+            <div className={styles.imageContainer}>
+              <p className={styles.imageLabel}>Attached Proof:</p>
+              <img src={imageUrl} alt="Verification Proof" className={styles.modalImage} />
+            </div>
           )}
         </div>
 

@@ -172,6 +172,20 @@ export default function AdminReports() {
         onClose={() => setIsToastVisible(false)}
       />
       <div className={styles.content}>
+          {/* Print Header */}
+          <div className={`${reportsStyles.printOnly} ${reportsStyles.printHeader}`}>
+            <div className={reportsStyles.printLogo}>
+              <span className={reportsStyles.printLogoIcon}>🏠</span>
+              <span className={reportsStyles.printLogoText}>LH-Connect</span>
+            </div>
+            <div className={reportsStyles.printReportDetails}>
+              <h1 className={reportsStyles.printReportTitle}>{selectedReportType}</h1>
+              <div className={reportsStyles.printDate}>
+                Period: {selectedMonth} | Generated: {new Date().toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+
           <div className={`${reportsStyles.controlsRow} no-print`}>
             <div className={reportsStyles.selectGroup}>
               <select 
@@ -273,7 +287,13 @@ export default function AdminReports() {
                   </tr>
                 </tbody>
               </table>
-            </div>
+          </div>
+
+          {/* Print Footer */}
+          <div className={`${reportsStyles.printOnly} ${reportsStyles.printFooter}`}>
+            <div>LH-Connect Financial Management System - Property of LH Homeowners Association</div>
+            <div>This is an electronically generated report.</div>
+          </div>
         </div>
       </div>
       <style jsx global>{`

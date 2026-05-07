@@ -123,3 +123,92 @@
     font-size: 1.5rem;
   }
 }
+
+.printOnly {
+  display: none;
+}
+
+@media print {
+  .printOnly {
+    display: block !important;
+  }
+
+  .printHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #1B2A4A;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+  }
+
+  .printLogo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .printLogoIcon {
+    font-size: 32px;
+  }
+
+  .printLogoText {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1B2A4A;
+  }
+
+  .printReportDetails {
+    text-align: right;
+  }
+
+  .printReportTitle {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+  }
+
+  .printDate {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .printFooter {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 0.8rem;
+    color: #999;
+    background: white;
+  }
+
+  .reportContent {
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .statCard {
+    border: 1px solid #eee !important;
+    break-inside: avoid;
+  }
+
+  .reportContent :global(table) {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .reportContent :global(th) {
+    background-color: #f8f9fa !important;
+    color: #1B2A4A !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .reportContent :global(tr) {
+    break-inside: avoid;
+  }
+}

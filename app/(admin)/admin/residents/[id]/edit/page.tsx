@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
+import styles from '../resident-form.module.css';
 
 interface ResidentFormData {
   name: string;
@@ -13,7 +14,8 @@ interface ResidentFormData {
   phone: string;
 }
 
-export default function EditResidentPage({ params }: { params: { id: string } }) {
+export default function EditResidentPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [resident, setResident] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,21 +33,16 @@ export default function EditResidentPage({ params }: { params: { id: string } })
     const fetchResident = async () => {
       try {
         setIsLoading(true);
-        const response = await apiCall(`/residents/${params.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setResident(data);
-          setFormData({
-            name: data.name,
-            phase: data.phase,
-            block: data.block,
-            lot: data.lot,
-            email: data.email,
-            phone: data.phone,
-          });
-        } else {
-          setError('Failed to fetch resident');
-        }
+        const data = await apiCall(`/api/residents/${id}`);
+        setResident(data);
+        setFormData({
+          name: data.fullName || data.name || '',
+          phase: data.phase || '',
+          block: data.block || '',
+          lot: data.lot || '',
+          email: data.email || '',
+          phone: data.phone || '',
+        });
       } catch (err) {
         setError('Error loading resident');
         console.error(err);
@@ -55,7 +52,7 @@ export default function EditResidentPage({ params }: { params: { id: string } })
     };
 
     fetchResident();
-  }, [params.id]);
+  }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -68,19 +65,18 @@ export default function EditResidentPage({ params }: { params: { id: string } })
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await apiCall(`/residents/${params.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      await apiCall(`/api/residents/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          fullName: formData.name,
+          phase: formData.phase,
+          block: formData.block,
+          lot: formData.lot,
+          phone: formData.phone,
+        }),
       });
 
-      if (response.ok) {
-        router.push('/admin/residents');
-      } else {
-        setError('Failed to update resident');
-      }
+      router.push('/admin/residents');
     } catch (err) {
       setError('Error updating resident');
       console.error(err);
@@ -88,89 +84,123 @@ export default function EditResidentPage({ params }: { params: { id: string } })
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className={styles.container}>Loading edit form...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className={styles.container}>
+        <div className={styles.error}>{error}</div>
+        <button onClick={() => router.back()} className={styles.cancelBtn}>Go Back</button>
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Edit Resident</h1>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Name:</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            required
-            style={{ display: 'block', width: '100%', padding: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Phase:</label>
-          <input
-            type="text"
-            name="phase"
-            value={formData.phase}
-            onChange={handleInputChange}
-            style={{ display: 'block', width: '100%', padding: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Block:</label>
-          <input
-            type="text"
-            name="block"
-            value={formData.block}
-            onChange={handleInputChange}
-            style={{ display: 'block', width: '100%', padding: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Lot:</label>
-          <input
-            type="text"
-            name="lot"
-            value={formData.lot}
-            onChange={handleInputChange}
-            style={{ display: 'block', width: '100%', padding: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            required
-            style={{ display: 'block', width: '100%', padding: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Phone:</label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleInputChange}
-            style={{ display: 'block', width: '100%', padding: '5px' }}
-          />
-        </div>
-        <button type="submit" style={{ padding: '8px 16px', marginRight: '10px' }}>
-          Save Changes
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <button className={styles.backBtn} onClick={() => router.back()}>
+          ← Back
         </button>
-        <button
-          type="button"
-          onClick={() => router.push('/admin/residents')}
-          style={{ padding: '8px 16px' }}
-        >
-          Cancel
-        </button>
+        <h1 className={styles.title}>Edit Resident Profile</h1>
+      </div>
+
+      <form className={styles.formCard} onSubmit={handleSubmit}>
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Account Information</h2>
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <label className={styles.label}>Full Name</label>
+              <input
+                type="text"
+                name="name"
+                className={styles.input}
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>Email Address (Read Only)</label>
+              <input
+                type="email"
+                name="email"
+                className={styles.input}
+                value={formData.email}
+                disabled
+                style={{ background: '#f5f5f5', cursor: 'not-allowed' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Contact & Location</h2>
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <label className={styles.label}>Phone Number</label>
+              <input
+                type="text"
+                name="phone"
+                className={styles.input}
+                value={formData.phone}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>Phase</label>
+              <input
+                type="text"
+                name="phase"
+                className={styles.input}
+                value={formData.phase}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+          <div className={styles.grid} style={{ marginTop: '1.5rem' }}>
+            <div className={styles.field}>
+              <label className={styles.label}>Block</label>
+              <input
+                type="text"
+                name="block"
+                className={styles.input}
+                value={formData.block}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>Lot</label>
+              <input
+                type="text"
+                name="lot"
+                className={styles.input}
+                value={formData.lot}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <button 
+            type="button" 
+            className={styles.cancelBtn} 
+            onClick={() => router.push(`/admin/residents/${id}`)}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            className={styles.submitBtn}
+          >
+            Save Changes
+          </button>
+        </div>
       </form>
     </div>
   );

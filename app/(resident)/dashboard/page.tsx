@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
-import DueBillPopup from '@/app/components/DueBillPopup';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -45,9 +44,6 @@ export default function DashboardPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showDueBillPopup, setShowDueBillPopup] = useState(false);
-  const [dueBillData, setDueBillData] = useState<{ amount: number; month: string } | null>(null);
-  const [shownDueBillNotifications, setShownDueBillNotifications] = useState<Set<string>>(new Set());
 
   const currentBalance = profile.balance ?? 0;
   const [nextDueDateStr, setNextDueDateStr] = useState<string>('');
@@ -65,21 +61,6 @@ export default function DashboardPage() {
       const payload = await apiCall('/api/notifications');
       const fetchedNotifications = payload.notifications || [];
       setNotifications(fetchedNotifications);
-
-      // Check for unread due-bill notifications and show popup
-      const unreadDueBills = fetchedNotifications.filter(
-        (n: any) => n.type === 'due-bill' && !n.read && !shownDueBillNotifications.has(n.id)
-      );
-
-      if (unreadDueBills.length > 0) {
-        const latestDueBill = unreadDueBills[0];
-        setDueBillData({
-          amount: latestDueBill.dueAmount || 0,
-          month: latestDueBill.dueMonth || ''
-        });
-        setShowDueBillPopup(true);
-        setShownDueBillNotifications(prev => new Set([...prev, latestDueBill.id]));
-      }
     } catch (e) {
       console.error('Failed to load notifications:', e);
     }
@@ -203,12 +184,7 @@ export default function DashboardPage() {
         isDangerous={true}
       />
 
-      <DueBillPopup
-        isOpen={showDueBillPopup}
-        dueAmount={dueBillData?.amount ?? 0}
-        dueMonth={dueBillData?.month ?? ''}
-        onDismiss={() => setShowDueBillPopup(false)}
-      />
+
 
       {/* Header */}
       <header className={styles.header}>
@@ -298,15 +274,31 @@ export default function DashboardPage() {
 
         {/* Info Cards Grid */}
         <div className={styles.infoGrid}>
-          {/* Current Balance Card */}
-          <div className={styles.infoCard}>
+          {/* Current Balance / Unpaid Balance Card */}
+          <div className={`${styles.infoCard} ${currentBalance > 0 ? styles.unpaidCard : ''}`}>
             <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Current Balance</span>
-              <span className={styles.infoIcon}>ℹ️</span>
+              <span className={styles.cardTitle}>
+                {currentBalance > 0 ? 'Unpaid Balance' : 'Current Balance'}
+              </span>
+              <span className={styles.infoIcon}>{currentBalance > 0 ? '⚠️' : 'ℹ️'}</span>
             </div>
             <div className={styles.cardContent}>
-              <div className={styles.amount}>₱{currentBalance}</div>
-              <p className={styles.cardSubtext}>All caught up! 🎉</p>
+              <div className={`${styles.amount} ${currentBalance > 0 ? styles.unpaidAmount : ''}`}>
+                ₱{currentBalance.toLocaleString()}
+              </div>
+              {currentBalance > 0 ? (
+                <>
+                  <p className={styles.cardSubtext}>You have an outstanding balance.</p>
+                  <Link
+                    href="/dashboard/submit-payment"
+                    className={styles.payNowBtn}
+                  >
+                    💳 Pay Now
+                  </Link>
+                </>
+              ) : (
+                <p className={styles.cardSubtext}>All caught up! 🎉</p>
+              )}
             </div>
           </div>
 

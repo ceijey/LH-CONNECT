@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
+import styles from './resident-detail.module.css';
 
-export default function ResidentDetailPage({ params }: { params: { id: string } }) {
+export default function ResidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [resident, setResident] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,13 +16,8 @@ export default function ResidentDetailPage({ params }: { params: { id: string } 
     const fetchResident = async () => {
       try {
         setIsLoading(true);
-        const response = await apiCall(`/residents/${params.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setResident(data);
-        } else {
-          setError('Failed to fetch resident');
-        }
+        const data = await apiCall(`/api/residents/${id}`);
+        setResident(data);
       } catch (err) {
         setError('Error loading resident');
         console.error(err);
@@ -30,58 +27,94 @@ export default function ResidentDetailPage({ params }: { params: { id: string } 
     };
 
     fetchResident();
-  }, [params.id]);
+  }, [id]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className={styles.container}>Loading resident details...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className={styles.container}>
+        <div className={styles.card} style={{ borderColor: '#ffcdd2', background: '#ffebee' }}>
+          <p style={{ color: '#c62828', margin: 0 }}>{error}</p>
+          <button onClick={() => router.back()} className={styles.backBtn} style={{ marginTop: '1rem' }}>
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!resident) {
-    return <div>Resident not found</div>;
+    return <div className={styles.container}>Resident not found</div>;
   }
 
+  const getStatusClass = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active': return styles.statusActive;
+      case 'delinquent': return styles.statusDelinquent;
+      default: return styles.statusInactive;
+    }
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Resident Details</h1>
-      <div style={{ marginBottom: '20px' }}>
-        <p>
-          <strong>Name:</strong> {resident.name}
-        </p>
-        <p>
-          <strong>Phase:</strong> {resident.phase}
-        </p>
-        <p>
-          <strong>Block:</strong> {resident.block}
-        </p>
-        <p>
-          <strong>Lot:</strong> {resident.lot}
-        </p>
-        <p>
-          <strong>Email:</strong> {resident.email}
-        </p>
-        <p>
-          <strong>Phone:</strong> {resident.phone}
-        </p>
-        <p>
-          <strong>Status:</strong> {resident.status}
-        </p>
-        <p>
-          <strong>Balance:</strong> ${resident.balance}
-        </p>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Resident Information</h1>
+        <button onClick={() => router.push('/admin/residents')} className={styles.backBtn}>
+          ← Back to List
+        </button>
       </div>
-      <button
-        onClick={() => router.push(`/admin/residents/${params.id}/edit`)}
-        style={{ padding: '8px 16px', marginRight: '10px' }}
-      >
-        Edit
-      </button>
-      <button onClick={() => router.push('/admin/residents')} style={{ padding: '8px 16px' }}>
-        Back to Residents
-      </button>
+
+      <div className={styles.card}>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <span className={styles.label}>Full Name</span>
+            <span className={styles.value}>{resident.fullName || resident.name}</span>
+          </div>
+
+          <div className={styles.infoItem}>
+            <span className={styles.label}>Status</span>
+            <div>
+              <span className={`${styles.statusBadge} ${getStatusClass(resident.status)}`}>
+                {resident.status}
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.infoItem}>
+            <span className={styles.label}>Phase / Block / Lot</span>
+            <span className={styles.value}>
+              {resident.phase} - Block {resident.block}, Lot {resident.lot}
+            </span>
+          </div>
+
+          <div className={styles.infoItem}>
+            <span className={styles.label}>Contact Number</span>
+            <span className={styles.value}>{resident.phone || 'N/A'}</span>
+          </div>
+
+          <div className={styles.infoItem}>
+            <span className={styles.label}>Email Address</span>
+            <span className={styles.value}>{resident.email}</span>
+          </div>
+
+          <div className={styles.infoItem}>
+            <span className={styles.label}>Outstanding Balance</span>
+            <span className={styles.balanceValue}>₱{(Number(resident.balance) || 0).toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <button
+            onClick={() => router.push(`/admin/residents/${id}/edit`)}
+            className={styles.editBtn}
+          >
+            Edit Profile
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

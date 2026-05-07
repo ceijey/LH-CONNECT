@@ -194,3 +194,25 @@
   transform: none !important;
   box-shadow: none !important;
 }
+
+.imageContainer {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.imageLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1B2A4A;
+  margin-bottom: 0.75rem;
+}
+
+.modalImage {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background: #f9f9f9;
+}

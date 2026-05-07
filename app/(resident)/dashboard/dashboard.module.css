@@ -208,6 +208,47 @@
   margin: 0;
 }
 
+/* Unpaid Balance Card */
+.unpaidCard {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(254, 242, 242, 0.95) 100%);
+}
+
+.unpaidCard:hover {
+  border-color: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 12px 35px rgba(239, 68, 68, 0.12);
+}
+
+.unpaidAmount {
+  color: #dc2626;
+}
+
+.payNowBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.55rem 1.25rem;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  width: fit-content;
+}
+
+.payNowBtn:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
 /* QR Code Card */
 .qrCodeContainer {
   display: flex;

@@ -86,7 +86,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
         <div className={styles.backdrop} onClick={() => setIsSidebarOpen(false)} />
       )}
 
-      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
+      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''} no-print`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
             <span className={styles.logoIcon}>🏠</span>
@@ -130,7 +130,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
       </aside>
 
       <main className={styles.main}>
-        <header className={styles.header}>
+        <header className={`${styles.header} no-print`}>
           <div className={styles.headerLeft}>
             <button className={styles.hamburger} onClick={toggleSidebar}>
               ☰

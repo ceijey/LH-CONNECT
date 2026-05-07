@@ -525,3 +525,46 @@
     grid-template-columns: 1fr;
   }
 }
+
+.thumbnailWrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #E0E0E0;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.thumbnailWrapper:hover {
+  transform: scale(1.1);
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.noProof {
+  font-size: 0.75rem;
+  color: #9E9E9E;
+  font-style: italic;
+}
+
+.notesTd {
+  max-width: 150px;
+}
+
+.notesText {
+  display: block;
+  font-size: 0.8rem;
+  color: #546e7a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.noNotes {
+  color: #E0E0E0;
+}

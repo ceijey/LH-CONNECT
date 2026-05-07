@@ -27,29 +27,8 @@ export default function AdminDashboard() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [userName, setUserName] = useState('Admin User');
 
-  // Chart data
-  const collectionTrendsData = [
-    { month: 'Aug', value: 45000 },
-    { month: 'Sep', value: 52000 },
-    { month: 'Oct', value: 48000 },
-    { month: 'Nov', value: 55000 },
-    { month: 'Dec', value: 58000 },
-    { month: 'Jan', value: 62000 },
-  ];
-
-  const fundBreakdownData = [
-    { name: 'Maintenance', value: 35 },
-    { name: 'Security', value: 25 },
-    { name: 'Reserve', value: 20 },
-    { name: 'Utilities', value: 20 },
-  ];
-
-  const delinquencyData = [
-    { phase: 'Phase 1', delinquent: 2 },
-    { phase: 'Phase 2', delinquent: 7 },
-    { phase: 'Phase 3', delinquent: 3 },
-    { phase: 'Phase 4', delinquent: 5 },
-  ];
+  const [collectionTrendsData, setCollectionTrendsData] = useState<{ month: string; value: number }[]>([]);
+  const [delinquencyData, setDelinquencyData] = useState<{ phase: string; delinquent: number }[]>([]);
 
   const [statCards, setStatCards] = useState<StatCard[]>([
     {
@@ -87,31 +66,46 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const [profilePayload, residentsPayload] = await Promise.all([
+        const [profilePayload, dashboardPayload] = await Promise.all([
           apiCall('/api/auth/profile'),
-          apiCall('/api/residents'),
+          apiCall('/api/dashboard'),
         ]);
 
         setUserName(profilePayload.user?.fullName ?? 'Admin User');
+        
+        const { stats, trends, delinquencyByPhase } = dashboardPayload;
 
-        const residents = (residentsPayload.residents ?? []) as Array<{ balance?: number }>;
-        const delinquentCount = residents.filter((resident) => Number(resident.balance ?? 0) > 0).length;
+        setCollectionTrendsData(trends);
+        setDelinquencyData(delinquencyByPhase);
 
-        setStatCards((previousCards) => [
-          previousCards[0],
+        setStatCards([
           {
-            ...previousCards[1],
-            value: `₱${residents.length * 400}`,
+            title: "Today's Collections",
+            value: `₱${stats.todayCollections.toLocaleString()}`,
+            change: 'Live from system',
+            changeType: 'positive',
+            icon: '💵',
           },
           {
-            ...previousCards[2],
-            value: `${residents.length}`,
-            change: residents.length > 0 ? 'Live resident records' : 'No resident records yet',
+            title: 'Monthly Total',
+            value: `₱${stats.monthlyTotal.toLocaleString()}`,
+            change: `${stats.totalResidents > 0 ? ((stats.monthlyTotal / (stats.totalResidents * 400)) * 100).toFixed(0) : 0}% collected`,
+            changeType: 'positive',
+            icon: '📊',
           },
           {
-            ...previousCards[3],
-            value: `${delinquentCount}`,
-            change: delinquentCount > 0 ? 'Residents with pending balance' : 'No delinquent residents',
+            title: 'Pending Verifications',
+            value: `${stats.pendingVerifications}`,
+            change: 'Requires action',
+            changeType: stats.pendingVerifications > 0 ? 'negative' : 'neutral',
+            icon: '⏳',
+          },
+          {
+            title: 'Delinquent Accounts',
+            value: `${stats.delinquentCount}`,
+            change: stats.delinquentCount > 0 ? 'Pending payments' : 'All clear',
+            changeType: stats.delinquentCount > 0 ? 'negative' : 'positive',
+            icon: '⚠️',
           },
         ]);
       } catch (error) {
@@ -221,13 +215,18 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </div>
 
-          {/* Fund Breakdown */}
+          {/* Fund Breakdown (Static for now as no category data) */}
           <div className={styles.chartCard}>
-            <h2 className={styles.chartTitle}>Fund Breakdown</h2>
+            <h2 className={styles.chartTitle}>Monthly Allocation</h2>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={fundBreakdownData}
+                  data={[
+                    { name: 'Maintenance', value: 35 },
+                    { name: 'Security', value: 25 },
+                    { name: 'Reserve', value: 20 },
+                    { name: 'Utilities', value: 20 },
+                  ]}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -236,7 +235,7 @@ export default function AdminDashboard() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {fundBreakdownData.map((entry, index) => (
+                  {[0,1,2,3].map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

@@ -20,6 +20,7 @@ interface PaymentSubmission {
   status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
+  notes?: string;
 }
 
 export default function AdminPayments() {
@@ -40,11 +41,13 @@ export default function AdminPayments() {
     type: 'Approve' | 'Reject' | 'Delete';
     id: string;
     name: string;
+    imageUrl?: string;
   }>({
     isOpen: false,
     type: 'Approve',
     id: '',
-    name: ''
+    name: '',
+    imageUrl: ''
   });
   const [rejectionReason, setRejectionReason] = useState('');
 
@@ -209,6 +212,7 @@ export default function AdminPayments() {
         inputValue={rejectionReason}
         onInputChange={setRejectionReason}
         inputPlaceholder="Reason for rejection (e.g., Invalid reference number, amount mismatch...)"
+        imageUrl={actionModal.imageUrl}
       />
 
       <ImageModal
@@ -266,6 +270,8 @@ export default function AdminPayments() {
                   <th>Resident</th>
                   <th>Block/Lot</th>
                   <th>Amount</th>
+                  <th>Proof</th>
+                  <th>Notes</th>
                   <th>Date/Time</th>
                   <th>Method</th>
                   <th>Actions</th>
@@ -292,6 +298,29 @@ export default function AdminPayments() {
                           </div>
                         </td>
                         <td className={styles.amount}>₱{payment.paymentAmount.toLocaleString()}</td>
+                        <td>
+                          {payment.fileUrl ? (
+                            <div 
+                              className={styles.thumbnailWrapper}
+                              onClick={() => setProofModal({
+                                isOpen: true,
+                                url: payment.fileUrl!,
+                                title: `Payment Proof - ${payment.residentName}`
+                              })}
+                            >
+                              <img src={payment.fileUrl} alt="Proof" className={styles.thumbnail} />
+                            </div>
+                          ) : (
+                            <span className={styles.noProof}>No Proof</span>
+                          )}
+                        </td>
+                        <td className={styles.notesTd} title={payment.notes}>
+                          {payment.notes ? (
+                            <span className={styles.notesText}>{payment.notes}</span>
+                          ) : (
+                            <span className={styles.noNotes}>—</span>
+                          )}
+                        </td>
                         <td className={styles.datetime}>
                           <div>{payment.status === 'Verified' ? payment.verifiedDate : payment.submittedDate}</div>
                         </td>
@@ -323,7 +352,8 @@ export default function AdminPayments() {
                                   isOpen: true,
                                   type: 'Approve',
                                   id: payment.id,
-                                  name: payment.residentName
+                                  name: payment.residentName,
+                                  imageUrl: payment.fileUrl
                                 })}
                               >
                                 ✓
@@ -335,7 +365,8 @@ export default function AdminPayments() {
                                   isOpen: true,
                                   type: 'Reject',
                                   id: payment.id,
-                                  name: payment.residentName
+                                  name: payment.residentName,
+                                  imageUrl: payment.fileUrl
                                 })}
                               >
                                 ✕

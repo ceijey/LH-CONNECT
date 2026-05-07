@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { sendDueBillEmail } from '@/lib/mailer';
+import { sendDueBillSMS } from '@/lib/sms';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -75,7 +77,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     await adminDb.collection('users').doc(id).update(updatePayload);
 
-    // Create notification if balance is being set
+    // Create notification and send email if balance is being set
     if (updatePayload.balance !== undefined && updatePayload.balance > 0) {
       const currentMonth = new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
       
@@ -91,6 +93,42 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       };
 
       await adminDb.collection('notifications').add(notification as any);
+
+      // Send email + SMS notifications to resident (non-blocking)
+      try {
+        const authUser = await adminAuth.getUser(id);
+        const residentEmail = authUser.email;
+        const residentPhone = currentData?.phone as string | undefined;
+        const residentName = currentData?.fullName || authUser.displayName || 'Resident';
+
+        // Send email
+        if (residentEmail) {
+          sendDueBillEmail({
+            toEmail: residentEmail,
+            residentName,
+            dueAmount: updatePayload.balance,
+            dueMonth: currentMonth,
+          }).catch((emailErr) => {
+            console.error('[Mailer] Failed to send due-bill email:', emailErr.message);
+          });
+        }
+
+        // Send SMS
+        if (residentPhone) {
+          sendDueBillSMS({
+            toPhone: residentPhone,
+            residentName,
+            dueAmount: updatePayload.balance,
+            dueMonth: currentMonth,
+          }).catch((smsErr) => {
+            console.error('[SMS] Failed to send due-bill SMS:', smsErr.message);
+          });
+        } else {
+          console.warn('[SMS] Resident has no phone number stored, skipping SMS.');
+        }
+      } catch (authErr: any) {
+        console.error('[Notifications] Could not fetch resident data:', authErr.message);
+      }
     }
 
     return NextResponse.json({ message: 'Resident updated successfully' });
