@@ -49,18 +49,16 @@ export default function ResidentDetailsPage({ params }: { params: Promise<{ id: 
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className={styles.headerActions}>
         <button 
           className={styles.backBtn} 
           onClick={() => router.push('/admin/residents')}
-          style={{ padding: '0.5rem 0', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, color: '#1B2A4A' }}
         >
           ← Back to Residents Registry
         </button>
         <button 
           className={styles.editBtn}
           onClick={() => router.push(`/admin/residents/${id}/edit`)}
-          style={{ background: '#1B2A4A', color: 'white', padding: '0.6rem 1.2rem', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
         >
           ✏️ Edit Profile
         </button>
@@ -105,7 +103,7 @@ export default function ResidentDetailsPage({ params }: { params: Promise<{ id: 
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Contact & Address Information</h2>
           <div className={styles.infoList}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+            <div className={styles.contactGrid}>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Email Address</span>
                 <span className={styles.infoValue}>{resident.email || 'N/A'}</span>
@@ -118,7 +116,7 @@ export default function ResidentDetailsPage({ params }: { params: Promise<{ id: 
 
             <div style={{ marginTop: '1rem' }}>
               <span className={styles.infoLabel}>Full Address</span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.5rem' }}>
+              <div className={styles.addressGrid}>
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Phase</span>
                   <span className={styles.infoValue}>{resident.phase || 'N/A'}</span>

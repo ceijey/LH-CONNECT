@@ -49,15 +49,61 @@
   transform: translateY(-2px);
 }
 
+.headerActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  marginBottom: 2rem;
+}
+
+@media (max-width: 640px) {
+  .headerActions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .backBtn, .editBtn {
+    width: 100%;
+  }
+}
+
 .profileGrid {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 2rem;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   .profileGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 640px) {
+  .contactGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.addressGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .addressGrid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 }
 
@@ -106,7 +152,7 @@
 
 .residentId {
   font-family: monospace;
-  color: #9E9E9E;
+  color: #546e7a;
   font-size: 0.9rem;
   background: #F5F5F5;
   padding: 0.25rem 0.75rem;
@@ -127,7 +173,7 @@
 
 .infoLabel {
   font-size: 0.8rem;
-  color: #9E9E9E;
+  color: #546e7a;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -162,6 +208,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+@media (max-width: 640px) {
+  .balanceCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .balanceValue {
+    font-size: 2rem;
+  }
 }
 
 .balanceLabel {

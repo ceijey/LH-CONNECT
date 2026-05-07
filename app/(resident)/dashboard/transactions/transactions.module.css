@@ -139,21 +139,6 @@
   margin-bottom: 2rem;
 }
 
-.summaryCard {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(27, 42, 74, 0.06);
-  border-left: 4px solid #1B2A4A;
-}
-
-.summaryLabel {
-  color: #9E9E9E;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
 .summaryValue {
   font-size: 1.75rem;
   font-weight: 700;
@@ -173,7 +158,8 @@
 .emptyState {
   padding: 3rem;
   text-align: center;
-  color: #546e7a;
+  color: #4a5568;
+  font-weight: 500;
 }
 
 .tableWrapper {
