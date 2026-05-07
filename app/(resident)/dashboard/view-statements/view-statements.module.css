@@ -394,9 +394,10 @@
 }
 
 .emptyText {
-  color: #9E9E9E;
+  color: #4a5568;
   font-size: 1rem;
   margin: 0;
+  font-weight: 500;
 }
 
 /* Summary Section */

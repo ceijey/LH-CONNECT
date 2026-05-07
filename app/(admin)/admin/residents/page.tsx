@@ -91,15 +91,24 @@ export default function AdminResidents() {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    if (!term) {
+    const normalizedTerm = term.toLowerCase().trim();
+    
+    if (!normalizedTerm) {
       setFilteredResidents(allResidents);
     } else {
-      const filtered = allResidents.filter(resident =>
-        resident.name.toLowerCase().includes(term.toLowerCase()) ||
-        resident.id.toLowerCase().includes(term.toLowerCase()) ||
-        `${resident.phase} Block ${resident.block}`.toLowerCase().includes(term.toLowerCase()) ||
-        resident.phone.includes(term)
-      );
+      const filtered = allResidents.filter(resident => {
+        const name = (resident.name || '').toLowerCase();
+        const id = (resident.id || '').toLowerCase();
+        const address = `${resident.phase || ''} Block ${resident.block || ''}`.toLowerCase();
+        const phone = (resident.phone || '');
+
+        return (
+          name.includes(normalizedTerm) ||
+          id.includes(normalizedTerm) ||
+          address.includes(normalizedTerm) ||
+          phone.includes(normalizedTerm)
+        );
+      });
       setFilteredResidents(filtered);
     }
   };
@@ -151,7 +160,7 @@ export default function AdminResidents() {
         <div className={styles.content}>
           <div className={styles.searchSection}>
             <input
-              type="text"
+              type="search"
               className={styles.searchInput}
               placeholder="Search by name, block/lot, or ID..."
               value={searchTerm}

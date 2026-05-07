@@ -18,15 +18,14 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   useAuthPageshow('admin');
-  const [userName, setUserName] = useState('Eliza');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [userName, setUserName] = useState('Admin');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const payload = await apiCall('/api/auth/profile');
-        // The user specifically requested "Eliza" profile, 
-        // so we use it as a primary or fallback.
         setUserName(payload.user?.fullName || 'Eliza');
       } catch (error) {
         console.error('Failed to load profile:', error);
@@ -39,10 +38,19 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     fetchProfile();
   }, []);
 
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     if (window.confirm('Are you sure you want to logout?')) {
       await logoutAndRedirect(router, '/');
     }
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   const navItems = [
@@ -62,7 +70,12 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
 
   return (
     <div className={styles.container}>
-      <aside className={styles.sidebar}>
+      {/* Sidebar Backdrop for Mobile */}
+      {isSidebarOpen && (
+        <div className={styles.backdrop} onClick={() => setIsSidebarOpen(false)} />
+      )}
+
+      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
             <span className={styles.logoIcon}>🏠</span>
@@ -71,6 +84,9 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
               <div className={styles.logoSubtext}>Admin Panel</div>
             </div>
           </div>
+          <button className={styles.closeMobileSidebar} onClick={() => setIsSidebarOpen(false)}>
+            ✕
+          </button>
         </div>
         
         <nav className={styles.nav}>
@@ -94,7 +110,12 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
 
       <main className={styles.main}>
         <header className={styles.header}>
-          <h1 className={styles.pageTitle}>{getActiveTitle()}</h1>
+          <div className={styles.headerLeft}>
+            <button className={styles.hamburger} onClick={toggleSidebar}>
+              ☰
+            </button>
+            <h1 className={styles.pageTitle}>{getActiveTitle()}</h1>
+          </div>
           <div className={styles.headerRight}>
             <span className={styles.userLabel}>{userName}</span>
             <div className={styles.userAvatar}>👤</div>
