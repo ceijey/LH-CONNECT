@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const submissions = submissionsSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data());
 
     // 3. Process data
-    const monthlyDues = 500; // Fixed for now
+    const monthlyDues = 400; // Fixed for now
     
     const financialData = residents.map((resident: any) => {
       // Find submission for this resident in the selected month

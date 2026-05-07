@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const currentBalance = profile.balance ?? 0;
   const [nextDueDateStr, setNextDueDateStr] = useState<string>('');
   const nextDueDate = nextDueDateStr;
-  const monthlyDues = 500;
+  const monthlyDues = 400;
   const qrCode = userId;
   
   const [payments, setPayments] = useState<PaymentRecord[]>([]);

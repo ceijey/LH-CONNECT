@@ -100,7 +100,7 @@ export default function AdminDashboard() {
           previousCards[0],
           {
             ...previousCards[1],
-            value: `₱${residents.length * 500}`,
+            value: `₱${residents.length * 400}`,
           },
           {
             ...previousCards[2],
