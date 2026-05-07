@@ -296,18 +296,10 @@ export default function LoginPage() {
         throw new Error(profileError.error ?? 'Failed to save profile.');
       }
 
-      setSignupMessage('Account created successfully! You can now log in.');
-      setSignupFormData({
-        fullName: '', email: '', phase: '', block: '', lot: '', phone: '', password: '', confirmPassword: '', acceptTerms: false,
-      });
-
-      setTimeout(() => {
-        setIsSignUp(false);
-        setSignupMessage('');
-      }, 2000);
+      // Auto-login user after successful account creation
+      await completeLogin(idToken, signupFormData.email, signupFormData.fullName);
     } catch (error) {
       setSignupMessage(getSignupErrorMessage(error));
-    } finally {
       setIsLoading(false);
     }
   };
@@ -576,6 +568,10 @@ export default function LoginPage() {
                   />
                   {signupErrors.confirmPassword && <p className={styles.errorMessage}>{signupErrors.confirmPassword}</p>}
                 </div>
+
+                <button type="submit" className={styles.button} disabled={isLoading}>
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                </button>
 
                 <div className={styles.termsGroup}>
                   <input
