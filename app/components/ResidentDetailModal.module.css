@@ -107,6 +107,24 @@
   color: #D32F2F;
 }
 
+.skeletonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.skeletonBalance {
+  border-radius: 8px;
+}
+
+.skeletonProfile {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #E0E0E0;
+}
+
 /* Balance Card */
 .balanceCard {
   display: flex;

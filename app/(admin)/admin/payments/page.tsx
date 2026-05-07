@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
+import Skeleton from '@/app/components/Skeleton';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import ImageModal from '@/app/components/ImageModal';
 import styles from '../residents/admin-page.module.css';
@@ -112,7 +113,83 @@ export default function AdminPayments() {
   const verifiedCount = allPayments.filter(p => p.status === 'Verified').length;
   const rejectedCount = allPayments.filter(p => p.status === 'Rejected').length;
 
-  if (isLoading) return <div className={styles.loading}>Loading payments...</div>;
+  if (isLoading) {
+    return (
+      <div>
+        {/* Stats Grid Skeleton */}
+        <div className={styles.statsGrid}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={styles.registryStat}>
+              <Skeleton height="0.875rem" width="70%" style={{ marginBottom: '0.75rem' }} />
+              <Skeleton height="2rem" width="60%" />
+            </div>
+          ))}
+        </div>
+
+        {/* Tabs and Table Skeleton */}
+        <div className={styles.content}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} height="40px" width="120px" />
+            ))}
+          </div>
+
+          <div className={styles.searchSection}>
+            <Skeleton height="40px" style={{ flex: 1 }} />
+          </div>
+
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Payment ID</th>
+                  <th>Resident</th>
+                  <th>Block/Lot</th>
+                  <th>Amount</th>
+                  <th>Date/Time</th>
+                  <th>Method</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <td>
+                      <Skeleton height="1.5rem" width="110px" borderRadius="4px" />
+                    </td>
+                    <td>
+                      <Skeleton height="0.9rem" width="160px" />
+                    </td>
+                    <td>
+                      <div className={styles.blockLot}>
+                        <Skeleton height="1rem" width="78px" borderRadius="4px" />
+                        <Skeleton height="0.875rem" width="130px" />
+                      </div>
+                    </td>
+                    <td>
+                      <Skeleton height="0.9rem" width="100px" />
+                    </td>
+                    <td>
+                      <Skeleton height="0.875rem" width="120px" style={{ marginBottom: '0.25rem' }} />
+                      <Skeleton height="0.8rem" width="95px" />
+                    </td>
+                    <td>
+                      <Skeleton height="0.9rem" width="100px" />
+                    </td>
+                    <td className={styles.paymentActions}>
+                      <Skeleton height="2rem" width="88px" borderRadius="4px" />
+                      <Skeleton height="2rem" width="2rem" borderRadius="4px" />
+                      <Skeleton height="2rem" width="2rem" borderRadius="4px" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

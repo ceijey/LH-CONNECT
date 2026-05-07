@@ -113,6 +113,21 @@
   margin-bottom: 1rem;
 }
 
+.skeletonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.skeletonSection {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #E0E0E0;
+}
+
+.skeletonSection:last-child {
+  border-bottom: none;
+}
+
 /* Form */
 .form {
   display: flex;

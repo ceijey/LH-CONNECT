@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiCall } from '@/lib/api-client';
+import Skeleton, { SkeletonText } from './Skeleton';
 import styles from './ResidentEditModal.module.css';
 
 interface FormData {
@@ -159,7 +160,50 @@ export default function ResidentEditModal({
 
           {/* Body */}
           <div className={styles.modalBody}>
-            {isLoading && <div className={styles.loading}>Loading resident data...</div>}
+            {isLoading && (
+              <div className={styles.skeletonContainer}>
+                {/* Personal Information Section */}
+                <div className={styles.skeletonSection}>
+                  <Skeleton height="1rem" width="40%" style={{ marginBottom: '1rem' }} />
+                  <div className={styles.grid}>
+                    <div>
+                      <Skeleton height="0.875rem" width="80%" style={{ marginBottom: '0.5rem' }} />
+                      <Skeleton height="40px" />
+                    </div>
+                    <div>
+                      <Skeleton height="0.875rem" width="80%" style={{ marginBottom: '0.5rem' }} />
+                      <Skeleton height="40px" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address Section */}
+                <div className={styles.skeletonSection}>
+                  <Skeleton height="1rem" width="45%" style={{ marginBottom: '1rem' }} />
+                  <div className={styles.gridThreeCols}>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i}>
+                        <Skeleton height="0.875rem" width="80%" style={{ marginBottom: '0.5rem' }} />
+                        <Skeleton height="40px" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Account Status Section */}
+                <div className={styles.skeletonSection}>
+                  <Skeleton height="1rem" width="35%" style={{ marginBottom: '1rem' }} />
+                  <div className={styles.gridThreeCols}>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i}>
+                        <Skeleton height="0.875rem" width="80%" style={{ marginBottom: '0.5rem' }} />
+                        <Skeleton height="40px" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             {error && <div className={styles.error}>{error}</div>}
 
             {!isLoading && (

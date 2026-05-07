@@ -6,6 +6,7 @@ import { apiCall } from '@/lib/api-client';
 import Toast from '@/app/components/Toast';
 import styles from '../residents/admin-page.module.css';
 import reportsStyles from './reports.module.css';
+import Skeleton from '@/app/components/Skeleton';
 
 interface ReportData {
   block: string;
@@ -93,7 +94,71 @@ export default function AdminReports() {
     showToast('Report exported as CSV', 'success');
   };
 
-  if (isLoading) return <div className={styles.loading}>Loading report...</div>;
+  if (isLoading) {
+    return (
+      <div className={styles.content}>
+        {/* Controls Skeleton */}
+        <div className={`${reportsStyles.controlsRow} no-print`}>
+          <div className={reportsStyles.selectGroup}>
+            <Skeleton height="42px" width="240px" borderRadius="8px" />
+            <Skeleton height="42px" width="240px" borderRadius="8px" />
+          </div>
+          <div className={reportsStyles.exportButtons}>
+            <Skeleton height="42px" width="140px" borderRadius="8px" />
+            <Skeleton height="42px" width="140px" borderRadius="8px" />
+          </div>
+        </div>
+
+        {/* Summary Cards Skeleton */}
+        <div className={reportsStyles.statsGrid}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className={reportsStyles.statCard}>
+              <Skeleton height="0.875rem" width="50%" style={{ marginBottom: '0.625rem' }} />
+              <Skeleton height="2rem" width="65%" />
+            </div>
+          ))}
+        </div>
+
+        {/* Report Content Skeleton */}
+        <div className={reportsStyles.reportContent}>
+          <Skeleton height="1.375rem" width="280px" style={{ marginBottom: '1.25rem' }} />
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Block/Lot</th>
+                  <th>Resident Name</th>
+                  <th>Monthly Dues</th>
+                  <th>Amount Paid</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i}>
+                    <td><Skeleton height="0.9rem" width="82%" /></td>
+                    <td><Skeleton height="0.9rem" width="88%" /></td>
+                    <td><Skeleton height="0.9rem" width="78%" /></td>
+                    <td><Skeleton height="0.9rem" width="78%" /></td>
+                    <td><Skeleton height="0.9rem" width="75%" /></td>
+                    <td><Skeleton height="1.5rem" width="70%" borderRadius="4px" /></td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={2}><Skeleton height="0.9rem" width="40%" /></td>
+                  <td><Skeleton height="0.9rem" width="78%" /></td>
+                  <td><Skeleton height="0.9rem" width="78%" /></td>
+                  <td><Skeleton height="0.9rem" width="75%" /></td>
+                  <td><Skeleton height="0.9rem" width="20%" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

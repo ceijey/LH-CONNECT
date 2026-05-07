@@ -10,6 +10,7 @@ import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import styles from './admin-dashboard.module.css';
+import Skeleton from '@/app/components/Skeleton';
 
 interface StatCard {
   title: string;
@@ -133,7 +134,39 @@ export default function AdminDashboard() {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>Loading...</div>;
+    return (
+      <div>
+        {/* Stat Cards Skeleton */}
+        <section className={styles.statsGrid}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className={styles.statCard}>
+              <div className={styles.statHeader}>
+                <Skeleton height="1.75rem" width="1.75rem" variant="circle" />
+                <Skeleton height="1rem" width="60%" />
+              </div>
+              <Skeleton height="2rem" width="70%" style={{ margin: '0.75rem 0' }} />
+              <Skeleton height="1.875rem" width="65%" borderRadius="6px" />
+            </div>
+          ))}
+        </section>
+
+        {/* Charts Grid Skeleton */}
+        <div className={styles.chartsGrid}>
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className={styles.chartCard}>
+              <Skeleton height="1.5rem" width="120px" style={{ marginBottom: '1rem' }} />
+              <Skeleton height="300px" width="100%" />
+            </div>
+          ))}
+        </div>
+
+        {/* Delinquency Chart Skeleton */}
+        <div className={styles.chartCard} style={{ marginTop: '2rem' }}>
+          <Skeleton height="1.5rem" width="140px" style={{ marginBottom: '1rem' }} />
+          <Skeleton height="300px" width="100%" />
+        </div>
+      </div>
+    );
   }
 
   return (

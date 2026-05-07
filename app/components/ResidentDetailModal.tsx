@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiCall } from '@/lib/api-client';
+import Skeleton, { SkeletonText, SkeletonAvatar } from './Skeleton';
 import styles from './ResidentDetailModal.module.css';
 
 interface Resident {
@@ -93,7 +94,39 @@ export default function ResidentDetailModal({
 
           {/* Body */}
           <div className={styles.modalBody}>
-            {isLoading && <div className={styles.loading}>Loading resident details...</div>}
+            {isLoading && (
+              <div className={styles.skeletonContainer}>
+                <Skeleton height="120px" className={styles.skeletonBalance} />
+                
+                <div className={styles.skeletonProfile}>
+                  <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                    <SkeletonAvatar size={80} />
+                    <Skeleton height="1.5rem" width="80%" style={{ margin: '1rem auto 0.5rem' }} />
+                    <Skeleton height="1rem" width="60%" style={{ margin: '0 auto' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <SkeletonText lines={3} />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '1.5rem' }}>
+                  <Skeleton height="1rem" width="40%" style={{ marginBottom: '1rem' }} />
+                  <SkeletonText lines={2} />
+                </div>
+
+                <div style={{ marginTop: '1.5rem' }}>
+                  <Skeleton height="1rem" width="50%" style={{ marginBottom: '1rem' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i}>
+                        <Skeleton height="0.875rem" width="80%" style={{ marginBottom: '0.5rem' }} />
+                        <Skeleton height="1rem" width="90%" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             {error && <div className={styles.error}>{error}</div>}
 
             {resident && (
