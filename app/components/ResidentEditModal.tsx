@@ -107,9 +107,34 @@ export default function ResidentEditModal({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Phone number: only allow 11 digits
+    if (name === 'phone') {
+      const phoneDigitsOnly = value.replace(/\D/g, '');
+      if (phoneDigitsOnly.length <= 11) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: phoneDigitsOnly
+        }));
+      }
+      return;
+    }
+
+    // Balance: only allow multiples of 400
+    if (name === 'balance') {
+      const numValue = Number(value);
+      if (numValue >= 0 && numValue % 400 === 0) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: numValue
+        }));
+      }
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'balance' ? Number(value) : value
+      [name]: value
     }));
   };
 
@@ -227,11 +252,13 @@ export default function ResidentEditModal({
                     <div className={styles.field}>
                       <label className={styles.label}>Phone Number</label>
                       <input
-                        type="text"
+                        type="tel"
                         name="phone"
                         className={styles.input}
                         value={formData.phone}
                         onChange={handleChange}
+                        placeholder="11 digits"
+                        maxLength={11}
                         required
                         disabled={isSaving}
                       />
@@ -245,39 +272,57 @@ export default function ResidentEditModal({
                   <div className={styles.gridThreeCols}>
                     <div className={styles.field}>
                       <label className={styles.label}>Phase</label>
-                      <input
-                        type="text"
+                      <select
                         name="phase"
-                        className={styles.input}
+                        className={styles.select}
                         value={formData.phase}
                         onChange={handleChange}
                         required
                         disabled={isSaving}
-                      />
+                      >
+                        <option value="">Select Phase</option>
+                        <option value="Phase 1">Phase 1</option>
+                        <option value="Phase 2">Phase 2</option>
+                        <option value="Phase 3">Phase 3</option>
+                        <option value="Phase 4">Phase 4</option>
+                        <option value="Phase 5">Phase 5</option>
+                      </select>
                     </div>
                     <div className={styles.field}>
                       <label className={styles.label}>Block</label>
-                      <input
-                        type="text"
+                      <select
                         name="block"
-                        className={styles.input}
+                        className={styles.select}
                         value={formData.block}
                         onChange={handleChange}
                         required
                         disabled={isSaving}
-                      />
+                      >
+                        <option value="">Select Block</option>
+                        {Array.from({ length: 26 }, (_, i) => (
+                          <option key={i + 1} value={String(i + 1)}>
+                            {i + 1}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className={styles.field}>
                       <label className={styles.label}>Lot</label>
-                      <input
-                        type="text"
+                      <select
                         name="lot"
-                        className={styles.input}
+                        className={styles.select}
                         value={formData.lot}
                         onChange={handleChange}
                         required
                         disabled={isSaving}
-                      />
+                      >
+                        <option value="">Select Lot</option>
+                        {Array.from({ length: 26 }, (_, i) => (
+                          <option key={i + 1} value={String(i + 1)}>
+                            {i + 1}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -316,15 +361,24 @@ export default function ResidentEditModal({
                     </div>
                     <div className={styles.field}>
                       <label className={styles.label}>Current Balance (₱)</label>
-                      <input
-                        type="number"
+                      <select
                         name="balance"
-                        className={styles.input}
+                        className={styles.select}
                         value={formData.balance}
                         onChange={handleChange}
                         required
                         disabled={isSaving}
-                      />
+                      >
+                        <option value="0">₱0</option>
+                        {Array.from({ length: 25 }, (_, i) => {
+                          const amount = (i + 1) * 400;
+                          return (
+                            <option key={amount} value={String(amount)}>
+                              ₱{amount.toLocaleString()}
+                            </option>
+                          );
+                        })}
+                      </select>
                     </div>
                   </div>
                 </div>

@@ -51,6 +51,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return createErrorResponse('Forbidden', 403);
     }
 
+    // Get the resident's current data before update
+    const residentDoc = await adminDb.collection('users').doc(id).get();
+    const currentData = residentDoc.data();
+    const previousBalance = currentData?.balance ?? 0;
+
     const body = await request.json();
     const updatePayload: any = {};
 
@@ -69,6 +74,24 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     updatePayload.updatedAt = new Date().toISOString();
 
     await adminDb.collection('users').doc(id).update(updatePayload);
+
+    // Create notification if balance is being set
+    if (updatePayload.balance !== undefined && updatePayload.balance > 0) {
+      const currentMonth = new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      
+      const notification = {
+        userId: id,
+        type: 'due-bill',
+        title: 'Monthly Bill Due',
+        message: `You have a pending bill of ₱${updatePayload.balance.toFixed(2)} due this month (${currentMonth}). Please submit your payment.`,
+        dueAmount: updatePayload.balance,
+        dueMonth: currentMonth,
+        read: false,
+        createdAt: new Date(),
+      };
+
+      await adminDb.collection('notifications').add(notification as any);
+    }
 
     return NextResponse.json({ message: 'Resident updated successfully' });
   } catch (error: any) {

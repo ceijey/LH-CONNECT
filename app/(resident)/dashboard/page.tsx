@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import DueBillPopup from '@/app/components/DueBillPopup';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -44,6 +45,9 @@ export default function DashboardPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showDueBillPopup, setShowDueBillPopup] = useState(false);
+  const [dueBillData, setDueBillData] = useState<{ amount: number; month: string } | null>(null);
+  const [shownDueBillNotifications, setShownDueBillNotifications] = useState<Set<string>>(new Set());
 
   const currentBalance = profile.balance ?? 0;
   const [nextDueDateStr, setNextDueDateStr] = useState<string>('');
@@ -59,7 +63,23 @@ export default function DashboardPage() {
   const loadNotifications = async () => {
     try {
       const payload = await apiCall('/api/notifications');
-      setNotifications(payload.notifications || []);
+      const fetchedNotifications = payload.notifications || [];
+      setNotifications(fetchedNotifications);
+
+      // Check for unread due-bill notifications and show popup
+      const unreadDueBills = fetchedNotifications.filter(
+        (n: any) => n.type === 'due-bill' && !n.read && !shownDueBillNotifications.has(n.id)
+      );
+
+      if (unreadDueBills.length > 0) {
+        const latestDueBill = unreadDueBills[0];
+        setDueBillData({
+          amount: latestDueBill.dueAmount || 0,
+          month: latestDueBill.dueMonth || ''
+        });
+        setShowDueBillPopup(true);
+        setShownDueBillNotifications(prev => new Set([...prev, latestDueBill.id]));
+      }
     } catch (e) {
       console.error('Failed to load notifications:', e);
     }
@@ -181,6 +201,13 @@ export default function DashboardPage() {
         onConfirm={confirmLogout}
         onCancel={() => setShowLogoutModal(false)}
         isDangerous={true}
+      />
+
+      <DueBillPopup
+        isOpen={showDueBillPopup}
+        dueAmount={dueBillData?.amount ?? 0}
+        dueMonth={dueBillData?.month ?? ''}
+        onDismiss={() => setShowDueBillPopup(false)}
       />
 
       {/* Header */}
