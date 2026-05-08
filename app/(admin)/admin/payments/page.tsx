@@ -370,7 +370,7 @@ export default function AdminPayments() {
                             <>
                               <button 
                                 className={styles.approveBtn} 
-                                title="Approve"
+                                title="Approve Payment"
                                 onClick={() => setActionModal({
                                   isOpen: true,
                                   type: 'Approve',
@@ -379,11 +379,11 @@ export default function AdminPayments() {
                                   imageUrl: proofKind === 'image' ? proofSrc : undefined
                                 })}
                               >
-                                ✓
+                                ✓ Verify Payment
                               </button>
                               <button 
                                 className={styles.rejectBtn} 
-                                title="Reject"
+                                title="Reject Payment"
                                 onClick={() => setActionModal({
                                   isOpen: true,
                                   type: 'Reject',
@@ -392,7 +392,7 @@ export default function AdminPayments() {
                                   imageUrl: proofKind === 'image' ? proofSrc : undefined
                                 })}
                               >
-                                ✕
+                                ✕ Reject
                               </button>
                             </>
                           )}

@@ -428,7 +428,7 @@ export default function SubmitPaymentPage() {
                       ) : (
                         <div>
                           <p className={styles.uploadText}>Click to upload screenshot</p>
-                          <p className={styles.uploadSmall}>PNG, JPG up to 10MB</p>
+                          <p className={styles.uploadSmall}>JPG or PNG images up to 10MB</p>
                         </div>
                       )}
                     </label>
