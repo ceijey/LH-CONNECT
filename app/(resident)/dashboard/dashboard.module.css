@@ -774,6 +774,42 @@
   z-index: 1000;
 }
 
+/* Mobile-specific adjustments for dropdown */
+@media (max-width: 480px) {
+  .notificationDropdown {
+    position: fixed;
+    top: 70px; /* Below header */
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+  }
+  
+  .headerActions {
+    gap: 0.4rem;
+  }
+  
+  .accountBtn, .logoutBtn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0; /* Hide text */
+  }
+  
+  .accountBtn::before {
+    content: '👤';
+    font-size: 1rem;
+  }
+  
+  .logoutBtn::before {
+    content: '⬅';
+    font-size: 1rem;
+  }
+  
+  .logoText {
+    font-size: 1.1rem;
+  }
+}
+
 .notificationHeader {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid #f0f0f0;
