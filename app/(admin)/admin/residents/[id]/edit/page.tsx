@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
-import styles from '../resident-form.module.css';
+import styles from '../../resident-form.module.css';
 
 interface ResidentFormData {
   name: string;

@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 interface DueBillEmailOptions {
   toEmail: string;
   residentName: string;
@@ -21,6 +19,13 @@ export async function sendDueBillEmail({
   })}`;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('Missing RESEND_API_KEY');
+  }
+
+  const resend = new Resend(apiKey);
 
   const { error } = await resend.emails.send({
     from: 'LH-Connect HOA <onboarding@resend.dev>',
