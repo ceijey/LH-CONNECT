@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiCall } from '@/lib/api-client';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './qr-scanner.module.css';
 
 interface ResidentData {
@@ -183,6 +184,10 @@ export default function QRScannerPage() {
       setScanError('Unable to share resident details.');
     }
   };
+
+  if (isLoadingResidents) {
+    return <LoadingScreen message="Initializing scanner data..." />;
+  }
 
   return (
     <>

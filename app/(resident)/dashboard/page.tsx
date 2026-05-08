@@ -9,6 +9,7 @@ import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './dashboard.module.css';
 
 interface PaymentRecord {
@@ -199,7 +200,7 @@ export default function DashboardPage() {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>Loading...</div>;
+    return <LoadingScreen message="Loading your dashboard..." />;
   }
 
   return (

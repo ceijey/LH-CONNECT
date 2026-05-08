@@ -8,6 +8,7 @@ import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './view-statements.module.css';
 
 interface Statement {
@@ -162,14 +163,7 @@ export default function ViewStatementsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.loadingState}>
-          <div className={styles.spinner}></div>
-          <p>Loading your billing history...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Loading your billing history..." />;
   }
 
   return (

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './transactions.module.css';
 
 export default function TransactionsPage() {
@@ -109,7 +110,7 @@ export default function TransactionsPage() {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>Loading history...</div>;
+    return <LoadingScreen message="Loading transaction history..." />;
   }
 
   return (

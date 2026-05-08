@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './contact-hoa.module.css';
 
 interface Message {
@@ -298,7 +299,7 @@ export default function ContactHOAPage() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen message="Loading conversation history..." />;
   }
 
   return (

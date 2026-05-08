@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './resident-detail.module.css';
 
 export default function ResidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,7 +31,7 @@ export default function ResidentDetailPage({ params }: { params: Promise<{ id: s
   }, [id]);
 
   if (isLoading) {
-    return <div className={styles.container}>Loading resident details...</div>;
+    return <LoadingScreen message="Loading resident details..." />;
   }
 
   if (error) {

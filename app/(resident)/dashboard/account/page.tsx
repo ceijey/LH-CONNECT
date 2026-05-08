@@ -8,6 +8,7 @@ import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './account.module.css';
 
 interface ProfileForm {
@@ -106,7 +107,7 @@ export default function AccountPage() {
     .join(' ');
 
   if (isLoading) {
-    return <div className={styles.loading}>Loading account...</div>;
+    return <LoadingScreen message="Loading your account..." />;
   }
 
   return (

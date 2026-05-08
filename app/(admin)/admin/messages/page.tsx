@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import Toast from '@/app/components/Toast';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from '../residents/admin-page.module.css';
 import messengerStyles from './messenger.module.css';
 
@@ -160,7 +161,7 @@ export default function AdminMessages() {
     setIsLoading(false);
   }, [router]);
 
-  if (isLoading) return <div className={styles.loading}>Loading...</div>;
+  if (isLoading) return <LoadingScreen message="Loading messages..." />;
 
   return (
     <>

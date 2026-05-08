@@ -8,6 +8,7 @@ import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
+import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './submit-payment.module.css';
 
 interface FormData {
@@ -286,7 +287,7 @@ export default function SubmitPaymentPage() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen message="Loading payment portal..." />;
   }
 
   return (
