@@ -547,16 +547,19 @@
   }
 
   .infoCard {
+    padding: 1.5rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    flex-wrap: wrap;
-    padding: 1rem;
+    text-align: center;
+    gap: 1rem;
   }
 
   .cardHeader {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
   }
 }
 
@@ -621,25 +624,31 @@
   .infoCard,
   .actionCard,
   .paymentSection {
-    padding: 0.75rem;
-    border-radius: 8px;
+    padding: 1rem;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 
   .amount {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   .dueDate {
-    font-size: 1rem;
+    font-size: 1.25rem;
   }
 
   .cardTitle {
     font-size: 0.85rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
   }
 
   .cardHeader {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    width: 100%;
+    justify-content: center;
   }
 
   .infoIcon,
