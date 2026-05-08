@@ -16,12 +16,16 @@ interface PaymentSubmission {
   paymentAmount: number;
   paymentMethod: string;
   referenceNumber: string;
+  fileName?: string;
   fileUrl?: string;
+  filePath?: string;
   status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
   notes?: string;
 }
+
+type ProofKind = 'image' | 'pdf' | 'none';
 
 export default function AdminPayments() {
   const router = useRouter();
@@ -31,10 +35,11 @@ export default function AdminPayments() {
   const [allPayments, setAllPayments] = useState<PaymentSubmission[]>([]);
   
   // Modal states
-  const [proofModal, setProofModal] = useState<{ isOpen: boolean; url: string; title: string }>({
+  const [proofModal, setProofModal] = useState<{ isOpen: boolean; url: string; title: string; proofKind: ProofKind }>({
     isOpen: false,
     url: '',
-    title: ''
+    title: '',
+    proofKind: 'none'
   });
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -50,6 +55,15 @@ export default function AdminPayments() {
     imageUrl: ''
   });
   const [rejectionReason, setRejectionReason] = useState('');
+
+  const detectProofKind = (payment: PaymentSubmission): ProofKind => {
+    const sample = `${payment.fileName || ''} ${payment.filePath || ''} ${payment.fileUrl || ''}`.toLowerCase();
+    if (!sample.trim()) return 'none';
+    if (sample.includes('.pdf') || sample.includes('application/pdf') || sample.includes('application%2fpdf')) {
+      return 'pdf';
+    }
+    return 'image';
+  };
 
   const fetchPayments = async () => {
     try {
@@ -219,6 +233,7 @@ export default function AdminPayments() {
         isOpen={proofModal.isOpen}
         imageUrl={proofModal.url}
         title={proofModal.title}
+        proofKind={proofModal.proofKind}
         onClose={() => setProofModal(prev => ({ ...prev, isOpen: false }))}
       />
 
@@ -280,6 +295,11 @@ export default function AdminPayments() {
               <tbody>
                 {filteredPayments.length > 0 ? (
                   filteredPayments.map((payment) => {
+                    const proofKind = detectProofKind(payment);
+                    const proofSrc = payment.fileUrl || payment.filePath
+                      ? `/api/payment-submissions/${payment.id}/proof?name=${encodeURIComponent(payment.fileName || '')}`
+                      : '';
+
                     // Extract block/lot/phase from string "Phase X Blk Y Lot Z" if possible
                     const addressParts = payment.blockLot.split(' ');
                     const phase = addressParts[0] === 'Phase' ? `${addressParts[0]} ${addressParts[1]}` : 'N/A';
@@ -299,16 +319,21 @@ export default function AdminPayments() {
                         </td>
                         <td className={styles.amount}>₱{payment.paymentAmount.toLocaleString()}</td>
                         <td>
-                          {payment.fileUrl ? (
+                          {proofSrc ? (
                             <div 
                               className={styles.thumbnailWrapper}
                               onClick={() => setProofModal({
                                 isOpen: true,
-                                url: payment.fileUrl!,
-                                title: `Payment Proof - ${payment.residentName}`
+                                url: proofSrc,
+                                title: `Payment Proof - ${payment.residentName}`,
+                                proofKind
                               })}
                             >
-                              <img src={payment.fileUrl} alt="Proof" className={styles.thumbnail} />
+                              {proofKind === 'pdf' ? (
+                                <span className={styles.noProof}>PDF</span>
+                              ) : (
+                                <img src={proofSrc} alt="Proof" className={styles.thumbnail} />
+                              )}
                             </div>
                           ) : (
                             <span className={styles.noProof}>No Proof</span>
@@ -327,17 +352,15 @@ export default function AdminPayments() {
                         <td>{payment.paymentMethod}</td>
                         <td className={styles.paymentActions}>
                           <button 
+                            type="button"
                             className={styles.viewProofBtn} 
                             title="View Proof"
                             onClick={() => {
-                              if (!payment.fileUrl) {
-                                alert('No proof of payment was uploaded for this submission.');
-                                return;
-                              }
                               setProofModal({
                                 isOpen: true,
-                                url: payment.fileUrl,
-                                title: `Payment Proof - ${payment.residentName}`
+                                url: proofSrc,
+                                title: `Payment Proof - ${payment.residentName}`,
+                                proofKind
                               });
                             }}
                           >
@@ -353,7 +376,7 @@ export default function AdminPayments() {
                                   type: 'Approve',
                                   id: payment.id,
                                   name: payment.residentName,
-                                  imageUrl: payment.fileUrl
+                                  imageUrl: proofKind === 'image' ? proofSrc : undefined
                                 })}
                               >
                                 ✓
@@ -366,7 +389,7 @@ export default function AdminPayments() {
                                   type: 'Reject',
                                   id: payment.id,
                                   name: payment.residentName,
-                                  imageUrl: payment.fileUrl
+                                  imageUrl: proofKind === 'image' ? proofSrc : undefined
                                 })}
                               >
                                 ✕

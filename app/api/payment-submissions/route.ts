@@ -13,6 +13,7 @@ type PaymentSubmission = {
   notes?: string;
   fileName?: string;
   fileUrl?: string;
+  filePath?: string;
   status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
@@ -20,7 +21,38 @@ type PaymentSubmission = {
   verifiedAt?: any;
 };
 
-function toSubmission(doc: any): PaymentSubmission {
+async function resolveFileUrl(data: any): Promise<string | undefined> {
+  if (data.fileUrl) {
+    return data.fileUrl;
+  }
+
+  if (!data.filePath) {
+    return undefined;
+  }
+
+  try {
+    const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
+    const storageFile = bucket.file(data.filePath);
+    const [exists] = await storageFile.exists();
+
+    if (!exists) {
+      return undefined;
+    }
+
+    const [signedUrl] = await storageFile.getSignedUrl({
+      action: 'read',
+      expires: '01-01-2500',
+    });
+
+    return signedUrl;
+  } catch (error) {
+    console.error('Failed to resolve file URL from filePath:', error);
+    return undefined;
+  }
+}
+
+async function toSubmission(doc: any): Promise<PaymentSubmission> {
   const data = doc.data();
   const submittedAt = data.submittedAt;
   
@@ -46,6 +78,8 @@ function toSubmission(doc: any): PaymentSubmission {
     }
   }
 
+  const fileUrl = await resolveFileUrl(data);
+
   return {
     id: doc.id,
     residentId: data.residentId,
@@ -56,7 +90,8 @@ function toSubmission(doc: any): PaymentSubmission {
     referenceNumber: data.referenceNumber ?? '',
     notes: data.notes,
     fileName: data.fileName,
-    fileUrl: data.fileUrl,
+    fileUrl,
+    filePath: data.filePath,
     status: data.status || 'Pending',
     submittedDate,
     verifiedDate: data.verifiedDate,
@@ -91,8 +126,9 @@ export async function GET(request: NextRequest) {
 
     const submissionsSnapshot = await submissionsQuery.get();
 
-    const submissions = submissionsSnapshot.docs
-      .map((doc: any) => toSubmission(doc))
+    const submissions = (await Promise.all(
+      submissionsSnapshot.docs.map((doc: any) => toSubmission(doc))
+    ))
       .sort((a: PaymentSubmission, b: PaymentSubmission) => {
         const toMillis = (value: any) => {
           if (!value) return 0;

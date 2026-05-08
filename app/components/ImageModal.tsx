@@ -7,10 +7,18 @@ interface ImageModalProps {
   isOpen: boolean;
   imageUrl: string;
   title: string;
+  proofKind?: 'image' | 'pdf' | 'none';
   onClose: () => void;
 }
 
-export default function ImageModal({ isOpen, imageUrl, title, onClose }: ImageModalProps) {
+export default function ImageModal({ isOpen, imageUrl, title, proofKind = 'none', onClose }: ImageModalProps) {
+  const normalizedUrl = imageUrl.toLowerCase();
+  const isPdf =
+    proofKind === 'pdf' ||
+    normalizedUrl.includes('.pdf') ||
+    normalizedUrl.includes('application/pdf') ||
+    normalizedUrl.includes('application%2fpdf');
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -33,9 +41,23 @@ export default function ImageModal({ isOpen, imageUrl, title, onClose }: ImageMo
         </div>
         <div className={styles.content}>
           {imageUrl ? (
-            <img src={imageUrl} alt={title} className={styles.image} />
+            isPdf ? (
+              <div className={styles.documentWrapper}>
+                <iframe src={imageUrl} title={title} className={styles.documentFrame} />
+                <a
+                  href={imageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.openLink}
+                >
+                  Open PDF in new tab
+                </a>
+              </div>
+            ) : (
+              <img src={imageUrl} alt={title} className={styles.image} />
+            )
           ) : (
-            <div className={styles.noImage}>No image available</div>
+            <div className={styles.noImage}>No proof file available for this payment.</div>
           )}
         </div>
       </div>
