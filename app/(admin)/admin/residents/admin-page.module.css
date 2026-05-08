@@ -493,28 +493,48 @@
 }
 
 /* Table responsiveness handled by overflow-x: auto in .tableWrapper */
+@media (max-width: 1024px) {
+  .table th, .table td {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+
 @media (max-width: 768px) {
   .registryStatValue {
     font-size: 1.75rem;
   }
   
   .table th, .table td {
-    padding: 0.75rem 0.5rem;
+    padding: 0.6rem 0.5rem;
     font-size: 0.8rem;
   }
 
   .idBadge {
-    max-width: 80px;
+    max-width: 70px;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.4rem;
+  }
+  
+  .actionsTd {
+    gap: 0.25rem;
+  }
+  
+  .iconBtn {
+    padding: 0.35rem;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .searchSection {
     flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
   }
   
   .searchInput {
-    width: 100%;
+    width: 100% !important;
+    max-width: none !important;
   }
   
   .addBtn {
@@ -523,6 +543,38 @@
 
   .statsGrid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .registryStat {
+    padding: 1rem;
+  }
+  
+  .registryStatValue {
+    font-size: 1.5rem;
+  }
+  
+  .tabsContainer {
+    gap: 0.5rem;
+  }
+  
+  .tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .table th {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 0.75rem;
+  }
+  
+  .table td {
+    padding: 0.5rem 0.4rem;
   }
 }
 

@@ -120,6 +120,29 @@
   box-shadow: 0 4px 12px rgba(27, 42, 74, 0.2);
 }
 
+@media (max-width: 768px) {
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .card {
+    padding: 1.5rem;
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  
+  .value {
+    font-size: 1rem;
+  }
+  
+  .balanceValue {
+    font-size: 1.25rem;
+  }
+}
+
 @media (max-width: 600px) {
   .header {
     flex-direction: column;
@@ -129,5 +152,14 @@
   
   .container {
     padding: 1rem;
+  }
+  
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .editBtn {
+    width: 100%;
   }
 }

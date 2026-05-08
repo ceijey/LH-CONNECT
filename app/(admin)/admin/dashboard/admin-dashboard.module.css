@@ -88,11 +88,40 @@
 }
 
 @media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+  
   .chartCard {
     padding: 1rem;
   }
   
   .statValue {
     font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .chartsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .statCard {
+    padding: 1.25rem;
+  }
+  
+  .statTitle {
+    font-size: 0.8rem;
+  }
+  
+  .statValue {
+    font-size: 1.25rem;
   }
 }
