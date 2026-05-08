@@ -40,6 +40,8 @@ interface UserProfile {
   balance?: number;
 }
 
+const ESTABLISHED_PAYMENT_AMOUNT = '400';
+
 export default function SubmitPaymentPage() {
   const router = useRouter();
   useAuthPageshow('resident');
@@ -49,7 +51,7 @@ export default function SubmitPaymentPage() {
     file: null,
     residentName: '',
     blockLot: '',
-    paymentAmount: '',
+    paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
   });
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,7 +82,7 @@ export default function SubmitPaymentPage() {
               blockLot: userProfile.block && userProfile.lot 
                 ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
                 : '',
-              paymentAmount: userProfile.balance?.toString() ?? '',
+              paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
             }));
           }
         } catch (error) {
@@ -273,7 +275,7 @@ export default function SubmitPaymentPage() {
       ]);
 
       setToast({ message: 'Payment proof submitted successfully!', type: 'success' });
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: '' });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT });
       setFileName('');
       setPreview(null);
     } catch (error: any) {
@@ -371,10 +373,7 @@ export default function SubmitPaymentPage() {
                     type="text"
                     name="paymentAmount"
                     value={`₱${formData.paymentAmount}`}
-                    onChange={(e) => {
-                      const value = e.target.value.replace('₱', '');
-                      setFormData({ ...formData, paymentAmount: value });
-                    }}
+                    readOnly
                     className={styles.input}
                   />
                 </div>
