@@ -382,8 +382,11 @@
 .instructionsList li {
   color: #546e7a;
   font-size: 0.9rem;
-  padding-left: 1.5rem;
+  padding-left: 2.5rem;
   position: relative;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
 }
 
 .instructionsList li::before {

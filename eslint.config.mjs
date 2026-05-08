@@ -7,7 +7,7 @@ import globals from "globals";
 export default [
   js.configs.recommended,
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.mjs"],
     plugins: {
       "@next/next": nextPlugin,
       "@typescript-eslint": tsPlugin,
