@@ -62,7 +62,7 @@
 
 .headerSubtitle {
   margin: 0.2rem 0 0;
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.82rem;
 }
 
@@ -120,7 +120,7 @@
   text-transform: uppercase;
   letter-spacing: 0.16em;
   font-size: 0.76rem;
-  color: #9E9E9E;
+  color: #4A5568;
   font-weight: 700;
 }
 
@@ -194,7 +194,7 @@
 
 .sectionHeader p {
   margin: 0.35rem 0 0;
-  color: #9E9E9E;
+  color: #4A5568;
   line-height: 1.6;
 }
 
@@ -219,7 +219,7 @@
 }
 
 .field span {
-  color: #9E9E9E;
+  color: #4A5568;
 }
 
 .input {
@@ -297,7 +297,7 @@
 .statLabel {
   display: block;
   margin-bottom: 0.35rem;
-  color: #9E9E9E;
+  color: #4A5568;
 }
 
 .statValue {
@@ -330,21 +330,57 @@
 
 @media (max-width: 640px) {
   .main {
-    padding: 1rem;
+    padding: 1.25rem 1rem;
   }
 
   .headerContent {
     padding: 1rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  .headerLeft,
-  .headerBrand {
-    gap: 0.75rem;
+  .headerTitle {
+    font-size: 1.15rem;
+  }
+
+  .headerSubtitle {
+    display: none;
+  }
+
+  .backBtn {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .heroTitle {
+    font-size: 2.25rem;
+    text-align: center;
+  }
+
+  .heroCopy {
+    text-align: center;
+    font-size: 1rem;
   }
 
   .formCard,
   .sideCard,
   .heroCard {
     border-radius: 18px;
+    padding: 1.25rem;
+  }
+
+  .heroCard {
+    min-height: auto;
+    text-align: center;
+  }
+
+  .actionsRow {
+    flex-direction: column;
+  }
+
+  .saveBtn, .secondaryBtn {
+    width: 100%;
+    text-align: center;
   }
 }

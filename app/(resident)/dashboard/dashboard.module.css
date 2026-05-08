@@ -67,7 +67,7 @@
 
 .logoSubtext {
   font-size: 0.75rem;
-  color: #9E9E9E;
+  color: #4A5568;
   margin: 0;
 }
 
@@ -136,7 +136,7 @@
 }
 
 .residentInfo {
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.95rem;
   margin: 0;
 }
@@ -173,7 +173,7 @@
 }
 
 .cardTitle {
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -188,6 +188,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  align-items: center;
+  text-align: center;
 }
 
 .amount {
@@ -203,7 +205,7 @@
 }
 
 .cardSubtext {
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.9rem;
   margin: 0;
 }
@@ -226,20 +228,22 @@
 .payNowBtn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-  padding: 0.55rem 1.25rem;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: #ffffff;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
   border: none;
   cursor: pointer;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
   width: fit-content;
+  align-self: center;
 }
 
 .payNowBtn:hover {
@@ -276,7 +280,7 @@
 }
 
 .qrText {
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.85rem;
   margin: 0;
 }
@@ -324,7 +328,7 @@
 }
 
 .actionDesc {
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.9rem;
   margin: 0;
 }
@@ -403,7 +407,7 @@
 }
 
 .paymentDate {
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.85rem;
   margin-top: 0.25rem;
 }
@@ -624,12 +628,19 @@
   .infoCard,
   .actionCard,
   .paymentSection {
-    padding: 1rem;
-    border-radius: 10px;
+    padding: 1.25rem;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    width: 100%;
+  }
+
+  .payNowBtn {
+    width: 100%;
+    max-width: 280px;
+    padding: 0.85rem 1.5rem;
   }
 
   .amount {
@@ -796,26 +807,33 @@
   }
   
   .headerActions {
-    gap: 0.4rem;
+    gap: 0.6rem;
   }
   
   .accountBtn, .logoutBtn {
-    padding: 0.4rem 0.6rem;
-    font-size: 0; /* Hide text */
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    font-size: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
   }
   
   .accountBtn::before {
     content: '👤';
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
   
   .logoutBtn::before {
     content: '⬅';
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
   
   .logoText {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+    font-weight: 800;
   }
 }
 
@@ -853,7 +871,7 @@
 .emptyNotifications {
   padding: 2rem;
   text-align: center;
-  color: #9E9E9E;
+  color: #4A5568;
   font-size: 0.9rem;
 }
 

@@ -80,7 +80,7 @@
 
 .headerSubtitle {
   font-size: 0.75rem;
-  color: #9E9E9E;
+  color: #4A5568;
   margin: 0;
 }
 
@@ -156,7 +156,7 @@
 
 .label {
   font-weight: 500;
-  color: #546e7a;
+  color: #1B2A4A;
   font-size: 0.9rem;
 }
 
@@ -245,7 +245,7 @@
 }
 
 .uploadSmall {
-  color: #546e7a;
+  color: #1B2A4A;
   font-size: 0.8rem;
   margin: 0;
 }
@@ -277,16 +277,22 @@
 
 /* Submit Button */
 .submitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
   background: #1a1a1a;
   color: #ffffff;
   border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
+  padding: 0.85rem 2.5rem;
+  border-radius: 12px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
+  width: fit-content;
+  align-self: center;
 }
 
 .submitBtn:hover:not(:disabled) {
@@ -362,7 +368,7 @@
 }
 
 .instructionItem p {
-  color: #546e7a;
+  color: #1B2A4A;
   font-size: 0.85rem;
   margin: 0.25rem 0 0 0;
 }
@@ -392,7 +398,7 @@
 }
 
 .detailsList li {
-  color: #546e7a;
+  color: #1B2A4A;
   font-size: 0.85rem;
 }
 
@@ -453,7 +459,7 @@
 
 .submissionDate,
 .verifiedDate {
-  color: #546e7a;
+  color: #1B2A4A;
   font-size: 0.8rem;
   margin: 0.25rem 0 0 0;
 }
@@ -464,7 +470,7 @@
 
 /* Card Description */
 .cardDescription {
-  color: #546e7a;
+  color: #1B2A4A;
   font-size: 0.85rem;
   margin: -0.75rem 0 1rem 0;
 }
@@ -523,7 +529,7 @@
 
 .timelineLabel {
   font-size: 0.75rem;
-  color: #546e7a;
+  color: #1B2A4A;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -615,7 +621,7 @@
 }
 
 .detailLabel {
-  color: #546e7a;
+  color: #1B2A4A;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -906,10 +912,13 @@
   }
 
   .submitBtn {
-    padding: 0.65rem 1.2rem;
-    font-size: 0.9rem;
-    margin-top: 0.75rem;
-    border-radius: 6px;
+    padding: 0.85rem 1.5rem;
+    font-size: 0.95rem;
+    margin: 1.5rem auto 0 auto;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 280px;
+    align-self: center;
   }
 
   .rightColumn {

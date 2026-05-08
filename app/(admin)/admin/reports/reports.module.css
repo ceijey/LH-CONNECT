@@ -69,9 +69,9 @@
   border-radius: 8px;
   font-size: 0.9rem;
   cursor: pointer;
-  backgroundColor: #fff;
+  background-color: #fff;
   color: #1B2A4A;
-  fontWeight: 500;
+  font-weight: 500;
 }
 
 .exportBtn {
@@ -79,12 +79,12 @@
   color: #fff;
   border: none;
   padding: 10px 20px;
-  borderRadius: 8px;
+  border-radius: 8px;
   cursor: pointer;
-  fontSize: 0.9rem;
-  fontWeight: 600;
+  font-size: 0.9rem;
+  font-weight: 600;
   display: flex;
-  alignItems: center;
+  align-items: center;
   gap: 8px;
 }
 

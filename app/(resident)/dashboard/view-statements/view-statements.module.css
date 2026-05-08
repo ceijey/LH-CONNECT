@@ -82,7 +82,7 @@
 
 .headerSubtitle {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #1e293b;
   margin: 0;
 }
 
@@ -126,7 +126,7 @@
 }
 
 .pageSubtitle {
-  color: #64748b;
+  color: #1e293b;
   font-size: 1.1rem;
   max-width: 600px;
 }
@@ -152,7 +152,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: #1e293b;
   letter-spacing: 0.05em;
 }
 
@@ -212,7 +212,7 @@
   padding: 1.25rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #64748b;
+  color: #1e293b;
   border-bottom: 1px solid #f1f5f9;
 }
 
@@ -232,7 +232,7 @@
 
 .dateCell {
   font-weight: 500;
-  color: #64748b;
+  color: #1e293b;
 }
 
 .descCell {
@@ -296,7 +296,7 @@
 .noData {
   text-align: center;
   padding: 4rem !important;
-  color: #94a3b8;
+  color: #1e293b;
   font-style: italic;
 }
 
@@ -319,7 +319,7 @@
 .summaryBox h4 {
   margin: 0 0 0.75rem 0;
   font-size: 0.875rem;
-  color: #64748b;
+  color: #1e293b;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

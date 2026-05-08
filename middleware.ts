@@ -7,7 +7,7 @@ function redirectTo(request: NextRequest, path: string) {
   return NextResponse.redirect(url);
 }
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const sessionCookie = request.cookies.get('lh_session')?.value;
   const isAuthenticated = Boolean(sessionCookie);
