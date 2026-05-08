@@ -257,67 +257,40 @@
   font-weight: 600;
 }
 
+.typeBadge.bill {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
 .typeBadge.payment {
-  background: #e3f2fd;
-  color: #0d47a1;
+  background: #dcfce7;
+  color: #22c55e;
 }
 
-.typeBadge.fine {
-  background: #fff3e0;
-  color: #e65100;
+.amountCell.billAmount {
+  color: #ef4444;
 }
 
-.typeBadge.adjustment {
-  background: #f3e5f5;
-  color: #6a1b9a;
+.amountCell.payAmount {
+  color: #22c55e;
 }
 
-.descCell {
-  color: #546e7a;
-  text-align: left;
-  word-break: break-word;
-}
-
-.amountCell {
-  font-weight: 600;
-  color: #0d47a1;
-  text-align: right;
-}
-
-.statusCell {
-  text-align: center;
-  word-break: break-word;
-}
-
-.statusBadge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.statusBadge.paid {
+.statusBadge.paid, .statusBadge.verified, .statusBadge.confirmed {
   background: #e8f5e9;
   color: #2e7d32;
 }
 
-.statusBadge.pending {
+.statusBadge.pending, .statusBadge.pendingverification {
   background: #fff8e1;
   color: #f57c00;
 }
 
-.statusBadge.verified {
-  background: #e8f5e9;
-  color: #2e7d32;
+.statusBadge.partiallypaid {
+  background: #fff3e0;
+  color: #e65100;
 }
 
-.statusBadge.rejected {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.statusBadge.failed {
+.statusBadge.rejected, .statusBadge.failed {
   background: #ffebee;
   color: #c62828;
 }

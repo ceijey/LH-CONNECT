@@ -59,24 +59,23 @@ async function generatePDF(statement: any, residentName: string) {
   return pdfDoc.save();
 }
 
-function generateCSV(statements: any[], residentName: string): string {
-  const headers = ['Date', 'Month', 'Year', 'Total Dues', 'Amount Paid', 'Balance', 'Status'];
-  const rows = statements.map((s) => [
-    s.date,
-    s.month,
-    s.year,
-    s.totalDues,
-    s.amountPaid,
-    s.balance,
-    s.status,
+function generateAuditCSV(events: any[], residentName: string, title: string): string {
+  const headers = ['Date', 'Description', 'Type', 'Amount', 'Status'];
+  const rows = events.map((e: any) => [
+    e.date,
+    e.description,
+    e.type,
+    e.amount,
+    e.status,
   ]);
 
   const csv = [
     `Resident: ${residentName}`,
-    `Generated: ${new Date().toISOString()}`,
+    `Report: ${title}`,
+    `Generated: ${new Date().toLocaleString()}`,
     '',
     headers.join(','),
-    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+    ...rows.map((row: any) => row.map((cell: any) => `"${cell}"`).join(',')),
   ].join('\n');
 
   return csv;
@@ -93,6 +92,8 @@ export async function GET(request: NextRequest) {
   const userId = decoded.uid;
   const format = request.nextUrl.searchParams.get('format') || 'pdf';
   const statementId = request.nextUrl.searchParams.get('statementId');
+  const reportType = request.nextUrl.searchParams.get('reportType') || 'audit';
+  const year = request.nextUrl.searchParams.get('year') || new Date().getFullYear().toString();
 
   try {
     // Get user data
@@ -103,11 +104,7 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('User not found', 404);
     }
 
-    if (userData.role !== 'resident') {
-      return createErrorResponse('Only residents can download statements', 403);
-    }
-
-    const residentName = userData.name || userData.email || 'Resident';
+    const residentName = userData.fullName || userData.name || userData.email || 'Resident';
 
     // If specific statement requested
     if (statementId) {
@@ -119,7 +116,14 @@ export async function GET(request: NextRequest) {
       }
 
       if (format === 'csv') {
-        const csv = generateCSV([statement], residentName);
+        const csv = generateAuditCSV([{
+          date: statement.date,
+          description: `Billing Statement - ${statement.month} ${statement.year}`,
+          type: 'BILL',
+          amount: statement.totalDues,
+          status: statement.status
+        }], residentName, `Statement ${statement.month} ${statement.year}`);
+        
         return new NextResponse(csv, {
           headers: {
             'Content-Type': 'text/csv; charset=utf-8',
@@ -137,41 +141,81 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Download all statements
-    try {
-      const statementsSnapshot = await adminDb
-        .collection('statements')
-        .where('residentId', '==', userId)
-        .get();
+    // Handle Bulk Reports (Audit, Daily, Monthly, Annual)
+    const statementsSnapshot = await adminDb
+      .collection('statements')
+      .where('residentId', '==', userId)
+      .where('year', '==', Number(year))
+      .get();
 
-      const statements = statementsSnapshot.docs.map((doc: any) => doc.data());
+    const submissionsSnapshot = await adminDb
+      .collection('payment_submissions')
+      .where('residentId', '==', userId)
+      .get();
 
-      if (statements.length === 0) {
-        return createErrorResponse('No statements found', 404);
-      }
+    const statements = statementsSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() as any }));
+    const submissions = submissionsSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() as any }));
 
-      if (format === 'csv') {
-        const csv = generateCSV(statements, residentName);
-        return new NextResponse(csv, {
-          headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="all_statements.csv"`,
-          },
+    const auditEvents: any[] = [];
+    
+    statements.forEach((stmt: any) => {
+      auditEvents.push({
+        date: stmt.date,
+        description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
+        type: 'BILL',
+        amount: stmt.totalDues,
+        status: stmt.status
+      });
+
+      // Filter submissions related to this statement
+      const relatedSub = submissions.filter((sub: any) => {
+        if (!sub.month) return false;
+        const subMonthStr = String(sub.month).toLowerCase();
+        return subMonthStr.includes(stmt.month.toLowerCase()) && subMonthStr.includes(String(stmt.year));
+      });
+
+      relatedSub.forEach((sub: any) => {
+        const subDate = (sub.status === 'Verified' && sub.verifiedDate)
+          ? sub.verifiedDate
+          : (sub.submittedDate || stmt.date);
+          
+        auditEvents.push({
+          date: new Date(subDate).toLocaleDateString(),
+          description: `Payment Submission - ${stmt.month} ${stmt.year}`,
+          type: 'PAYMENT',
+          amount: sub.paymentAmount,
+          status: sub.status
         });
-      } else {
-        // For multiple PDFs, return a summary from the latest statement.
-        const pdf = await generatePDF(statements[0], residentName);
-        return new NextResponse(new Uint8Array(pdf), {
-          headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="statements_summary.pdf"`,
-          },
-        });
-      }
-    } catch (error: any) {
-      console.warn('Firestore query error:', error.message);
-      return createErrorResponse('No statements found', 404);
+      });
+    });
+
+    // Sort by date
+    auditEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let reportTitle = "Billing History";
+    let filteredEvents = auditEvents;
+
+    if (reportType === 'daily') {
+      reportTitle = `Daily Billing Activity - ${year}`;
+      // Logic for daily summary could go here
+    } else if (reportType === 'monthly') {
+      reportTitle = `Monthly Billing Summary - ${year}`;
+      // Grouping logic could go here
+    } else if (reportType === 'annual') {
+      reportTitle = `Annual Statement - ${year}`;
+    } else {
+      reportTitle = `Audit Log - ${year}`;
     }
+
+    const csv = generateAuditCSV(filteredEvents, residentName, reportTitle);
+    
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${reportType}_report_${year}.csv"`,
+      },
+    });
+
   } catch (error: any) {
     console.error('Error generating download:', error.message);
     return createErrorResponse('Failed to generate download', 500);

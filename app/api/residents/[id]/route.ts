@@ -79,8 +79,48 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Create notification and send email if balance is being set
     if (updatePayload.balance !== undefined && updatePayload.balance > 0) {
-      const currentMonth = new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      const now = new Date();
+      const currentMonth = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      const currentMonthName = now.toLocaleString(undefined, { month: 'long' });
+      const currentYear = now.getFullYear();
       
+      // Automation: Create or Update Statement record
+      try {
+        const statementsRef = adminDb.collection('statements');
+        const existingStmtQuery = await statementsRef
+          .where('residentId', '==', id)
+          .where('month', '==', currentMonthName)
+          .where('year', '==', currentYear)
+          .limit(1)
+          .get();
+
+        if (existingStmtQuery.empty) {
+          console.log(`[Automation] Creating new statement for ${id} - ${currentMonth}`);
+          await statementsRef.add({
+            residentId: id,
+            month: currentMonthName,
+            year: currentYear,
+            date: now.toISOString().split('T')[0],
+            totalDues: updatePayload.balance,
+            amountPaid: 0,
+            balance: updatePayload.balance,
+            status: 'Pending',
+            createdAt: now.toISOString(),
+            fileFormat: 'PDF'
+          });
+        } else {
+          console.log(`[Automation] Updating existing statement for ${id} - ${currentMonth}`);
+          const stmtDoc = existingStmtQuery.docs[0];
+          await statementsRef.doc(stmtDoc.id).update({
+            totalDues: updatePayload.balance,
+            balance: updatePayload.balance,
+            updatedAt: now.toISOString()
+          });
+        }
+      } catch (stmtErr: any) {
+        console.error('[Automation] Failed to sync statement:', stmtErr.message);
+      }
+
       const notification = {
         userId: id,
         type: 'due-bill',

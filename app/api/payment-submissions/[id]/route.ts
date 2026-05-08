@@ -72,6 +72,35 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             createdAt: now,
             date: now.toLocaleDateString(),
           });
+
+          // Automation: Sync Statement record status
+          try {
+            const subMonthStr = String(submissionData.month || '').toLowerCase();
+            const statementsRef = adminDb.collection('statements');
+            const stmtSnapshot = await statementsRef.where('residentId', '==', residentId).get();
+
+            const targetStmt = stmtSnapshot.docs.find((doc: any) => {
+              const d = doc.data();
+              const stmtTarget = `${d.month} ${d.year}`.toLowerCase();
+              return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
+            });
+
+            if (targetStmt) {
+              const stmtData = targetStmt.data();
+              const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
+              const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
+              const newStatus = newBalance === 0 ? 'Paid' : (newAmountPaid > 0 ? 'Partially Paid' : 'Pending');
+
+              await statementsRef.doc(targetStmt.id).update({
+                amountPaid: newAmountPaid,
+                balance: newBalance,
+                status: newStatus,
+                updatedAt: now.toISOString()
+              });
+            }
+          } catch (stmtErr: any) {
+            console.error('[Automation] Failed to sync statement on payment:', stmtErr.message);
+          }
         }
       }
     } else if (status === 'Rejected') {
