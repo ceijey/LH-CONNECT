@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -55,6 +55,40 @@ export default function DashboardPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [statements, setStatements] = useState<any[]>([]);
   const [statementsLoading, setStatementsLoading] = useState(true);
+
+  // Unified activity log calculation
+  const recentActivity = useMemo(() => {
+    const events: any[] = [];
+    
+    statements.forEach(stmt => {
+      // Add Bill Event
+      events.push({
+        id: `bill-${stmt.id}`,
+        date: stmt.date || new Date().toISOString(),
+        description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
+        type: 'BILL',
+        amount: Number(stmt.totalDues || 0),
+        status: stmt.status,
+      });
+
+      // Add Payment Events from related submissions
+      if (stmt.relatedSubmissions) {
+        stmt.relatedSubmissions.forEach((sub: any) => {
+          events.push({
+            id: `pay-${sub.id}`,
+            date: sub.verifiedDate || sub.submittedDate || stmt.date,
+            description: `Payment - ${stmt.month} ${stmt.year}`,
+            type: 'PAYMENT',
+            amount: Number(sub.paymentAmount || 0),
+            status: sub.status,
+          });
+        });
+      }
+    });
+
+    // Sort by date descending and take top 5
+    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  }, [statements]);
 
   const loadNotifications = async () => {
     try {
@@ -118,7 +152,6 @@ export default function DashboardPage() {
     loadPayments();
   }, []);
 
-
   useEffect(() => {
     const loadStatements = async () => {
       try {
@@ -156,8 +189,6 @@ export default function DashboardPage() {
     loadStatements();
   }, []);
 
-
-
   const handleLogout = () => {
     setShowLogoutModal(true);
   };
@@ -184,9 +215,6 @@ export default function DashboardPage() {
         isDangerous={true}
       />
 
-
-
-      {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.logo}>
@@ -260,9 +288,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className={styles.main}>
-        {/* Welcome Section */}
         <section className={styles.welcomeSection}>
           <h2 className={styles.welcomeTitle}>Welcome back, {userName}!</h2>
           <p className={styles.residentInfo}>
@@ -272,9 +298,7 @@ export default function DashboardPage() {
           </p>
         </section>
 
-        {/* Info Cards Grid */}
         <div className={styles.infoGrid}>
-          {/* Current Balance / Unpaid Balance Card */}
           <div className={`${styles.infoCard} ${currentBalance > 0 ? styles.unpaidCard : ''}`}>
             <div className={styles.cardHeader}>
               <span className={styles.cardTitle}>
@@ -302,7 +326,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Next Due Date Card */}
           <div className={styles.infoCard}>
             <div className={styles.cardHeader}>
               <span className={styles.cardTitle}>Next Due Date</span>
@@ -314,7 +337,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* QR Code Card */}
           <div className={styles.infoCard}>
             <div className={styles.cardHeader}>
               <span className={styles.cardTitle}>Your QR Code</span>
@@ -336,7 +358,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Action Cards */}
         <div className={styles.actionGrid}>
           <Link href="/dashboard/submit-payment" className={styles.actionCard}>
             <div className={styles.actionIcon}>💳</div>
@@ -357,52 +378,42 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Payment History */}
+        {/* Recent Activity Section */}
         <section className={styles.paymentSection}>
-          <h2 className={styles.sectionTitle}>Recent Payment History</h2>
+          <h2 className={styles.sectionTitle}>Recent Account Activity</h2>
           <div className={styles.paymentList}>
-            {paymentsLoading ? (
-              <div className={styles.loading}>Loading payments...</div>
-            ) : payments.length === 0 ? (
-              <div className={styles.empty}>No payments found.</div>
+            {statementsLoading ? (
+              <div className={styles.loading}>Loading activity...</div>
+            ) : recentActivity.length === 0 ? (
+              <div className={styles.empty}>No recent activity found.</div>
             ) : (
-              payments.map((payment) => {
-                const toMillis = (v: any) => {
-                  if (!v) return 0;
-                  if (typeof v.toMillis === 'function') return v.toMillis();
-                  const n = Number(v);
-                  return Number.isFinite(n) ? n : new Date(v).getTime() || 0;
-                };
-
-                const displayDate = (payment.status === 'Verified' && payment.verifiedAt) 
-                  ? payment.verifiedAt 
-                  : payment.createdAt;
-
-                const date = displayDate ? new Date(toMillis(displayDate)) : null;
-                
-                // Use stored month if available, otherwise format from date
-                const monthStr = payment.month || (date ? date.toLocaleString(undefined, { month: 'short', year: 'numeric' }) : '—');
-                
-                // Use stored date string or format from date
-                const dateStr = (payment.status === 'Verified' && payment.verifiedDate)
-                  ? new Date(payment.verifiedDate).toLocaleDateString()
-                  : (payment.submittedDate ? new Date(payment.submittedDate).toLocaleDateString() : (date ? date.toLocaleDateString() : '—'));
-
-                return (
-                  <div key={payment.id ?? dateStr} className={styles.paymentItem}>
-                    <div className={styles.paymentInfo}>
-                      <div className={styles.paymentMonth}>{monthStr}</div>
-                      <div className={styles.paymentDate}>{dateStr}</div>
-                    </div>
-                    <div className={styles.paymentAmount}>
-                      <span className={styles.amount}>₱{payment.amount}</span>
-                      <span className={`${styles.status} ${styles[(payment.status ?? 'pending').toLowerCase()]}`}>
-                        {payment.status ?? 'Pending'}
+              recentActivity.map((event) => (
+                <div key={event.id} className={styles.paymentItem}>
+                  <div className={styles.paymentInfo}>
+                    <div className={styles.paymentMonth}>
+                      <span className={`${styles.typeBadge} ${styles[event.type.toLowerCase()]}`}>
+                        {event.type}
                       </span>
+                      {event.description}
+                    </div>
+                    <div className={styles.paymentDate}>
+                      {new Date(event.date).toLocaleDateString(undefined, { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
                     </div>
                   </div>
-                );
-              })
+                  <div className={styles.paymentAmount}>
+                    <span className={`${styles.amount} ${event.type === 'BILL' ? styles.billAmount : styles.payAmount}`}>
+                      {event.type === 'BILL' ? '-' : '+'}₱{event.amount.toLocaleString()}
+                    </span>
+                    <span className={`${styles.status} ${styles[(event.status ?? 'pending').toLowerCase().replace(/\s/g, '')]}`}>
+                      {event.status ?? 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              ))
             )}
           </div>
           <Link href="/dashboard/transactions">

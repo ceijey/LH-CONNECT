@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { logoutAndRedirect } from '@/lib/auth-session';
@@ -23,11 +23,25 @@ interface Statement {
   relatedSubmissions?: any[];
 }
 
+interface AuditEvent {
+  id: string;
+  date: string;
+  description: string;
+  type: 'BILL' | 'PAYMENT';
+  amount: number;
+  status: string;
+  referenceId: string;
+}
+
+type ReportType = 'audit' | 'daily' | 'monthly' | 'annual';
+
 export default function ViewStatementsPage() {
   const router = useRouter();
   useAuthPageshow('resident');
   const currentYear = new Date().getFullYear();
+  
   const [filterYear, setFilterYear] = useState<number>(currentYear);
+  const [reportType, setReportType] = useState<ReportType>('audit');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statements, setStatements] = useState<Statement[]>([]);
@@ -36,11 +50,10 @@ export default function ViewStatementsPage() {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
 
-  const availableYears = Array.from(new Set(statements.map((statement) => statement.year))).sort(
-    (a, b) => b - a
+  const availableYears = useMemo(() => 
+    Array.from(new Set(statements.map((s) => s.year))).sort((a, b) => b - a),
+    [statements]
   );
-  const filteredStatements = statements.filter((s) => s.year === filterYear);
-  const hasStatements = statements.length > 0;
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage(message);
@@ -49,18 +62,11 @@ export default function ViewStatementsPage() {
   };
 
   useEffect(() => {
-    if (!availableYears.includes(filterYear) && availableYears.length > 0) {
-      setFilterYear(availableYears[0]);
-    }
-  }, [availableYears, filterYear]);
-
-  useEffect(() => {
     const fetchStatements = async () => {
       try {
         setIsLoading(true);
         setError(null);
         const data = await apiCall('/api/statements');
-        console.log('Statements API response:', data);
         setStatements(data.statements ?? []);
       } catch (err: any) {
         console.error('Error fetching statements:', err);
@@ -73,64 +79,83 @@ export default function ViewStatementsPage() {
     fetchStatements();
   }, []);
 
-  const handleDownload = async (statement: Statement, format: 'pdf' | 'csv' = 'pdf') => {
+  const auditEvents = useMemo(() => {
+    const events: AuditEvent[] = [];
+    
+    statements.forEach(stmt => {
+      // Add Bill Event
+      events.push({
+        id: `bill-${stmt.id}`,
+        date: stmt.date,
+        description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
+        type: 'BILL',
+        amount: stmt.totalDues,
+        status: stmt.status,
+        referenceId: stmt.id
+      });
+
+      // Add Payment Events
+      if (stmt.relatedSubmissions) {
+        stmt.relatedSubmissions.forEach(sub => {
+          const subDate = (sub.status === 'Verified' && sub.verifiedDate)
+            ? sub.verifiedDate
+            : (sub.submittedDate || stmt.date);
+            
+          events.push({
+            id: `pay-${sub.id}`,
+            date: subDate,
+            description: `Payment for ${stmt.month} ${stmt.year}`,
+            type: 'PAYMENT',
+            amount: sub.paymentAmount,
+            status: sub.status === 'Verified' ? 'Confirmed' : 'Pending Verification',
+            referenceId: sub.id
+          });
+        });
+      }
+    });
+
+    // Sort by date descending
+    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [statements]);
+
+  const filteredEvents = useMemo(() => {
+    return auditEvents.filter(event => {
+      const eventYear = new Date(event.date).getFullYear();
+      return eventYear === filterYear;
+    });
+  }, [auditEvents, filterYear]);
+
+  const handleDownloadReport = async (format: 'pdf' | 'csv' = 'csv') => {
     try {
       setIsDownloading(true);
-      const query = new URLSearchParams({
-        format,
-        statementId: statement.id,
+      const query = new URLSearchParams({ 
+        format, 
+        reportType,
+        year: filterYear.toString()
       });
+      
       const response = await fetch(`/api/statements/download?${query.toString()}`, {
         credentials: 'include',
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'Failed to download statement');
+        throw new Error(errorText || 'Failed to download report');
       }
 
       const blob = await response.blob();
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.href = url;
-      link.download = `statement_${statement.month}_${statement.year}.${format}`;
+      link.download = `${reportType}_report_${filterYear}.${format}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+      showToast('Report downloaded successfully', 'success');
     } catch (err: any) {
       console.error('Download error:', err);
-      showToast('Failed to download statement. Please try again.', 'error');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleBulkDownload = async (format: 'pdf' | 'csv' = 'csv') => {
-    try {
-      setIsDownloading(true);
-      const query = new URLSearchParams({ format });
-      const response = await fetch(`/api/statements/download?${query.toString()}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to download statements');
-      }
-
-      const blob = await response.blob();
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.href = url;
-      link.download = `all_statements.${format}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err: any) {
-      console.error('Download error:', err);
-      showToast('Failed to download statements. Please try again.', 'error');
+      showToast(err.message || 'Failed to download report', 'error');
     } finally {
       setIsDownloading(false);
     }
@@ -139,53 +164,9 @@ export default function ViewStatementsPage() {
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
-            <div className={styles.headerLefty}>
-              <Link href="/dashboard" className={styles.backBtn}>
-                ← Back
-              </Link>
-            </div>
-            <button
-              className={styles.logoutBtn}
-              onClick={async () => {
-                await logoutAndRedirect(router, '/');
-              }}
-            >
-              ⬅ Logout
-            </button>
-          </div>
-        </header>
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <p>Loading your statements...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
-            <div className={styles.headerLefty}>
-              <Link href="/dashboard" className={styles.backBtn}>
-                ← Back
-              </Link>
-            </div>
-            <button
-              className={styles.logoutBtn}
-              onClick={async () => {
-                await logoutAndRedirect(router, '/');
-              }}
-            >
-              ⬅ Logout
-            </button>
-          </div>
-        </header>
-        <div style={{ padding: '2rem', textAlign: 'center', color: 'red' }}>
-          <p>Error: {error}</p>
-          <button onClick={() => window.location.reload()}>Retry</button>
+        <div className={styles.loadingState}>
+          <div className={styles.spinner}></div>
+          <p>Loading your billing history...</p>
         </div>
       </div>
     );
@@ -199,7 +180,7 @@ export default function ViewStatementsPage() {
         isVisible={isToastVisible}
         onClose={() => setIsToastVisible(false)}
       />
-      {/* Header */}
+      
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerLefty}>
@@ -207,202 +188,130 @@ export default function ViewStatementsPage() {
               ← Back
             </Link>
             <div className={styles.headerBrand}>
-              <Image
-                src="/lhhoa-logo.png"
-                alt="LHHOA Logo"
-                width={50}
-                height={50}
-                className={styles.headerIcon}
-                priority
-              />
+              <Image src="/lhhoa-logo.png" alt="Logo" width={40} height={40} />
               <div>
                 <h1 className={styles.headerTitle}>LH-Connect</h1>
-                <p className={styles.headerSubtitle}>View Statements</p>
+                <p className={styles.headerSubtitle}>Billing Audit Log</p>
               </div>
             </div>
           </div>
-          <button
-            className={styles.logoutBtn}
-            onClick={async () => {
-              await logoutAndRedirect(router, '/');
-            }}
-          >
+          <button className={styles.logoutBtn} onClick={() => logoutAndRedirect(router, '/')}>
             ⬅ Logout
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className={styles.main}>
-        {/* Page Title Section */}
-        <section className={styles.titleSection}>
-          <div>
-            <h2 className={styles.pageTitle}>Download Billing History</h2>
+        <section className={styles.heroSection}>
+          <div className={styles.heroContent}>
+            <h2 className={styles.pageTitle}>Transaction History & Audit Log</h2>
             <p className={styles.pageSubtitle}>
-              View and download your monthly billing statements and payment history
+              Comprehensive history of your bills, payments, and account adjustments
             </p>
           </div>
-        </section>
-
-        {/* Filter and Actions */}
-        <div className={styles.controlsSection}>
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>Filter by Year:</label>
-            <select
-              value={filterYear}
-              onChange={(e) => setFilterYear(Number(e.target.value))}
-              className={styles.filterSelect}
-              disabled={availableYears.length === 0}
+          <div className={styles.reportControls}>
+            <div className={styles.controlGroup}>
+              <label>Report Type</label>
+              <select value={reportType} onChange={(e) => setReportType(e.target.value as ReportType)}>
+                <option value="audit">Full Audit Log</option>
+                <option value="daily">Daily Activity</option>
+                <option value="monthly">Monthly Summary</option>
+                <option value="annual">Annual Statement</option>
+              </select>
+            </div>
+            <div className={styles.controlGroup}>
+              <label>Year</label>
+              <select value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))}>
+                {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                {availableYears.length === 0 && <option value={currentYear}>{currentYear}</option>}
+              </select>
+            </div>
+            <button 
+              className={styles.downloadReportBtn}
+              onClick={() => handleDownloadReport('csv')}
+              disabled={isDownloading || filteredEvents.length === 0}
             >
-              {availableYears.length > 0 ? (
-                availableYears.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))
-              ) : (
-                <option value={currentYear}>{currentYear}</option>
-              )}
-            </select>
-          </div>
-          <button
-            className={styles.bulkDownloadBtn}
-            onClick={() => handleBulkDownload('csv')}
-            disabled={isDownloading || filteredStatements.length === 0}
-          >
-            {isDownloading ? '⏳ Downloading...' : `⬇ Download All (${filteredStatements.length})`}
-          </button>
-        </div>
-
-        {/* Statements Grid */}
-        <div className={styles.statementsGrid}>
-          {filteredStatements.length > 0 ? (
-            filteredStatements.map((statement) => (
-              <div key={statement.id} className={styles.statementCard}>
-                <div className={styles.cardHeader}>
-                  <div className={styles.monthInfo}>
-                    <h3 className={styles.statementMonth}>
-                      {statement.month} {statement.year}
-                    </h3>
-                    <p className={styles.statementDate}>{statement.date}</p>
-                  </div>
-                  <span
-                    className={`${styles.badge} ${styles[statement.status.toLowerCase().replace(' ', '')]}`}
-                  >
-                    {statement.status}
-                  </span>
-                </div>
-
-                <div className={styles.cardContent}>
-                  <div className={styles.statDetail}>
-                    <span className={styles.statLabel}>Total Dues</span>
-                    <span className={styles.statValue}>₱{statement.totalDues}</span>
-                  </div>
-                  <div className={styles.statDetail}>
-                    <span className={styles.statLabel}>Amount Paid</span>
-                    <span className={styles.statValue}>₱{statement.amountPaid}</span>
-                  </div>
-                  <div className={styles.statDetail}>
-                    <span className={styles.statLabel}>Balance</span>
-                    <span
-                      className={`${styles.statValue} ${
-                        statement.balance === 0 ? styles.balanced : styles.outstanding
-                      }`}
-                    >
-                      ₱{statement.balance}
-                    </span>
-                  </div>
-
-                  {statement.relatedSubmissions && statement.relatedSubmissions.length > 0 && (
-                    <div className={styles.submissionStatus}>
-                      <span className={styles.submissionLabel}>Payment Proof Submitted:</span>
-                      {statement.relatedSubmissions.map((sub: any) => {
-                        const displayDate = (sub.status === 'Verified' && sub.verifiedDate)
-                          ? new Date(sub.verifiedDate).toLocaleDateString()
-                          : (sub.submittedDate ? new Date(sub.submittedDate).toLocaleDateString() : '—');
-                        
-                        return (
-                          <div key={sub.id} className={styles.submissionValue}>
-                            <div className={styles.submissionDetail}>
-                              <span className={styles.statValue}>₱{sub.paymentAmount}</span>
-                              <span className={styles.submissionDate}>{displayDate}</span>
-                            </div>
-                            <span className={styles.submissionBadge}>
-                              {sub.status === 'Verified' ? '✓ Verified' : '⏳ Pending'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.cardFooter}>
-                  <button
-                    className={styles.downloadBtn}
-                    onClick={() => handleDownload(statement, 'pdf')}
-                    disabled={isDownloading}
-                  >
-                    {isDownloading ? '⏳ Downloading...' : `⬇ Download ${statement.fileFormat}`}
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className={styles.emptyState}>
-              <p className={styles.emptyIcon}>📄</p>
-              <p className={styles.emptyText}>
-                {hasStatements
-                  ? `No billing statements found for ${filterYear}.`
-                  : 'No billing statements yet.'}
-              </p>
-              <p className={styles.emptySubtext}>
-                {hasStatements
-                  ? 'Try a different year or check back later.'
-                  : 'Your billing statements will appear here once they are issued.'}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Summary Section */}
-        <section className={styles.summarySection}>
-          <div className={styles.summaryCard}>
-            <h3 className={styles.summaryTitle}>Account Summary</h3>
-            <div className={styles.summaryGrid}>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Total Statements</span>
-                <span className={styles.summaryValue}>{filteredStatements.length}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Total Paid</span>
-                <span className={styles.summaryValue}>
-                  ₱{filteredStatements.reduce((sum, s) => sum + s.amountPaid, 0)}
-                </span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Outstanding Balance</span>
-                <span className={`${styles.summaryValue} ${styles.outstanding}`}>
-                  ₱{filteredStatements.reduce((sum, s) => sum + s.balance, 0)}
-                </span>
-              </div>
-            </div>
+              {isDownloading ? '...' : '⬇ Export CSV'}
+            </button>
           </div>
         </section>
 
-        {/* Information Box */}
-        <div className={styles.infoBox}>
-          <div className={styles.infoIcon}>📋</div>
-          <div className={styles.infoContent}>
-            <h3 className={styles.infoTitle}>About Your Statements</h3>
-            <p className={styles.infoText}>
-              Your monthly billing statements are automatically generated and available for download
-              here. Each statement includes your monthly dues, payments received, and current balance.
-              Statements are typically available within 2-3 days of the month-end date. You can
-              download them in PDF or Excel format for your records.
+        <section className={styles.tableSection}>
+          <div className={styles.tableCard}>
+            <table className={styles.auditTable}>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Transaction Description</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEvents.length > 0 ? (
+                  filteredEvents.map((event) => (
+                    <tr key={event.id} className={styles.tableRow}>
+                      <td className={styles.dateCell}>
+                        {new Date(event.date).toLocaleDateString(undefined, { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })}
+                      </td>
+                      <td className={styles.descCell}>{event.description}</td>
+                      <td className={styles.typeCell}>
+                        <span className={`${styles.typeBadge} ${styles[event.type.toLowerCase()]}`}>
+                          {event.type}
+                        </span>
+                      </td>
+                      <td className={styles.amountCell}>
+                        <span className={event.type === 'BILL' ? styles.billAmount : styles.payAmount}>
+                          {event.type === 'BILL' ? '+' : '-'} ₱{event.amount.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className={styles.statusCell}>
+                        <span className={`${styles.statusBadge} ${styles[event.status.toLowerCase().replace(/\s/g, '')]}`}>
+                          {event.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className={styles.noData}>
+                      No transactions found for {filterYear}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={styles.summaryDashboard}>
+          <div className={styles.summaryBox}>
+            <h4>Total Billed</h4>
+            <p className={styles.summaryValue}>
+              ₱{filteredEvents.filter(e => e.type === 'BILL').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
             </p>
           </div>
-        </div>
+          <div className={styles.summaryBox}>
+            <h4>Total Paid</h4>
+            <p className={styles.summaryValue}>
+              ₱{filteredEvents.filter(e => e.type === 'PAYMENT' && e.status === 'Confirmed').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+            </p>
+          </div>
+          <div className={styles.summaryBox}>
+            <h4>Net Balance ({filterYear})</h4>
+            <p className={`${styles.summaryValue} ${styles.netBalance}`}>
+              ₱{(
+                filteredEvents.filter(e => e.type === 'BILL').reduce((sum, e) => sum + e.amount, 0) -
+                filteredEvents.filter(e => e.type === 'PAYMENT' && e.status === 'Confirmed').reduce((sum, e) => sum + e.amount, 0)
+              ).toLocaleString()}
+            </p>
+          </div>
+        </section>
       </main>
     </div>
   );

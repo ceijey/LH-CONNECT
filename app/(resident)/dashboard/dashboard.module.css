@@ -378,11 +378,34 @@
   font-weight: 600;
   color: #1B2A4A;
   font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.typeBadge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.typeBadge.bill {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.typeBadge.payment {
+  background: #dcfce7;
+  color: #22c55e;
 }
 
 .paymentDate {
   color: #9E9E9E;
   font-size: 0.85rem;
+  margin-top: 0.25rem;
 }
 
 .paymentAmount {
@@ -391,32 +414,42 @@
   gap: 1rem;
 }
 
+.amount.billAmount {
+  color: #ef4444;
+}
+
+.amount.payAmount {
+  color: #22c55e;
+}
+
 .status {
   padding: 0.4rem 0.8rem;
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: capitalize;
+  min-width: 80px;
+  text-align: center;
 }
 
-.paid {
+.paid, .verified, .confirmed {
   background: rgba(76, 175, 80, 0.2);
-  color: #81c784;
+  color: #2e7d32;
 }
 
-.pending {
+.pending, .pendingverification {
   background: rgba(255, 193, 7, 0.2);
-  color: #fdd835;
+  color: #f57f17;
 }
 
-.verified {
-  background: rgba(76, 175, 80, 0.2);
-  color: #81c784;
+.partiallypaid {
+  background: rgba(255, 152, 0, 0.2);
+  color: #e65100;
 }
 
-.rejected {
+.rejected, .failed {
   background: rgba(244, 67, 54, 0.2);
-  color: #ef5350;
+  color: #d32f2f;
 }
 
 .viewAllBtn {

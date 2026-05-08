@@ -1,100 +1,92 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import styles from './transactions.module.css';
 
-interface Transaction {
-  id: string;
-  month: string;
-  date: string;
-  type: 'Payment' | 'Fine' | 'Adjustment';
-  amount: number;
-  status: 'Paid' | 'Pending' | 'Failed' | 'Rejected';
-  description: string;
-  paymentMethod: 'GCash' | 'Maya' | 'Bank Transfer' | 'Cash' | 'System';
-  rejectionReason?: string;
-}
-
 export default function TransactionsPage() {
   const router = useRouter();
   useAuthPageshow('resident');
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<'All' | 'Paid' | 'Pending' | 'Failed' | 'Rejected'>('All');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Paid' | 'Pending' | 'Rejected'>('All');
+  const [statements, setStatements] = useState<any[]>([]);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    const loadTransactions = async () => {
+    const loadData = async () => {
       try {
         setLoadError('');
-        const payload = await apiCall('/api/payments');
-        const fetched = (payload.payments ?? []).map((payment: any) => {
-          const toMillis = (value: any) => {
-            if (!value) return 0;
-            if (typeof value.toMillis === 'function') return value.toMillis();
-            if (typeof value.toDate === 'function') return value.toDate().getTime();
-            const numeric = Number(value);
-            return Number.isFinite(numeric) ? numeric : new Date(value).getTime() || 0;
-          };
-
-          const displayDate = (payment.status === 'Verified' && payment.verifiedAt) 
-            ? payment.verifiedAt 
-            : payment.createdAt;
-          
-          const dateObj = displayDate ? new Date(toMillis(displayDate)) : new Date();
-          const month = payment.month || dateObj.toLocaleString(undefined, { month: 'long', year: 'numeric' });
-          const dateStr = (payment.status === 'Verified' && payment.verifiedDate)
-            ? new Date(payment.verifiedDate).toLocaleDateString()
-            : (payment.submittedDate ? new Date(payment.submittedDate).toLocaleDateString() : dateObj.toLocaleDateString());
-
-          return {
-            id: payment.id,
-            month,
-            date: dateStr,
-            type: 'Payment',
-            amount: Number(payment.amount ?? 0),
-            status: payment.status === 'Verified' ? 'Paid' : (payment.status || 'Pending'),
-            description: payment.reference ? `Payment reference ${payment.reference}` : `Monthly dues - ${month}`,
-            paymentMethod: (payment.method || 'System') as Transaction['paymentMethod'],
-            rejectionReason: payment.rejectionReason,
-          } as Transaction;
-        }) as Transaction[];
-
-        setTransactions(fetched);
+        const payload = await apiCall('/api/statements');
+        setStatements(payload.statements || []);
       } catch (error: any) {
-        setTransactions([]);
-        setLoadError(error?.message || 'Failed to load transactions');
+        setStatements([]);
+        setLoadError(error?.message || 'Failed to load transaction history');
       } finally {
         setIsLoading(false);
       }
     };
-
-    loadTransactions();
+    loadData();
   }, [router]);
 
-  const filteredTransactions = filterStatus === 'All' 
-    ? transactions 
-    : transactions.filter(t => t.status === filterStatus);
+  const auditEvents = useMemo(() => {
+    const events: any[] = [];
+    statements.forEach(stmt => {
+      // Bill Event
+      events.push({
+        id: `bill-${stmt.id}`,
+        month: `${stmt.month} ${stmt.year}`,
+        date: stmt.date || new Date().toISOString(),
+        type: 'BILL',
+        amount: Number(stmt.totalDues || 0),
+        status: stmt.status === 'Paid' ? 'Paid' : (stmt.status || 'Pending'),
+        description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
+        paymentMethod: 'System',
+      });
 
-  const totalAmount = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+      // Payment Events
+      if (stmt.relatedSubmissions) {
+        stmt.relatedSubmissions.forEach((sub: any) => {
+          events.push({
+            id: `pay-${sub.id}`,
+            month: sub.month || `${stmt.month} ${stmt.year}`,
+            date: sub.verifiedDate || sub.submittedDate || stmt.date,
+            type: 'PAYMENT',
+            amount: Number(sub.paymentAmount || 0),
+            status: sub.status === 'Verified' ? 'Paid' : (sub.status || 'Pending'),
+            description: `Payment Submission - ${stmt.month} ${stmt.year}`,
+            paymentMethod: sub.paymentMethod || 'System',
+            rejectionReason: sub.rejectionReason,
+          });
+        });
+      }
+    });
+
+    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [statements]);
+
+  const filteredTransactions = filterStatus === 'All' 
+    ? auditEvents 
+    : auditEvents.filter(t => t.status === filterStatus);
+
+  const totalBilled = filteredTransactions.filter(t => t.type === 'BILL').reduce((sum, t) => sum + t.amount, 0);
+  const totalPaid = filteredTransactions.filter(t => t.type === 'PAYMENT' && t.status === 'Paid').reduce((sum, t) => sum + t.amount, 0);
 
   const handleDownloadCSV = async () => {
     setIsDownloading(true);
     try {
       const headers = ['Date', 'Month', 'Type', 'Description', 'Amount', 'Payment Method', 'Status'];
-      const rows = filteredTransactions.map((transaction) => [
-        transaction.date,
-        transaction.month,
-        transaction.type,
-        transaction.description,
-        String(transaction.amount),
-        transaction.paymentMethod,
-        transaction.status,
+      const rows = filteredTransactions.map((t) => [
+        t.date,
+        t.month,
+        t.type,
+        t.description,
+        String(t.amount),
+        t.paymentMethod,
+        t.status
       ]);
 
       const csv = [
@@ -106,7 +98,7 @@ export default function TransactionsPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'transactions.csv';
+      link.download = `audit_log_${new Date().toLocaleDateString()}.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -117,30 +109,27 @@ export default function TransactionsPage() {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>Loading...</div>;
+    return <div className={styles.loading}>Loading history...</div>;
   }
 
   return (
     <div className={styles.container}>
-      {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerTitle}>
             <Link href="/dashboard" className={styles.backBtn}>
               ← Dashboard
             </Link>
-            <h1 className={styles.title}>All Transactions</h1>
+            <h1 className={styles.title}>Transaction History</h1>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className={styles.main}>
-        {/* Filter Section */}
         <section className={styles.filterSection}>
           <h2 className={styles.filterTitle}>Filter by Status</h2>
           <div className={styles.filterButtons}>
-            {['All', 'Paid', 'Pending', 'Failed'].map((status) => (
+            {['All', 'Paid', 'Pending', 'Rejected'].map((status) => (
               <button
                 key={status}
                 className={`${styles.filterBtn} ${filterStatus === status ? styles.active : ''}`}
@@ -152,19 +141,21 @@ export default function TransactionsPage() {
           </div>
         </section>
 
-        {/* Summary */}
         <section className={styles.summarySection}>
           <div className={styles.summaryCard}>
-            <div className={styles.summaryLabel}>Total Transactions</div>
-            <div className={styles.summaryValue}>{filteredTransactions.length}</div>
+            <div className={styles.summaryLabel}>Total Billed</div>
+            <div className={styles.summaryValue}>₱{totalBilled.toLocaleString()}</div>
           </div>
           <div className={styles.summaryCard}>
-            <div className={styles.summaryLabel}>Total Amount</div>
-            <div className={styles.summaryValue}>₱{totalAmount.toLocaleString()}</div>
+            <div className={styles.summaryLabel}>Total Paid</div>
+            <div className={styles.summaryValue} style={{ color: '#22c55e' }}>₱{totalPaid.toLocaleString()}</div>
+          </div>
+          <div className={styles.summaryCard}>
+            <div className={styles.summaryLabel}>Net Balance</div>
+            <div className={styles.summaryValue} style={{ color: '#ef4444' }}>₱{(totalBilled - totalPaid).toLocaleString()}</div>
           </div>
         </section>
 
-        {/* Transactions Table */}
         <section className={styles.transactionsSection}>
           {loadError ? (
             <div className={styles.emptyState}>
@@ -184,32 +175,32 @@ export default function TransactionsPage() {
                     <th>Type</th>
                     <th>Description</th>
                     <th>Amount</th>
-                    <th>Payment Method</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTransactions.map((transaction) => (
-                    <tr key={transaction.id} className={styles.tableRow}>
-                      <td className={styles.dateCell}>{transaction.date}</td>
+                  {filteredTransactions.map((t) => (
+                    <tr key={t.id} className={styles.tableRow}>
+                      <td className={styles.dateCell}>{new Date(t.date).toLocaleDateString()}</td>
                       <td className={styles.typeCell}>
-                        <span className={`${styles.typeBadge} ${styles[transaction.type.toLowerCase()]}`}>
-                          {transaction.type}
+                        <span className={`${styles.typeBadge} ${styles[t.type.toLowerCase()]}`}>
+                          {t.type}
                         </span>
                       </td>
                       <td className={styles.descCell}>
-                        <div>{transaction.description}</div>
-                        {transaction.status === 'Rejected' && transaction.rejectionReason && (
+                        <div>{t.description}</div>
+                        {t.rejectionReason && (
                           <div className={styles.rejectionReason}>
-                            ⚠️ Reason: {transaction.rejectionReason}
+                            ⚠️ Reason: {t.rejectionReason}
                           </div>
                         )}
                       </td>
-                      <td className={styles.amountCell}>₱{transaction.amount}</td>
-                      <td className={styles.methodCell}>{transaction.paymentMethod}</td>
+                      <td className={`${styles.amountCell} ${t.type === 'BILL' ? styles.billAmount : styles.payAmount}`}>
+                        {t.type === 'BILL' ? '-' : '+'}₱{t.amount.toLocaleString()}
+                      </td>
                       <td className={styles.statusCell}>
-                        <span className={`${styles.statusBadge} ${styles[transaction.status.toLowerCase()]}`}>
-                          {transaction.status}
+                        <span className={`${styles.statusBadge} ${styles[t.status.toLowerCase().replace(/\s/g, '')]}`}>
+                          {t.status}
                         </span>
                       </td>
                     </tr>
@@ -220,13 +211,12 @@ export default function TransactionsPage() {
           )}
         </section>
 
-        {/* Download Section */}
         <section className={styles.downloadSection}>
           <button className={styles.downloadBtn} onClick={handleDownloadCSV} disabled={isDownloading || filteredTransactions.length === 0}>
-            📥 {isDownloading ? 'Downloading...' : 'Download All as CSV'}
+            📥 {isDownloading ? 'Downloading...' : 'Download Full History (CSV)'}
           </button>
           <button className={styles.printBtn} onClick={() => window.print()}>
-            🖨️ Print Transactions
+            🖨️ Print Audit Log
           </button>
         </section>
       </main>
