@@ -149,11 +149,11 @@ export default function TransactionsPage() {
           </div>
           <div className={styles.summaryCard}>
             <div className={styles.summaryLabel}>Total Paid</div>
-            <div className={styles.summaryValue} style={{ color: '#22c55e' }}>₱{totalPaid.toLocaleString()}</div>
+            <div className={`${styles.summaryValue} ${styles.paidValue}`}>₱{totalPaid.toLocaleString()}</div>
           </div>
           <div className={styles.summaryCard}>
             <div className={styles.summaryLabel}>Net Balance</div>
-            <div className={styles.summaryValue} style={{ color: '#ef4444' }}>₱{(totalBilled - totalPaid).toLocaleString()}</div>
+            <div className={`${styles.summaryValue} ${styles.balanceValue}`}>₱{(totalBilled - totalPaid).toLocaleString()}</div>
           </div>
         </section>
 

@@ -286,13 +286,13 @@ export default function ViewStatementsPage() {
         <section className={styles.summaryDashboard}>
           <div className={styles.summaryBox}>
             <h4>Total Billed</h4>
-            <p className={styles.summaryValue}>
+            <p className={`${styles.summaryValue} ${styles.billedValue}`}>
               ₱{filteredEvents.filter(e => e.type === 'BILL').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
             </p>
           </div>
           <div className={styles.summaryBox}>
             <h4>Total Paid</h4>
-            <p className={styles.summaryValue}>
+            <p className={`${styles.summaryValue} ${styles.paidValue}`}>
               ₱{filteredEvents.filter(e => e.type === 'PAYMENT' && e.status === 'Confirmed').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
             </p>
           </div>

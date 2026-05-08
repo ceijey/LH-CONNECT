@@ -309,29 +309,48 @@
 
 .summaryBox {
   background: white;
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  border: 1px solid #f1f5f9;
+  padding: 1.75rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(27, 42, 74, 0.04);
+  border: 1px solid rgba(27, 42, 74, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.summaryBox:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(27, 42, 74, 0.08);
 }
 
 .summaryBox h4 {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.875rem;
-  color: #1e293b;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.025em;
 }
 
 .summaryValue {
   font-size: 1.75rem;
   font-weight: 800;
   margin: 0;
+  color: #1B2A4A;
+}
+
+.billedValue {
+  color: #1B2A4A;
+}
+
+.paidValue {
+  color: #10b981;
 }
 
 .netBalance {
-  color: #3b82f6;
+  color: #ef4444;
 }
 
 /* Responsive Styles */
