@@ -46,7 +46,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const filePath = submission.filePath as string | undefined;
     const fileName = submission.fileName as string | undefined;
+    const fileUrl = submission.fileUrl as string | undefined;
 
+    // Serve file from Firebase Storage if filePath exists
     if (filePath) {
       const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
       const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
@@ -71,28 +73,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       });
     }
 
-    const legacyFileUrl = submission.fileUrl as string | undefined;
-
-    if (!legacyFileUrl) {
-      return createErrorResponse('No proof file available', 404);
-    }
-
-    const legacyResponse = await fetch(legacyFileUrl);
-    if (!legacyResponse.ok) {
-      return createErrorResponse('Unable to fetch legacy proof file', 502);
-    }
-
-    const body = await legacyResponse.arrayBuffer();
-    const contentType = legacyResponse.headers.get('content-type') || inferContentType(fileName);
-
-    return new NextResponse(body, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
-        'Cache-Control': 'private, max-age=300',
-      },
-    });
+    return createErrorResponse('No proof file available', 404);
   } catch (error: any) {
     console.error('Error serving proof file:', error?.message ?? error);
     return createErrorResponse('Internal server error', 500);

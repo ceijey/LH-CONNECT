@@ -209,48 +209,33 @@ export async function POST(request: NextRequest) {
     const filePath = `payment-submissions/${userId}/${Date.now()}-${safeFileName}`;
       const buffer = Buffer.from(await file.arrayBuffer());
       let fileUrl: string | null = null;
-      let usedFilePath: string | null = null;
+      let usedFilePath: string | null = filePath;
       let fileUploadError: any = null;
 
       try {
-        // Use configured bucket if present, otherwise default
+        // Upload to Firebase Storage
         const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
         const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
-
-        // Check bucket existence to provide clearer errors
-        try {
-          const [exists] = await bucket.exists();
-          if (!exists) {
-            throw new Error(`Bucket does not exist: ${envBucket || '<default>'}`);
-          }
-        } catch (chkErr) {
-          // If bucket existence check fails, surface concise error
-          throw chkErr;
-        }
-
         const storageFile = bucket.file(filePath);
+        
         await storageFile.save(buffer, {
           metadata: {
-            contentType: file.type || 'application/octet-stream',
+            contentType: file.type,
           },
-          resumable: false,
         });
 
+        // Get a signed URL for immediate use
         const [signedUrl] = await storageFile.getSignedUrl({
           action: 'read',
           expires: '01-01-2500',
         });
-
         fileUrl = signedUrl;
-        usedFilePath = filePath;
       } catch (uploadError: any) {
-        console.error('File upload failed:', {
+        console.error('Firebase upload failed:', {
           message: uploadError?.message ?? uploadError,
-          code: uploadError?.code,
         });
         fileUploadError = {
           message: uploadError?.message ?? String(uploadError),
-          code: uploadError?.code ?? null,
         };
         // Continue: we will still create a submission record so admins can follow up
       }
