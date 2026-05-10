@@ -13,13 +13,9 @@ import styles from './contact-hoa.module.css';
 
 interface Message {
   id: string;
-  ticketId: string;
   title: string;
   date: string;
   status: 'Replied' | 'New';
-  ticketStatus: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
-  category: string;
-  priority: string;
   preview: string;
   senderId?: string;
   senderName?: string;
@@ -45,26 +41,17 @@ export default function ContactHOAPage() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
-  const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
-  const [newTicketData, setNewTicketData] = useState({
-    subject: '',
-    category: 'General Inquiry',
-    priority: 'Normal',
-    message: ''
-  });
-
-  const [statusFilter, setStatusFilter] = useState('All');
-
-  const filteredMessages = messages.filter(m => 
-    statusFilter === 'All' || m.ticketStatus === statusFilter
-  );
 
   const currentConversation: Conversation[] = (selectedMessage !== null && conversations[selectedMessage]) ? conversations[selectedMessage] : [];
   const currentMessage = selectedMessage === null
     ? null
     : messages.find((m) => m.id === selectedMessage) ?? null;
 
+  const getThreadKey = (message: Message | null | undefined) => String(message?.threadId ?? message?.id ?? '');
+
   const initialLoadRef = useRef(true);
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const formatTimestamp = (isoString: string) => {
     try {
@@ -76,23 +63,32 @@ export default function ContactHOAPage() {
   };
 
   const mapRepliesToConversation = (replies: any[] = []): Conversation[] => {
+    const toMillis = (value: unknown) => {
+      if (!value) return 0;
+      if (typeof value === 'number') return value;
+      const parsed = new Date(String(value)).getTime();
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     return replies
       .map((reply, index) => {
         const createdAt = reply.createdAt || `${reply.date ?? ''} ${reply.time ?? ''}`.trim() || new Date().toISOString();
-        const sortStamp = new Date(createdAt).getTime() || index;
+        const sortStamp = toMillis(createdAt);
+        const displayTime = formatTimestamp(createdAt);
+
         return {
-          item: {
+          conversation: {
             id: String(reply.id ?? `${index}-${Date.now()}`),
             sender: String(reply.senderRole ?? '').toLowerCase() === 'admin' ? 'HOA Admin' : 'You',
             content: String(reply.message ?? ''),
-            timestamp: formatTimestamp(createdAt),
+            timestamp: displayTime,
           } as Conversation,
           sortStamp,
           index,
         };
       })
       .sort((a, b) => (a.sortStamp === b.sortStamp ? a.index - b.index : a.sortStamp - b.sortStamp))
-      .map((entry) => entry.item);
+      .map((entry) => entry.conversation);
   };
 
   const fetchMessages = useCallback(async () => {
@@ -102,63 +98,51 @@ export default function ContactHOAPage() {
       if (res && res.messages) {
         const threadMessages = (res.messages as any[]).map((message) => ({
           id: String(message.id),
-          ticketId: String(message.ticketId || ''),
-          title: String(message.subject || 'Ticket'),
-          date: String(message.date || ''),
+          title: String(message.subject ?? message.title ?? 'New HOA Message'),
+          date: String(message.date ?? new Date().toLocaleDateString()),
           status: String(message.status ?? '').toLowerCase() === 'unread' ? 'New' : 'Replied',
-          ticketStatus: message.ticketStatus || 'Open',
-          category: message.category || 'General',
-          priority: message.priority || 'Normal',
-          preview: String(message.preview || '').slice(0, 120),
+          preview: String(message.preview ?? message.message ?? '').slice(0, 120),
           senderId: message.senderId,
           senderName: message.senderName,
           threadId: message.threadId ?? message.id,
           replies: Array.isArray(message.replies) ? mapRepliesToConversation(message.replies) : undefined,
         })) as Message[];
 
-        setMessages(threadMessages);
-        
-        const threadMap = threadMessages.reduce<{ [key: string]: Conversation[] }>((acc, message) => {
-          const threadKey = String(message.id);
-          acc[threadKey] = message.replies && message.replies.length > 0 ? message.replies : [];
-          return acc;
-        }, {});
-        setConversations(threadMap);
+        const oldKey = messagesRef.current.map((m) => `${m.id}@${m.threadId ?? m.id}`).join('|');
+        const newKey = threadMessages.map((m) => `${m.id}@${m.threadId ?? m.id}`).join('|');
+        if (oldKey !== newKey) {
+          setMessages(threadMessages);
 
-        if (initialLoadRef.current && threadMessages.length > 0) {
-          setSelectedMessage(threadMessages[0].id);
+          const threadMap = threadMessages.reduce<{ [key: string]: Conversation[] }>((acc, message) => {
+            const threadKey = getThreadKey(message);
+
+            acc[threadKey] = message.replies && message.replies.length > 0
+              ? message.replies
+              : [{
+                  id: `${threadKey}-starter`,
+                  sender: 'You',
+                  content: message.preview,
+                  timestamp: message.date,
+                }];
+            return acc;
+          }, {});
+
+          setConversations(threadMap);
         }
+        if (initialLoadRef.current && threadMessages.length > 0) {
+          setSelectedMessage(getThreadKey(threadMessages[0]));
+        }
+
         initialLoadRef.current = false;
       }
     } catch (err) {
       console.error('Failed to fetch messages:', err);
     } finally {
-      setIsLoading(false);
+      if (initialLoadRef.current === false) {
+        setIsLoading(false);
+      }
     }
   }, []);
-
-  const handleCreateTicket = async () => {
-    if (!newTicketData.message.trim()) {
-      showToast('Please enter a message.', 'error');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      await apiCall('/api/messages', {
-        method: 'POST',
-        body: JSON.stringify(newTicketData)
-      });
-      showToast('Ticket created successfully!', 'success');
-      setIsNewTicketModalOpen(false);
-      setNewTicketData({ subject: '', category: 'General Inquiry', priority: 'Normal', message: '' });
-      fetchMessages();
-    } catch (err) {
-      showToast('Failed to create ticket.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
     void fetchMessages();
@@ -246,48 +230,76 @@ export default function ContactHOAPage() {
       return;
     }
 
-    if (!currentMessage) {
-      showToast('Select a ticket first.', 'error');
-      return;
-    }
-
     try {
-      await apiCall('/api/messages', {
+      const subject = currentMessage?.title ?? 'New HOA Message';
+      const response = await apiCall('/api/messages', {
         method: 'POST',
         body: JSON.stringify({
-          subject: currentMessage.title,
+          subject,
           message: trimmedReply,
           recipientId: 'admin',
           recipientRole: 'admin',
-          threadId: currentMessage.id,
+          to: 'HOA Admin',
+          priority: 'Normal',
+          threadId: currentMessage?.id,
         }),
       });
 
-      // Optimistically add the reply to the conversation
-      const newConversationEntry: Conversation = {
-        id: `${Date.now()}`,
-        sender: 'You',
-        content: trimmedReply,
-        timestamp: new Date().toLocaleString(),
-      };
+      const createdMessage = response?.message;
 
-      setConversations(current => ({
-        ...current,
-        [currentMessage.id]: [...(current[currentMessage.id] ?? []), newConversationEntry]
-      }));
+      if (createdMessage) {
+        const nextThreadKey = String(createdMessage.threadId ?? createdMessage.id ?? currentMessage?.id ?? Date.now());
+        const nextMessage: Message = {
+          id: String(createdMessage.id ?? currentMessage?.id ?? Date.now()),
+          title: String(createdMessage.subject ?? subject),
+          date: String(createdMessage.date ?? new Date().toLocaleDateString()),
+          status: 'New',
+          preview: String(createdMessage.preview ?? trimmedReply.slice(0, 60)),
+          senderId: createdMessage.senderId,
+          senderName: createdMessage.senderName,
+          threadId: createdMessage.threadId ?? createdMessage.id,
+          replies: Array.isArray(createdMessage.replies) ? mapRepliesToConversation(createdMessage.replies) : undefined,
+        };
+
+        setMessages((current) => {
+          const existingIndex = current.findIndex((message) => message.id === nextMessage.id);
+
+          if (existingIndex >= 0) {
+            return current.map((message) => (message.id === nextMessage.id ? nextMessage : message));
+          }
+
+          return [nextMessage, ...current];
+        });
+
+        setConversations((current) => ({
+          ...current,
+          [nextThreadKey]: nextMessage.replies && nextMessage.replies.length > 0
+            ? nextMessage.replies
+            : [
+                ...(current[getThreadKey(currentMessage)] ?? current[nextThreadKey] ?? []),
+                {
+                  id: `${Date.now()}`,
+                  sender: 'You',
+                  content: trimmedReply,
+                  timestamp: createdMessage.time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                },
+              ],
+        }));
+
+        setSelectedMessage(nextThreadKey);
+      }
 
       setReplyText('');
-      showToast('Message sent!', 'success');
-      // Refresh in background to get server-confirmed data
-      setTimeout(() => { void fetchMessages(); }, 1500);
+      showToast('Your message has been sent.', 'success');
+      window.dispatchEvent(new Event('lh-messages-updated'));
     } catch (error) {
       console.error('Failed to send reply:', error);
       showToast('Failed to send message. Please try again.', 'error');
     }
   };
 
-  if (isLoading && messages.length === 0) {
-    return <LoadingScreen message="Loading help desk..." />;
+  if (isLoading) {
+    return <LoadingScreen message="Loading conversation history..." />;
   }
 
   return (
@@ -298,69 +310,6 @@ export default function ContactHOAPage() {
         isVisible={isToastVisible}
         onClose={() => setIsToastVisible(false)}
       />
-
-      {isNewTicketModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>Create New Ticket</h2>
-              <button onClick={() => setIsNewTicketModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
-            </div>
-            <div className={styles.modalBody}>
-              <div className={styles.formGroup}>
-                <label>Subject</label>
-                <input 
-                  type="text" 
-                  placeholder="Summarize your concern" 
-                  value={newTicketData.subject}
-                  onChange={(e) => setNewTicketData({ ...newTicketData, subject: e.target.value })}
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className={styles.formGroup}>
-                  <label>Category</label>
-                  <select 
-                    value={newTicketData.category}
-                    onChange={(e) => setNewTicketData({ ...newTicketData, category: e.target.value })}
-                  >
-                    <option>Billing Inquiry</option>
-                    <option>Maintenance Request</option>
-                    <option>Security Concern</option>
-                    <option>Complaints</option>
-                    <option>General Inquiry</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Priority</label>
-                  <select 
-                    value={newTicketData.priority}
-                    onChange={(e) => setNewTicketData({ ...newTicketData, priority: e.target.value })}
-                  >
-                    <option>Low</option>
-                    <option>Normal</option>
-                    <option>High</option>
-                    <option>Urgent</option>
-                  </select>
-                </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label>Message</label>
-                <textarea 
-                  rows={4} 
-                  placeholder="Explain your concern in detail..."
-                  value={newTicketData.message}
-                  onChange={(e) => setNewTicketData({ ...newTicketData, message: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className={styles.modalFooter}>
-              <button className={styles.cancelBtn} onClick={() => setIsNewTicketModalOpen(false)}>Cancel</button>
-              <button className={styles.submitBtn} onClick={handleCreateTicket}>Submit Ticket</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
@@ -378,8 +327,8 @@ export default function ContactHOAPage() {
                 priority
               />
               <div>
-                <h1 className={styles.headerTitle}>Help Desk</h1>
-                <p className={styles.headerSubtitle}>LH-Connect Support Portal</p>
+                <h1 className={styles.headerTitle}>LH-Connect</h1>
+                <p className={styles.headerSubtitle}>Direct Admin Messenger</p>
               </div>
             </div>
           </div>
@@ -397,30 +346,19 @@ export default function ContactHOAPage() {
       {/* Main Content */}
       <main className={styles.main}>
         <div className={styles.contentWrapper}>
-          {/* Left Column - Tickets List */}
+          {/* Left Column - Messages List */}
           <aside className={styles.sidebar}>
-            <div className={styles.filterSection}>
-              <button className={styles.newTicketBtn} onClick={() => setIsNewTicketModalOpen(true)}>
-                + Create New Ticket
-              </button>
-              <select 
-                className={styles.filterSelect}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="All">All Tickets</option>
-                <option value="Open">Open</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-                <option value="Closed">Closed</option>
-              </select>
+            <div className={styles.messagesHeader}>
+              <h2 className={styles.messagesTitle}>Your Messages</h2>
             </div>
 
             <div className={styles.messagesList}>
-              {filteredMessages.length === 0 ? (
-                <div className={styles.emptyState}>No tickets found.</div>
+              {isLoading ? (
+                <div className={styles.emptyState}>Loading messages…</div>
+              ) : messages.length === 0 ? (
+                <div className={styles.emptyState}>No messages yet. Use the form to send a message to the HOA.</div>
               ) : (
-                filteredMessages.map((message) => (
+                messages.map((message) => (
                   <div
                     key={message.id}
                     className={`${styles.messageItem} ${
@@ -429,15 +367,11 @@ export default function ContactHOAPage() {
                     onClick={() => setSelectedMessage(message.id)}
                   >
                     <div className={styles.messageContent}>
-                      <span className={styles.ticketId}>{message.ticketId}</span>
                       <h3 className={styles.messageTitle}>{message.title}</h3>
                       <p className={styles.messageDate}>{message.date}</p>
-                      <span className={`${styles.priorityLabel} ${styles[message.priority.toLowerCase()]}`}>
-                        {message.priority} Priority
-                      </span>
                     </div>
-                    <span className={`${styles.statusBadge} ${styles[message.ticketStatus.replace(' ', '').toLowerCase()]}`}>
-                      {message.ticketStatus}
+                    <span className={`${styles.badge} ${styles[message.status.toLowerCase()]}`}>
+                      {message.status}
                     </span>
                   </div>
                 ))
@@ -445,79 +379,64 @@ export default function ContactHOAPage() {
             </div>
           </aside>
 
-          {/* Right Column - Ticket Conversation */}
+          {/* Right Column - Conversation */}
           <section className={styles.conversationSection}>
-            {currentMessage ? (
-              <>
-                <div className={styles.conversationHeader}>
-                  <div className={styles.conversationTop}>
-                    <h2 className={styles.conversationTitle}>{currentMessage.title}</h2>
-                    <span className={`${styles.statusBadge} ${styles[currentMessage.ticketStatus.replace(' ', '').toLowerCase()]}`}>
-                      {currentMessage.ticketStatus}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.85rem' }}>
-                    <span style={{ color: '#64748b' }}>ID: <strong>{currentMessage.ticketId}</strong></span>
-                    <span style={{ color: '#64748b' }}>Category: <strong>{currentMessage.category}</strong></span>
-                    <span style={{ color: '#64748b' }}>Date: <strong>{currentMessage.date}</strong></span>
-                  </div>
-                </div>
+            {/* Conversation Header */}
+            <div className={styles.conversationHeader}>
+              <h2 className={styles.conversationTitle}>{currentMessage?.title}</h2>
+              <p className={styles.conversationDate}>{currentMessage?.date}</p>
+            </div>
 
-                <div className={styles.messagesThread}>
-                  {currentConversation.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`${styles.chatBubble} ${
-                        msg.sender === 'You' ? styles.userBubble : styles.adminBubble
-                      }`}
-                    >
-                      <div className={styles.bubbleHeader}>
-                        <strong>{msg.sender}</strong>
-                        <span className={styles.bubbleTime}>{msg.timestamp}</span>
-                      </div>
-                      <div className={styles.bubbleBody}>{msg.content}</div>
+            {/* Messages Thread */}
+            <div className={styles.messagesThread}>
+              {isLoading ? (
+                <div className={styles.emptyState}>Loading conversation…</div>
+              ) : currentConversation.length === 0 ? (
+                <div className={styles.emptyState}>No conversation selected.</div>
+              ) : (
+                currentConversation.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`${styles.messageThread} ${
+                      msg.sender === 'You' ? styles.userMessage : styles.adminMessage
+                    }`}
+                  >
+                    <div className={styles.senderInfo}>
+                      <strong className={styles.senderName}>{msg.sender}</strong>
+                      <span className={styles.timestamp}>{msg.timestamp}</span>
                     </div>
-                  ))}
-                  {currentConversation.length === 0 && (
-                    <div className={styles.chatBubble} style={{ alignSelf: 'flex-start', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1B2A4A' }}>
-                       <div className={styles.bubbleHeader}><strong>HOA Support</strong></div>
-                       <div className={styles.bubbleBody}>{currentMessage.preview}</div>
-                    </div>
-                  )}
-                </div>
-
-                {currentMessage.ticketStatus !== 'Closed' && (
-                  <div className={styles.replySection}>
-                    <h3 className={styles.replyTitle}>Send Message</h3>
-                    <textarea
-                      className={styles.replyInput}
-                      placeholder="Type your message here..."
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      rows={4}
-                    />
-                    <button className={styles.sendBtn} onClick={handleSendReply}>
-                      ✉ Send Reply
-                    </button>
+                    <div className={styles.messageBody}>{msg.content}</div>
                   </div>
-                )}
-              </>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
-                <span style={{ fontSize: '3rem', opacity: 0.3 }}>📬</span>
-                <p>Select a ticket to view conversation</p>
-              </div>
-            )}
+                ))
+              )}
+            </div>
+
+            {/* Reply Section */}
+            <div className={styles.replySection}>
+              <h3 className={styles.replyTitle}>Reply to HOA</h3>
+              <textarea
+                className={styles.replyInput}
+                placeholder="Type your reply here..."
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                rows={4}
+              />
+              <button className={styles.sendBtn} onClick={handleSendReply}>
+                ✉ Send Reply
+              </button>
+            </div>
           </section>
         </div>
 
+        {/* Information Box */}
         <div className={styles.infoBox}>
-          <div className={styles.infoIcon}>🛡️</div>
+          <div className={styles.infoIcon}>💬</div>
           <div className={styles.infoContent}>
-            <h3 className={styles.infoTitle}>Official Help Desk</h3>
+            <h3 className={styles.infoTitle}>Direct Communication with HOA</h3>
             <p className={styles.infoText}>
-              All conversations are logged for quality and security purposes. Our support team typically 
-              responds within 24 business hours. For urgent emergencies, please contact local authorities.
+              Use this messenger to ask questions about your monthly dues, payment status, community
+              announcements, or any concerns. Our HOA officers typically respond within 24 hours during
+              business days.
             </p>
           </div>
         </div>

@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
   const userId = decoded.uid;
 
   try {
+    // Get the requesting user's role
     const userDoc = await adminDb.collection('users').doc(userId).get();
     const userData = userDoc.data();
 
@@ -64,32 +65,28 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = userData.role;
+
     let messagesSnapshot;
 
     if (userRole === 'admin') {
-      // Admins see all tickets — simple collection fetch, sorted client-side
+      // Admins see all message threads.
       messagesSnapshot = await adminDb.collection('messages').get();
     } else {
-      // Residents see only their own tickets
-      // NOTE: Avoid compound where+orderBy queries to prevent requiring Firestore composite indexes
-      messagesSnapshot = await adminDb.collection('messages')
-        .where('senderId', '==', userId)
-        .get();
+      // Residents see their own threads, including sent messages and admin replies.
+      messagesSnapshot = await adminDb.collection('messages').get();
     }
 
-    const messages = (messagesSnapshot.docs || [])
+    const messages = groupMessagesIntoThreads((messagesSnapshot.docs || [])
       .map((doc: any) => ({ id: doc.id, ...doc.data() }))
-      // Sort by updatedAt client-side (most recent first)
-      .sort((a: any, b: any) => {
-        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-        return bTime - aTime;
-      });
+      .filter((message: any) => (
+        userRole === 'admin'
+          ? true
+          : message.senderId === userId || message.recipientId === userId
+      )));
 
     return NextResponse.json({ messages, user: decoded });
   } catch (error: any) {
-    // Log the full error detail so server logs show the real cause
-    console.error('Error fetching messages:', error?.message || error?.code || String(error));
+    console.error('Error fetching messages:', error.message || error);
     return createErrorResponse('Internal server error', 500);
   }
 }
@@ -115,8 +112,7 @@ export async function POST(request: NextRequest) {
     const messageText = String(body.message ?? '').trim();
     const subjectText = String(body.subject ?? '').trim();
     const recipientId = String(body.recipientId ?? '').trim() || 'admin';
-    const priority = String(body.priority ?? 'Normal').trim();
-    const category = String(body.category ?? 'General').trim();
+    const priority = String(body.priority ?? 'Normal').trim() || 'Normal';
     const threadId = String(body.threadId ?? '').trim();
 
     if (!messageText) {
@@ -125,8 +121,12 @@ export async function POST(request: NextRequest) {
 
     const senderName = String(userData.fullName ?? userData.name ?? decoded.uid).trim();
     const senderRole = String(userData.role ?? 'resident').toLowerCase();
+    const addressParts = [userData.phase, userData.block && `Blk ${userData.block}`, userData.lot && `Lot ${userData.lot}`]
+      .filter(Boolean)
+      .join(' ');
     const now = new Date();
     const { date, time } = formatTimestamp(now);
+    const subject = normalizeSubject(subjectText || `Message from ${senderName}`);
     const reply = buildReply(messageText, decoded.uid, senderName, senderRole, date, time, now.toISOString());
 
     if (threadId) {
@@ -134,96 +134,116 @@ export async function POST(request: NextRequest) {
       const threadDoc = await threadRef.get();
 
       if (!threadDoc.exists) {
-        return createErrorResponse('Ticket not found', 404);
+        return createErrorResponse('Message thread not found', 404);
       }
 
-      const existingData = threadDoc.data() || {};
-      const updatedReplies = [...(existingData.replies || []), reply];
+      const existingThread = threadDoc.data() ?? {};
+      const existingReplies = Array.isArray(existingThread.replies) ? existingThread.replies : [];
+      const updatedReplies = [...existingReplies, reply];
+      const threadSubject = normalizeSubject(existingThread.subject ?? subject);
 
-      await threadRef.update({
+      const updatedThread = {
+        ...existingThread,
+        senderId: existingThread.senderId ?? decoded.uid,
+        senderName: existingThread.senderName ?? senderName,
+        recipientId: recipientId || existingThread.recipientId || 'admin',
+        recipientRole: String(body.recipientRole ?? existingThread.recipientRole ?? (recipientId === 'admin' ? 'admin' : 'resident')).toLowerCase(),
+        from: senderName,
+        to: String(body.to ?? existingThread.to ?? (recipientId === 'admin' ? 'HOA Admin' : recipientId)),
+        phase: userData.phase ?? existingThread.phase ?? '',
+        block: userData.block ?? existingThread.block ?? '',
+        lot: userData.lot ?? existingThread.lot ?? '',
+        subject: threadSubject,
+        message: messageText,
+        preview: messageText.slice(0, 120),
+        status: 'Unread',
+        read: false,
+        priority,
+        date,
+        time,
         replies: updatedReplies,
         updatedAt: now.toISOString(),
-        status: senderRole === 'admin' ? 'Replied' : 'New',
-        lastMessage: messageText.slice(0, 100),
-        read: false
-      });
+      };
 
-      return NextResponse.json({ message: { id: threadId, ...existingData, replies: updatedReplies } });
-    }
+      await threadRef.set(updatedThread, { merge: true });
 
-    // Generate readable Ticket ID
-    const ticketCountDoc = await adminDb.collection('metadata').doc('ticket_counter').get();
-    let nextId = 1001;
-    if (ticketCountDoc.exists) {
-      nextId = (ticketCountDoc.data()?.count || 1000) + 1;
+      // Create admin notification if message is for admin
+      if (updatedThread.recipientId === 'admin') {
+        try {
+          await adminDb.collection('admin_notifications').add({
+            type: 'new_message',
+            title: 'New Message Received',
+            message: `${senderName}: ${messageText.slice(0, 50)}${messageText.length > 50 ? '...' : ''}`,
+            residentId: decoded.uid,
+            residentName: senderName,
+            threadId: threadId,
+            read: false,
+            createdAt: new Date(),
+          });
+        } catch (notifyErr) {
+          console.error('Failed to create admin notification for message reply:', notifyErr);
+        }
+      }
+
+      return NextResponse.json({
+        message: { id: threadDoc.id, ...updatedThread },
+      }, { status: 200 });
     }
-    await adminDb.collection('metadata').doc('ticket_counter').set({ count: nextId }, { merge: true });
-    
-    const ticketId = `#TKT-${nextId}`;
 
     const messagePayload = {
-      ticketId,
       senderId: decoded.uid,
       senderName,
       recipientId,
-      recipientRole: recipientId === 'admin' ? 'admin' : 'resident',
-      subject: subjectText || `Ticket: ${category}`,
-      category,
-      priority,
-      status: 'New', // UI status
-      ticketStatus: 'Open', // Workflow status
+      recipientRole: String(body.recipientRole ?? (recipientId === 'admin' ? 'admin' : 'resident')).toLowerCase(),
+      from: senderName,
+      to: String(body.to ?? (recipientId === 'admin' ? 'HOA Admin' : recipientId)),
+      phase: userData.phase ?? '',
+      block: userData.block ?? '',
+      lot: userData.lot ?? '',
+      subject: normalizeSubject(subject),
       message: messageText,
       preview: messageText.slice(0, 120),
-      replies: [reply],
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
+      status: 'Unread',
       read: false,
+      priority,
       date,
       time,
-      phase: userData.phase || '',
-      block: userData.block || '',
-      lot: userData.lot || '',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      address: addressParts,
+      replies: [reply],
     };
 
     const ref = adminDb.collection('messages').doc();
-    await ref.set({ ...messagePayload, id: ref.id });
 
-    if (recipientId === 'admin') {
-      await adminDb.collection('admin_notifications').add({
-        type: 'new_ticket',
-        title: `New Ticket ${ticketId}`,
-        message: `${senderName}: ${messageText.slice(0, 50)}`,
-        residentId: decoded.uid,
-        residentName: senderName,
-        threadId: ref.id,
-        read: false,
-        createdAt: now,
-      });
+    await ref.set({
+      ...messagePayload,
+      threadId: ref.id,
+    });
+
+    // Create admin notification if message is for admin
+    if (messagePayload.recipientId === 'admin') {
+      try {
+        await adminDb.collection('admin_notifications').add({
+          type: 'new_message',
+          title: 'New Message Received',
+          message: `${senderName}: ${messageText.slice(0, 50)}${messageText.length > 50 ? '...' : ''}`,
+          residentId: decoded.uid,
+          residentName: senderName,
+          threadId: ref.id,
+          read: false,
+          createdAt: new Date(),
+        });
+      } catch (notifyErr) {
+        console.error('Failed to create admin notification for new message:', notifyErr);
+      }
     }
 
-    return NextResponse.json({ message: { id: ref.id, ...messagePayload } }, { status: 201 });
+    return NextResponse.json({
+      message: { id: ref.id, ...messagePayload, threadId: ref.id },
+    }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating ticket:', error);
+    console.error('Error creating message:', error.message || error);
     return createErrorResponse('Internal server error', 500);
-  }
-}
-
-export async function PATCH(request: NextRequest) {
-  const tokenVerification = await requireApprovedUser(request);
-  if (tokenVerification.error) return createErrorResponse(tokenVerification.error, tokenVerification.status);
-
-  try {
-    const { threadId, ticketStatus, priority, category } = await request.json();
-    if (!threadId) return createErrorResponse('Thread ID is required', 400);
-
-    const updateData: any = { updatedAt: new Date().toISOString() };
-    if (ticketStatus) updateData.ticketStatus = ticketStatus;
-    if (priority) updateData.priority = priority;
-    if (category) updateData.category = category;
-
-    await adminDb.collection('messages').doc(threadId).update(updateData);
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return createErrorResponse(error.message, 500);
   }
 }
