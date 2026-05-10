@@ -10,6 +10,7 @@ import messengerStyles from './messenger.module.css';
 
 interface Message {
   id: string;
+  ticketId: string;
   senderId?: string;
   senderName?: string;
   from: string;
@@ -19,8 +20,10 @@ interface Message {
   date: string;
   time: string;
   message: string;
-  status: 'Unread' | 'Read';
-  priority: 'High' | 'Normal' | 'Low';
+  status: 'Unread' | 'Read' | 'Replied';
+  ticketStatus: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+  category: string;
+  priority: 'High' | 'Normal' | 'Low' | 'Urgent';
   replies?: ConversationEntry[];
   threadId?: string;
 }
@@ -37,50 +40,13 @@ interface ConversationEntry {
 
 export default function AdminMessages() {
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [replyText, setReplyText] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
-
-  useEffect(() => {
-    if (messages.length > 0 && !selectedMessage) {
-      setSelectedMessage(messages[0]);
-    }
-  }, [messages]);
-
-  const markMessageAsRead = async (messageId: string) => {
-    const target = messages.find((message) => message.id === messageId);
-
-    if (!target || target.status === 'Read') {
-      return;
-    }
-
-    try {
-      await apiCall(`/api/messages/${messageId}`, { method: 'PATCH' });
-
-      setMessages((current) =>
-        current.map((message) =>
-          message.id === messageId ? { ...message, status: 'Read' } : message,
-        ),
-      );
-
-      setSelectedMessage((current) =>
-        current && current.id === messageId ? { ...current, status: 'Read' } : current,
-      );
-
-      window.dispatchEvent(new Event('lh-messages-updated'));
-    } catch (error) {
-      console.error('Failed to mark message as read:', error);
-    }
-  };
-
-  const handleSelectMessage = (message: Message) => {
-    setSelectedMessage(message);
-    void markMessageAsRead(message.id);
-  };
+  const [filterStatus, setFilterStatus] = useState('All');
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage(message);
@@ -88,9 +54,29 @@ export default function AdminMessages() {
     setIsToastVisible(true);
   };
 
+  const filteredMessages = messages.filter(m => 
+    filterStatus === 'All' || m.ticketStatus === filterStatus
+  );
+
+  const updateTicketStatus = async (status: string) => {
+    if (!selectedMessage) return;
+    try {
+      await apiCall('/api/messages', {
+        method: 'PATCH',
+        body: JSON.stringify({ threadId: selectedMessage.id, ticketStatus: status })
+      });
+      setMessages(current => current.map(m => 
+        m.id === selectedMessage.id ? { ...m, ticketStatus: status as any } : m
+      ));
+      setSelectedMessage(prev => prev ? { ...prev, ticketStatus: status as any } : null);
+      showToast(`Ticket status updated to ${status}`, 'success');
+    } catch (error) {
+      showToast('Failed to update status', 'error');
+    }
+  };
+
   const handleSendReply = async () => {
     const trimmedReply = replyText.trim();
-
     if (!selectedMessage?.senderId) {
       showToast('Select a resident message to reply to.', 'error');
       return;
@@ -105,12 +91,12 @@ export default function AdminMessages() {
       const response = await apiCall('/api/messages', {
         method: 'POST',
         body: JSON.stringify({
-          subject: `Re: ${selectedMessage.subject}`,
+          subject: selectedMessage.subject,
           message: trimmedReply,
           recipientId: selectedMessage.senderId,
           recipientRole: 'resident',
           to: selectedMessage.from,
-          priority: selectedMessage.priority ?? 'Normal',
+          priority: selectedMessage.priority,
           threadId: selectedMessage.id,
         }),
       });
@@ -120,48 +106,36 @@ export default function AdminMessages() {
       if (updatedMessage) {
         setMessages((current) =>
           current.map((message) =>
-            message.id === updatedMessage.id ? updatedMessage : message,
+            message.id === updatedMessage.id ? { ...updatedMessage, ticketStatus: message.ticketStatus } : message,
           ),
         );
-        setSelectedMessage(updatedMessage);
+        setSelectedMessage({ ...updatedMessage, ticketStatus: selectedMessage.ticketStatus });
       }
 
       setReplyText('');
       showToast('Reply sent successfully.', 'success');
-      window.dispatchEvent(new Event('lh-messages-updated'));
     } catch (error) {
       console.error('Failed to send reply:', error);
       showToast('Failed to send reply. Please try again.', 'error');
     }
   };
 
-  // Fetch messages from API on mount
   useEffect(() => {
     const fetchMessages = async () => {
       try {
         setIsLoading(true);
         const res = await apiCall('/api/messages');
-        // Expecting { messages: Message[] }
-        const payload = res?.messages ?? [];
-        setMessages(payload);
+        setMessages(res?.messages ?? []);
       } catch (err) {
         console.error('Failed to load messages:', err);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchMessages();
   }, []);
 
-  const unreadCount = messages.filter(m => m.status === 'Unread').length;
-
-  useEffect(() => {
-    // minimal loader behavior until messages are fetched from API
-    setIsLoading(false);
-  }, [router]);
-
-  if (isLoading) return <LoadingScreen message="Loading messages..." />;
+  if (isLoading) return <LoadingScreen message="Loading help desk..." />;
 
   return (
     <>
@@ -171,31 +145,47 @@ export default function AdminMessages() {
         isVisible={isToastVisible}
         onClose={() => setIsToastVisible(false)}
       />
+      
       <div className={messengerStyles.messengerContainer}>
           <div className={messengerStyles.messagesList}>
             <div className={messengerStyles.messagesHeader}>
-              <h2>Messages</h2>
-              <span className={messengerStyles.badge}>{unreadCount} New</span>
+              <h2>Ticketing</h2>
+              <select 
+                className={messengerStyles.filterSelect}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="All">All Status</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Closed">Closed</option>
+              </select>
             </div>
             <div className={messengerStyles.messageThreads}>
-              {isLoading ? (
-                <div className={messengerStyles.emptyState}>Loading messages…</div>
-              ) : messages.length === 0 ? (
-                <div className={messengerStyles.emptyState}>
-                  No messages yet. Residents can send messages via the Contact HOA form.
-                </div>
+              {filteredMessages.length === 0 ? (
+                <div className={messengerStyles.emptyState}>No tickets found.</div>
               ) : (
-                messages.map((msg) => (
+                filteredMessages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`${messengerStyles.messageThread} ${selectedMessage?.id === msg.id ? messengerStyles.active : ''}`}
-                    onClick={() => handleSelectMessage(msg)}
+                    onClick={() => setSelectedMessage(msg)}
                   >
+                    <div className={messengerStyles.threadTop}>
+                      <span className={messengerStyles.ticketId}>{msg.ticketId}</span>
+                      <span className={`${messengerStyles.priorityBadge} ${messengerStyles[msg.priority?.toLowerCase()]}`}>
+                        {msg.priority}
+                      </span>
+                    </div>
                     <div className={messengerStyles.threadName}>{msg.from}</div>
-                    <div className={messengerStyles.threadInfo}>Blk {msg.block} - Lot {msg.lot}</div>
                     <div className={messengerStyles.threadSubject}>{msg.subject}</div>
-                    <div className={messengerStyles.threadTime}>{msg.date} {msg.time}</div>
-                    {msg.status === 'Unread' && <div className={messengerStyles.unreadDot}></div>}
+                    <div className={messengerStyles.threadBottom}>
+                      <span className={`${messengerStyles.statusLabel} ${messengerStyles[msg.ticketStatus?.replace(' ', '').toLowerCase()]}`}>
+                        {msg.ticketStatus}
+                      </span>
+                      <span className={messengerStyles.threadTime}>{msg.date}</span>
+                    </div>
                   </div>
                 ))
               )}
@@ -203,75 +193,62 @@ export default function AdminMessages() {
           </div>
 
           <div className={messengerStyles.messageDetail}>
-            {selectedMessage && (
+            {selectedMessage ? (
               <>
                 <div className={messengerStyles.detailHeader}>
-                  <h3>{selectedMessage.subject}</h3>
-                  <span className={messengerStyles.statusBadge}>{selectedMessage.status}</span>
+                  <div className={messengerStyles.detailHeaderTitle}>
+                    <span className={messengerStyles.detailTicketId}>{selectedMessage.ticketId}</span>
+                    <h3>{selectedMessage.subject}</h3>
+                  </div>
+                  <div className={messengerStyles.statusToolbar}>
+                    <button onClick={() => updateTicketStatus('Open')} className={selectedMessage.ticketStatus === 'Open' ? messengerStyles.activeStatus : ''}>Open</button>
+                    <button onClick={() => updateTicketStatus('In Progress')} className={selectedMessage.ticketStatus === 'In Progress' ? messengerStyles.activeStatus : ''}>In Progress</button>
+                    <button onClick={() => updateTicketStatus('Resolved')} className={selectedMessage.ticketStatus === 'Resolved' ? messengerStyles.activeStatus : ''}>Resolved</button>
+                    <button onClick={() => updateTicketStatus('Closed')} className={selectedMessage.ticketStatus === 'Closed' ? messengerStyles.activeStatus : ''}>Closed</button>
+                  </div>
                 </div>
                 <div className={messengerStyles.detailMeta}>
-                  <span>From: {selectedMessage.from} • Blk {selectedMessage.block} - Lot {selectedMessage.lot}</span>
-                  <span>{selectedMessage.date} {selectedMessage.time}</span>
+                  <span><strong>Resident:</strong> {selectedMessage.from} • Blk {selectedMessage.block} - Lot {selectedMessage.lot}</span>
+                  <span><strong>Category:</strong> {selectedMessage.category}</span>
                 </div>
-                  <div className={messengerStyles.messageContent}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {(selectedMessage.replies && selectedMessage.replies.length > 0
-                        ? selectedMessage.replies
-                        : [{
-                            id: selectedMessage.id,
-                            senderName: selectedMessage.from,
-                            senderRole: 'resident',
-                            message: selectedMessage.message,
-                            date: selectedMessage.date,
-                            time: selectedMessage.time,
-                          }]
-                      ).map((reply) => {
-                        const isAdminReply = String(reply.senderRole ?? '').toLowerCase() === 'admin';
-
-                        return (
-                          <div
-                            key={reply.id}
-                            style={{
-                              alignSelf: isAdminReply ? 'flex-end' : 'flex-start',
-                              maxWidth: '85%',
-                              padding: '0.85rem 1rem',
-                              borderRadius: '16px',
-                              background: isAdminReply ? '#0f172a' : '#f8fafc',
-                              color: isAdminReply ? '#ffffff' : '#0f172a',
-                              border: isAdminReply ? 'none' : '1px solid #e2e8f0',
-                            }}
-                          >
-                            <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', opacity: 0.8 }}>
-                              {isAdminReply ? 'HOA Admin' : (reply.senderName ?? selectedMessage.from)}
-                            </div>
-                            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{reply.message}</div>
-                            <div style={{ fontSize: '0.75rem', marginTop: '0.45rem', opacity: 0.7 }}>
-                              {reply.date} {reply.time}
-                            </div>
+                
+                <div className={messengerStyles.messageContent}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {selectedMessage.replies?.map((reply) => {
+                      const isAdminReply = String(reply.senderRole ?? '').toLowerCase() === 'admin';
+                      return (
+                        <div
+                          key={reply.id}
+                          className={`${messengerStyles.chatBubble} ${isAdminReply ? messengerStyles.adminBubble : messengerStyles.residentBubble}`}
+                        >
+                          <div className={messengerStyles.bubbleHeader}>
+                            {isAdminReply ? 'HOA Admin' : (reply.senderName ?? selectedMessage.from)}
+                            <span className={messengerStyles.bubbleTime}>{reply.date} {reply.time}</span>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className={messengerStyles.bubbleBody}>{reply.message}</div>
+                        </div>
+                      );
+                    })}
                   </div>
+                </div>
+
                 <div className={messengerStyles.replySection}>
-                  <h4>Reply</h4>
                   <textarea
-                    placeholder="Type your reply here..."
+                    placeholder="Type your reply to the resident..."
                     className={messengerStyles.replyText}
                     value={replyText}
                     onChange={(event) => setReplyText(event.target.value)}
                   ></textarea>
                   <div className={messengerStyles.replyButtons}>
-                    <button className={messengerStyles.sendBtn} onClick={() => void handleSendReply()}>✈ Send Reply</button>
-                    <button
-                      className={messengerStyles.markBtn}
-                      onClick={() => void markMessageAsRead(selectedMessage.id)}
-                    >
-                      Mark as Read
-                    </button>
+                    <button className={messengerStyles.sendBtn} onClick={() => void handleSendReply()}>✈ Send Message</button>
                   </div>
                 </div>
               </>
+            ) : (
+              <div className={messengerStyles.noSelected}>
+                <div className={messengerStyles.noSelectedIcon}>📩</div>
+                <p>Select a ticket to view conversation</p>
+              </div>
             )}
         </div>
       </div>
