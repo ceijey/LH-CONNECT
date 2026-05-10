@@ -51,7 +51,19 @@ export async function GET(request: NextRequest) {
     // 3. Process data
     const monthlyDues = 400; 
     
-    const financialData = residents.map((resident: any) => {
+    interface FinancialRecord {
+      id: string;
+      block: string;
+      lot: string;
+      resident: string;
+      monthlyDues: number;
+      amountPaid: number;
+      balance: number;
+      status: 'Paid' | 'Pending' | 'Delinquent';
+      paymentMethod: string;
+    }
+
+    const financialData: FinancialRecord[] = residents.map((resident: any) => {
       const residentSubmissions = submissions.filter((s: any) => s.residentId === resident.id);
 
       const amountPaid = residentSubmissions
@@ -86,25 +98,25 @@ export async function GET(request: NextRequest) {
 
     // Filter Delinquency Report if requested
     const finalData = type === 'Delinquency Report' 
-      ? financialData.filter(d => d.status === 'Delinquent') 
+      ? financialData.filter((d: FinancialRecord) => d.status === 'Delinquent') 
       : financialData;
 
     // 4. Calculate Summary & Analytics
-    const totalDues = finalData.reduce((sum: number, d: any) => sum + d.monthlyDues, 0);
-    const totalCollected = finalData.reduce((sum: number, d: any) => sum + d.amountPaid, 0);
-    const outstandingBalance = finalData.reduce((sum: number, d: any) => sum + d.balance, 0);
+    const totalDues = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.monthlyDues, 0);
+    const totalCollected = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.amountPaid, 0);
+    const outstandingBalance = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.balance, 0);
     const collectionRate = totalDues > 0 ? ((totalCollected / totalDues) * 100).toFixed(1) : '0';
 
     // Analytics: Payment Method Breakdown
     const methodCounts: Record<string, number> = {};
-    submissions.filter(s => s.status === 'Verified').forEach(s => {
+    submissions.filter((s: any) => s.status === 'Verified').forEach((s: any) => {
       const method = s.paymentMethod || 'Other';
       methodCounts[method] = (methodCounts[method] || 0) + 1;
     });
 
     const analytics = {
-      verifiedCount: submissions.filter(s => s.status === 'Verified').length,
-      pendingCount: submissions.filter(s => s.status === 'Pending').length,
+      verifiedCount: submissions.filter((s: any) => s.status === 'Verified').length,
+      pendingCount: submissions.filter((s: any) => s.status === 'Pending').length,
       methods: Object.entries(methodCounts).map(([name, value]) => ({ name, value }))
     };
 

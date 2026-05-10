@@ -6,6 +6,7 @@ import { apiCall } from '@/lib/api-client';
 import Skeleton from '@/app/components/Skeleton';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import ImageModal from '@/app/components/ImageModal';
+import ReceiptModal from '@/app/components/ReceiptModal';
 import styles from '../residents/admin-page.module.css';
 
 interface PaymentSubmission {
@@ -40,6 +41,10 @@ export default function AdminPayments() {
     url: '',
     title: '',
     proofKind: 'none'
+  });
+  const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: PaymentSubmission | null }>({
+    isOpen: false,
+    payment: null
   });
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -237,6 +242,12 @@ export default function AdminPayments() {
         onClose={() => setProofModal(prev => ({ ...prev, isOpen: false }))}
       />
 
+      <ReceiptModal
+        isOpen={receiptModal.isOpen}
+        payment={receiptModal.payment}
+        onClose={() => setReceiptModal(prev => ({ ...prev, isOpen: false }))}
+      />
+
       <div className={styles.content}>
           <div className={styles.statsGrid}>
             <div className={styles.registryStat}>
@@ -375,6 +386,23 @@ export default function AdminPayments() {
                         </td>
                         <td>{payment.paymentMethod}</td>
                         <td className={styles.paymentActions}>
+                          <button 
+                            type="button"
+                            className={styles.viewProofBtn} 
+                            style={{ background: '#1B2A4A', color: 'white', borderColor: '#1B2A4A' }}
+                            title="View Official Receipt"
+                            onClick={() => {
+                              setReceiptModal({
+                                isOpen: true,
+                                payment: {
+                                  ...payment,
+                                  fileUrl: proofKind === 'image' ? proofSrc : undefined
+                                }
+                              });
+                            }}
+                          >
+                            📄 View Receipt
+                          </button>
                           <button 
                             type="button"
                             className={styles.viewProofBtn} 

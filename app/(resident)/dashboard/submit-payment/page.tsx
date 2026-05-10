@@ -9,6 +9,7 @@ import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
 import LoadingScreen from '@/app/components/LoadingScreen';
+import ReceiptModal from '@/app/components/ReceiptModal';
 import styles from './submit-payment.module.css';
 
 interface FormData {
@@ -21,16 +22,19 @@ interface FormData {
 }
 
 interface Submission {
-  id?: string;
+  id: string;
   month: string;
-  amount: number;
-  status: 'Verified' | 'Pending';
+  paymentAmount: number;
+  status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
-  paymentMethod?: string;
-  referenceNumber?: string;
+  paymentMethod: string;
+  referenceNumber: string;
   fileName?: string;
   fileUrl?: string;
+  residentName: string;
+  blockLot: string;
+  notes?: string;
 }
 
 interface UserProfile {
@@ -59,10 +63,15 @@ export default function SubmitPaymentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('gcash');
-  const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
+  const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+
+  const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: any | null }>({
+    isOpen: false,
+    payment: null
+  });
 
   useEffect(() => {
     setIsMounted(true);
@@ -264,18 +273,36 @@ export default function SubmitPaymentPage() {
 
       const submission = data.submission as Submission;
 
+      // Update local list
       setRecentSubmissions((current) => [
         {
           ...submission,
           month: submission.month ?? new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
-          amount: Number(submission.amount ?? (Number(formData.paymentAmount) || 0)),
+          paymentAmount: Number(submission.paymentAmount ?? (Number(formData.paymentAmount) || 0)),
           status: submission.status ?? 'Pending',
           submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
+          residentName: formData.residentName,
+          blockLot: formData.blockLot
         },
         ...current,
       ]);
 
       setToast({ message: 'Payment proof submitted successfully!', type: 'success' });
+      
+      // Open receipt modal automatically
+      setReceiptModal({
+        isOpen: true,
+        payment: {
+          ...submission,
+          residentName: formData.residentName,
+          blockLot: formData.blockLot,
+          paymentAmount: Number(formData.paymentAmount),
+          paymentMethod: paymentMethod,
+          status: 'Pending',
+          submittedDate: new Date().toLocaleString()
+        }
+      });
+
       setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT });
       setFileName('');
       setPreview(null);
@@ -297,6 +324,11 @@ export default function SubmitPaymentPage() {
         message={toast?.message ?? ''}
         type={toast?.type ?? 'info'}
         onClose={() => setToast(null)}
+      />
+      <ReceiptModal
+        isOpen={receiptModal.isOpen}
+        payment={receiptModal.payment}
+        onClose={() => setReceiptModal(prev => ({ ...prev, isOpen: false }))}
       />
       {/* Header */}
       <header className={styles.header}>
@@ -600,9 +632,22 @@ export default function SubmitPaymentPage() {
                               </p>
                             ) : (
                               <p className={styles.pendingMsg}>
-                                Your submission is being reviewed by the HOA. This usually takes 1-2 business days. You'll receive a notification once verified.
+                                Your submission is being reviewed by the HOA. This usually takes 1-2 business days.
                               </p>
                             )}
+                            <button 
+                              className={styles.viewReceiptBtn}
+                              onClick={() => setReceiptModal({
+                                isOpen: true,
+                                payment: {
+                                  ...submission,
+                                  paymentAmount: Number(submission.paymentAmount || 0),
+                                  status: submission.status
+                                }
+                              })}
+                            >
+                              📄 View Receipt
+                            </button>
                           </div>
                         </div>
                       </div>
