@@ -56,70 +56,83 @@ export default function QRScannerPage() {
     fetchResidents();
   }, []);
 
+  const [isCameraStarting, setIsCameraStarting] = useState(false);
+
   // Initialize scanner when isScanning changes
   useEffect(() => {
-    if (!isScanning || scannerRef.current) {
-      return;
+    let html5QrCode: any = null;
+
+    if (isScanning && !scannedResident) {
+      const startScanner = async () => {
+        try {
+          setIsCameraStarting(true);
+          const { Html5Qrcode } = await import('html5-qrcode');
+          html5QrCode = new Html5Qrcode('qr-reader');
+          scannerRef.current = html5QrCode;
+
+          const config = {
+            fps: 10,
+            qrbox: { width: 280, height: 280 },
+            aspectRatio: 1,
+          };
+
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText: string) => {
+              const scannedId = decodedText.trim();
+              console.log('QR Scanned ID:', scannedId);
+
+              if (!isValidFirebaseUid(scannedId)) {
+                setScanError('Invalid QR code format. Expected a Firebase UID.');
+                return;
+              }
+
+              const resident = residentsCache.find((r) => r.id === scannedId);
+
+              if (resident) {
+                console.log('Resident found:', resident);
+                setScannedResident(resident);
+                setScanError('');
+                setActionMessage('');
+                
+                // Stop scanning
+                html5QrCode.stop().then(() => {
+                  setIsScanning(false);
+                }).catch((err: any) => {
+                  console.error("Error stopping scanner:", err);
+                  setIsScanning(false);
+                });
+              } else {
+                setScanError(`Resident not found. ID: ${scannedId}`);
+              }
+            },
+            (errorMessage: string) => {
+              // Ignore constant "No QR code found" logs
+            }
+          );
+          setIsCameraStarting(false);
+        } catch (err: any) {
+          console.error("Failed to start scanner:", err);
+          setIsCameraStarting(false);
+          setIsScanning(false);
+          if (err?.toString().toLowerCase().includes('permission')) {
+            setPermissionDenied(true);
+          } else {
+            setScanError('Failed to start camera. Please ensure it is not used by another app.');
+          }
+        }
+      };
+
+      startScanner();
     }
 
-    const setupScanner = async () => {
-      try {
-        const Html5QrcodeScanner = (await import('html5-qrcode')).Html5QrcodeScanner;
-
-        const scanner = new Html5QrcodeScanner('qr-reader', {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1,
-        }, false);
-
-        scanner.render(
-          (decodedText: string) => {
-            // Parse the QR code data
-            const scannedId = decodedText.trim();
-            console.log('QR Scanned ID:', scannedId);
-            console.log('Available resident IDs:', residentsCache.map(r => r.id));
-
-            if (!isValidFirebaseUid(scannedId)) {
-              setScannedResident(null);
-              setScanError('Invalid QR code format. Expected a Firebase UID.');
-              return;
-            }
-            
-            const resident = residentsCache.find((r) => r.id === scannedId);
-
-            if (resident) {
-              console.log('Resident found:', resident);
-              setScannedResident(resident);
-              setScanError('');
-              setActionMessage('');
-              scanner.pause();
-            } else {
-              console.log('Resident not found with ID:', scannedId);
-              setScanError(`Resident not found. ID: ${scannedId}`);
-            }
-          },
-          () => {
-            // Silently fail on scan errors.
-          }
-        );
-
-        scannerRef.current = scanner;
-      } catch (error) {
-        if ((error as Error).message.includes('permission')) {
-          setPermissionDenied(true);
-        }
-        setScanError('Failed to initialize camera. Please ensure camera permission is granted.');
-      }
-    };
-
-    setupScanner();
-
     return () => {
-      if (scannerRef.current && isScanning) {
-        scannerRef.current.clear().catch(() => {});
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(() => {});
       }
     };
-  }, [isScanning, residentsCache]);
+  }, [isScanning, residentsCache, scannedResident]);
 
   const handleStartScan = () => {
     setScannedResident(null);
@@ -129,10 +142,15 @@ export default function QRScannerPage() {
   };
 
   const handleStopScan = () => {
-    setIsScanning(false);
-    if (scannerRef.current) {
-      scannerRef.current.clear().catch(() => {});
-      scannerRef.current = null;
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      scannerRef.current.stop().then(() => {
+        setIsScanning(false);
+        scannerRef.current = null;
+      }).catch(() => {
+        setIsScanning(false);
+      });
+    } else {
+      setIsScanning(false);
     }
   };
 
@@ -140,9 +158,7 @@ export default function QRScannerPage() {
     setScannedResident(null);
     setScanError('');
     setActionMessage('');
-    if (scannerRef.current) {
-      scannerRef.current.resume();
-    }
+    setIsScanning(true);
   };
 
   const handleCopyResidentId = async () => {
@@ -153,35 +169,6 @@ export default function QRScannerPage() {
       setActionMessage('Resident ID copied to clipboard.');
     } catch {
       setScanError('Unable to copy resident ID.');
-    }
-  };
-
-  const handleShareResident = async () => {
-    if (!scannedResident) return;
-
-    const fullAddress = `Blk ${scannedResident.block || '-'} Lot ${scannedResident.lot || '-'}, ${scannedResident.phase || '-'}, Lincoln Heights`;
-    const shareText = [
-      `Resident: ${scannedResident.fullName || 'Unknown Resident'}`,
-      `Resident ID: ${scannedResident.id}`,
-      `Email: ${scannedResident.email || '-'}`,
-      `Phone: ${scannedResident.phone || '-'}`,
-      `Address: ${fullAddress}`,
-      `Balance: ₱${(scannedResident.balance || 0).toLocaleString()}`,
-    ].join('\n');
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'LH-Connect Resident Info',
-          text: shareText,
-        });
-        setActionMessage('Resident details shared successfully.');
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        setActionMessage('Sharing is not supported here, so the resident details were copied instead.');
-      }
-    } catch {
-      setScanError('Unable to share resident details.');
     }
   };
 
@@ -217,20 +204,40 @@ export default function QRScannerPage() {
             )}
 
             {isScanning && (
-              <div className={styles.scanner}>
-                <div id="qr-reader" className={styles.qrReader}></div>
-                <button
-                  onClick={handleStopScan}
-                  className={styles.stopBtn}
-                >
-                  ⏹ Stop Scanning
-                </button>
+              <div className={styles.scannerContainer}>
+                <div className={styles.scannerHeader}>
+                  <h3 className={styles.scannerTitle}>Scanning Resident QR</h3>
+                  <button onClick={handleStopScan} className={styles.closeScanner}>✕</button>
+                </div>
+                
+                <div className={styles.scannerFrame}>
+                  <div id="qr-reader" className={styles.qrReader}></div>
+                  {isCameraStarting && (
+                    <div className={styles.cameraLoading}>
+                      <div className={styles.spinner}></div>
+                      <p>Accessing Camera...</p>
+                    </div>
+                  )}
+                  <div className={styles.scanOverlay}>
+                    <div className={styles.scannerLaser}></div>
+                    <div className={styles.scannerCorner + ' ' + styles.topLeft}></div>
+                    <div className={styles.scannerCorner + ' ' + styles.topRight}></div>
+                    <div className={styles.scannerCorner + ' ' + styles.bottomLeft}></div>
+                    <div className={styles.scannerCorner + ' ' + styles.bottomRight}></div>
+                  </div>
+                </div>
+
+                <div className={styles.scannerFooter}>
+                  <p className={styles.scannerHint}>Align the QR code within the frame to scan</p>
+                  <button onClick={handleStopScan} className={styles.cancelBtn}>
+                    Cancel Scanning
+                  </button>
+                </div>
+
                 {scanError && (
-                  <div className={styles.errorBox}>
-                    <p className={styles.errorText}>{scanError}</p>
-                    <button onClick={() => setScanError('')} className={styles.closeError}>
-                      ✕
-                    </button>
+                  <div className={styles.scanErrorBox}>
+                    <p>{scanError}</p>
+                    <button onClick={() => setScanError('')}>✕</button>
                   </div>
                 )}
               </div>
@@ -251,101 +258,84 @@ export default function QRScannerPage() {
                 {/* Resident Card */}
                 <div className={styles.residentCard}>
                   <div className={styles.cardHeader}>
-                    <h2 className={styles.residentName}>{scannedResident.fullName || 'Unknown Resident'}</h2>
+                    <div className={styles.nameSection}>
+                      <span className={styles.idLabel}>RESIDENT ID: {scannedResident.id}</span>
+                      <h2 className={styles.residentName}>{scannedResident.fullName || 'Unknown Resident'}</h2>
+                    </div>
                     <span
                       className={styles.statusBadge}
                       style={{
-                        background: scannedResident.balance && scannedResident.balance > 0 ? '#c62828' : '#2e7d32',
+                        background: scannedResident.balance && scannedResident.balance > 0 ? '#ef5350' : '#4caf50',
+                        boxShadow: `0 4px 10px ${scannedResident.balance && scannedResident.balance > 0 ? 'rgba(239, 83, 80, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`
                       }}
                     >
-                      {scannedResident.balance && scannedResident.balance > 0 ? 'Delinquent' : 'Paid'}
+                      {scannedResident.balance && scannedResident.balance > 0 ? 'Delinquent' : 'PAID'}
                     </span>
                   </div>
 
-                  {/* Personal Information */}
-                  <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Personal Information</h3>
-                    <div className={styles.infoGrid}>
-                      <div className={styles.infoItem}>
-                        <span className={styles.infoLabel}>Resident ID:</span>
-                        <span className={styles.infoValue}>{scannedResident.id}</span>
+                  <div className={styles.cardBody}>
+                    {/* Left Column: Personal & Location */}
+                    <div className={styles.mainInfo}>
+                      <div className={styles.infoSection}>
+                        <h3 className={styles.subTitle}>Personal Information</h3>
+                        <div className={styles.gridRow}>
+                          <div className={styles.dataGroup}>
+                            <span className={styles.label}>Email Address</span>
+                            <span className={styles.value}>{scannedResident.email || '-'}</span>
+                          </div>
+                          <div className={styles.dataGroup}>
+                            <span className={styles.label}>Phone Number</span>
+                            <span className={styles.value}>{scannedResident.phone || '-'}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className={styles.infoItem}>
-                        <span className={styles.infoLabel}>Email:</span>
-                        <span className={styles.infoValue}>{scannedResident.email || '-'}</span>
-                      </div>
-                      <div className={styles.infoItem}>
-                        <span className={styles.infoLabel}>Phone:</span>
-                        <span className={styles.infoValue}>{scannedResident.phone || '-'}</span>
-                      </div>
-                      <div className={styles.infoItem}>
-                        <span className={styles.infoLabel}>Phase:</span>
-                        <span className={styles.infoValue}>{scannedResident.phase || '-'}</span>
+
+                      <div className={styles.infoSection}>
+                        <h3 className={styles.subTitle}>Location Details</h3>
+                        <div className={styles.gridRow}>
+                          <div className={styles.dataGroup}>
+                            <span className={styles.label}>Phase</span>
+                            <span className={styles.value}>{scannedResident.phase || '-'}</span>
+                          </div>
+                          <div className={styles.dataGroup}>
+                            <span className={styles.label}>Block & Lot</span>
+                            <span className={styles.value}>Blk {scannedResident.block || '-'} Lot {scannedResident.lot || '-'}</span>
+                          </div>
+                        </div>
+                        <div className={styles.fullAddress}>
+                          <span className={styles.label}>Full Address</span>
+                          <span className={styles.value}>Lincoln Heights, Phase {scannedResident.phase}, Blk {scannedResident.block}, Lot {scannedResident.lot}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Location Information */}
-                  <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Location</h3>
-                    <div className={styles.infoGrid}>
-                      <div className={styles.infoItem}>
-                        <span className={styles.infoLabel}>Block:</span>
-                        <span className={styles.infoValue}>{scannedResident.block || '-'}</span>
-                      </div>
-                      <div className={styles.infoItem}>
-                        <span className={styles.infoLabel}>Lot:</span>
-                        <span className={styles.infoValue}>{scannedResident.lot || '-'}</span>
-                      </div>
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <span className={styles.infoLabel}>Full Address:</span>
-                        <span className={styles.infoValue}>
-                          Blk {scannedResident.block} Lot {scannedResident.lot}, {scannedResident.phase}, Lincoln Heights
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Billing Information */}
-                  <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Balance Information</h3>
-                    <div className={styles.billingGrid}>
-                      <div className={styles.billingCard}>
-                        <span className={styles.billingLabel}>Outstanding Balance</span>
-                        <span
-                          className={styles.billingAmount}
-                          style={{
-                            color: scannedResident.balance && scannedResident.balance > 0 ? '#c62828' : '#2e7d32',
-                          }}
+                    {/* Right Column: Balance */}
+                    <div className={styles.balanceSidebar}>
+                      <div className={styles.balanceCard}>
+                        <span className={styles.balanceLabel}>OUTSTANDING BALANCE</span>
+                        <div 
+                          className={styles.balanceValue}
+                          style={{ color: scannedResident.balance && scannedResident.balance > 0 ? '#ef5350' : '#4caf50' }}
                         >
                           ₱{(scannedResident.balance || 0).toLocaleString()}
-                        </span>
+                        </div>
+                        <div className={styles.balanceFooter}>
+                          Last updated: {new Date().toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className={styles.actionButtons}>
-                    <button
-                      onClick={handleRescan}
-                      className={styles.rescanBtn}
-                    >
+                  <div className={styles.cardActions}>
+                    <button onClick={handleRescan} className={styles.primaryAction}>
                       🔄 Scan Another
                     </button>
-                    <Link
-                      href={`/admin/residents/${scannedResident.id}`}
-                      className={styles.viewDetailsBtn}
-                    >
-                      📋 View Full Details
+                    <Link href={`/admin/residents/${scannedResident.id}`} className={styles.secondaryAction}>
+                      👤 View Full Profile
                     </Link>
-                  </div>
-
-                  <div className={styles.utilityButtons}>
-                    <button onClick={handleCopyResidentId} className={styles.utilityBtn}>
-                      📋 Copy Resident ID
-                    </button>
-                    <button onClick={handleShareResident} className={styles.utilityBtnSecondary}>
-                      📤 Share Resident Info
+                    <button onClick={handleCopyResidentId} className={styles.textAction}>
+                      📋 Copy ID
                     </button>
                   </div>
                 </div>

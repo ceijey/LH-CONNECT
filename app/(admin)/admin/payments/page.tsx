@@ -238,6 +238,30 @@ export default function AdminPayments() {
       />
 
       <div className={styles.content}>
+          <div className={styles.statsGrid}>
+            <div className={styles.registryStat}>
+              <div className={styles.registryStatIcon}>⏳</div>
+              <div className={styles.registryStatInfo}>
+                <span className={styles.registryStatLabel}>Pending</span>
+                <span className={styles.registryStatValue}>{pendingCount}</span>
+              </div>
+            </div>
+            <div className={styles.registryStat}>
+              <div className={styles.registryStatIcon}>✓</div>
+              <div className={styles.registryStatInfo}>
+                <span className={styles.registryStatLabel}>Verified</span>
+                <span className={styles.registryStatValue}>{verifiedCount}</span>
+              </div>
+            </div>
+            <div className={styles.registryStat}>
+              <div className={styles.registryStatIcon}>✕</div>
+              <div className={styles.registryStatInfo}>
+                <span className={styles.registryStatLabel}>Rejected</span>
+                <span className={styles.registryStatValue}>{rejectedCount}</span>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.controlsSection} style={{ marginBottom: '20px' }}>
             <input
               type="search"

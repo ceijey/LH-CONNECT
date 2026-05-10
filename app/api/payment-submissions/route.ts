@@ -287,6 +287,8 @@ export async function POST(request: NextRequest) {
     try {
       await adminDb.collection('admin_notifications').add({
         type: 'payment_submission',
+        title: 'New Payment Submitted',
+        message: `${residentName} submitted a payment of ₱${paymentAmount.toFixed(2)}`,
         submissionId: docRef.id,
         residentId: userId,
         residentName,

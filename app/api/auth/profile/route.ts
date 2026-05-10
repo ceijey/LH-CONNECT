@@ -89,6 +89,29 @@ export async function POST(request: NextRequest) {
 
     await adminDb.collection('users').doc(uid).set(userProfile, { merge: true });
 
+    // Create admin notification for new registration
+    if (userProfile.role === 'resident' && userProfile.approvalStatus === 'Pending') {
+      try {
+        await adminDb.collection('admin_notifications').add({
+          type: 'resident_registration',
+          title: 'New Resident Registered',
+          message: `${userProfile.fullName} is awaiting approval.`,
+          residentId: uid,
+          residentName: userProfile.fullName,
+          details: {
+            phase: userProfile.phase,
+            block: userProfile.block,
+            lot: userProfile.lot,
+            phone: userProfile.phone,
+          },
+          read: false,
+          createdAt: new Date(),
+        });
+      } catch (notifyErr) {
+        console.error('Failed to create admin notification for registration:', notifyErr);
+      }
+    }
+
     return NextResponse.json({ message: 'Profile saved successfully', user: userProfile });
   } catch (error: any) {
     console.error('Error saving profile:', error.message);

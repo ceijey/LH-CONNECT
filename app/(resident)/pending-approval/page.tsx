@@ -3,34 +3,104 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
+import styles from './PendingApproval.module.css';
+import { useState } from 'react';
 
 export default function PendingApprovalPage() {
   const router = useRouter();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    // Simulate checking status
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '24px', background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)', color: '#1B2A4A' }}>
-      <div style={{ width: '100%', maxWidth: '720px', background: '#fff', borderRadius: '28px', padding: '40px', boxShadow: '0 18px 50px rgba(27, 42, 74, 0.12)', border: '1px solid rgba(27, 42, 74, 0.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-          <Image src="/lhhoa-logo.png" alt="LHHOA Logo" width={56} height={56} priority />
-          <div>
-            <div style={{ fontSize: '0.85rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5f6f8a', fontWeight: 700 }}>LH-Connect</div>
-            <h1 style={{ margin: 0, fontSize: '2rem', lineHeight: 1.1 }}>Account pending HOA approval</h1>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <Image 
+            src="/lhhoa-logo.png" 
+            alt="LHHOA Logo" 
+            width={64} 
+            height={64} 
+            priority 
+            style={{ marginBottom: '8px' }}
+          />
+          <div className={styles.brand}>LH-Connect</div>
+          
+          <div className={styles.statusIconContainer}>
+            <div className={styles.pulse}></div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          
+          <h1 className={styles.title}>Account pending HOA approval</h1>
+        </div>
+
+        <div className={styles.content}>
+          <p className={styles.description}>
+            Your account has been successfully created, but it is not active yet. 
+            An HOA admin needs to verify your residency details.
+          </p>
+          <p className={styles.subtext}>
+            If you need to speed things up, you can contact the HOA office directly 
+            to confirm your unit details.
+          </p>
+        </div>
+
+        <div className={styles.steps}>
+          <div className={`${styles.step} ${styles.completed}`}>
+            <div className={styles.stepIndicator}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <span>Account Registration Completed</span>
+          </div>
+          <div className={`${styles.step} ${styles.active}`}>
+            <div className={styles.stepIndicator}>2</div>
+            <span>HOA Admin Verification In Progress</span>
+          </div>
+          <div className={styles.step}>
+            <div className={styles.stepIndicator}>3</div>
+            <span>Access Resident Dashboard</span>
           </div>
         </div>
 
-        <p style={{ fontSize: '1.05rem', lineHeight: 1.7, margin: '0 0 16px' }}>
-          Your account has been created, but it is not active yet. An HOA admin needs to verify your residency details before you can access the resident dashboard.
-        </p>
-        <p style={{ fontSize: '1rem', lineHeight: 1.7, margin: '0 0 28px', color: '#4c5a73' }}>
-          If the information you submitted is correct, please wait for approval. If you need to speed things up, contact the HOA office and confirm your unit details.
-        </p>
-
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div className={styles.actions}>
+          <button
+            onClick={handleRefresh}
+            className={styles.primaryButton}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <>
+                <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round"/>
+                </svg>
+                Checking Status...
+              </>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                </svg>
+                Refresh Status
+              </>
+            )}
+          </button>
+          
           <button
             onClick={async () => {
               await logoutAndRedirect(router, '/login');
             }}
-            style={{ border: 'none', borderRadius: '999px', padding: '14px 22px', background: '#1B2A4A', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+            className={styles.secondaryButton}
           >
             Logout
           </button>
@@ -38,4 +108,4 @@ export default function PendingApprovalPage() {
       </div>
     </div>
   );
-}
+}

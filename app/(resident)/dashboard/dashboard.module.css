@@ -115,7 +115,6 @@
   color: #2C3E6B;
 }
 
-/* Main Content */
 .main {
   max-width: 1400px;
   margin: 0 auto;
@@ -126,234 +125,339 @@
 
 .welcomeSection {
   margin-bottom: 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 2px solid rgba(27, 42, 74, 0.05);
+  padding-bottom: 1.5rem;
 }
 
 .welcomeTitle {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 2.25rem;
+  font-weight: 800;
   color: #1B2A4A;
   margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
 }
 
 .residentInfo {
-  color: #4A5568;
-  font-size: 0.95rem;
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.locationBadge {
+  background: #f1f5f9;
+  color: #1B2A4A;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.statusQuickView {
+  display: flex;
+  gap: 1rem;
+}
+
+.statusPill {
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pillPaid {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.pillDelinquent {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 /* Info Grid */
 .infoGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .infoCard {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 25px rgba(27, 42, 74, 0.06);
-  border: 1px solid rgba(27, 42, 74, 0.1);
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
 }
 
 .infoCard:hover {
-  box-shadow: 0 12px 35px rgba(27, 42, 74, 0.1);
   transform: translateY(-4px);
-  border-color: rgba(27, 42, 74, 0.2);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
 }
 
 .cardTitle {
-  color: #4A5568;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.infoIcon,
-.dateIcon,
-.qrIcon {
-  font-size: 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .cardContent {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  align-items: center;
-  text-align: center;
 }
 
 .amount {
   font-size: 2.5rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #1B2A4A;
-}
-
-.dueDate {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1B2A4A;
-}
-
-.cardSubtext {
-  color: #4A5568;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-/* Unpaid Balance Card */
-.unpaidCard {
-  border-color: rgba(239, 68, 68, 0.35);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(254, 242, 242, 0.95) 100%);
-}
-
-.unpaidCard:hover {
-  border-color: rgba(239, 68, 68, 0.55);
-  box-shadow: 0 12px 35px rgba(239, 68, 68, 0.12);
+  letter-spacing: -0.04em;
 }
 
 .unpaidAmount {
   color: #dc2626;
 }
 
-.payNowBtn {
-  display: inline-flex;
+.dueDate {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1B2A4A;
+}
+
+.billDetail {
+  display: flex;
+  gap: 0.5rem;
   align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  padding: 0.75rem 2rem;
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  color: #ffffff;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.billLabel { color: #64748b; }
+.billValue { color: #1B2A4A; font-weight: 700; }
+
+.cardSubtext {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+}
+
+.payNowBtn {
+  margin-top: 1.5rem;
+  background: #dc2626;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
   text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
-  width: fit-content;
-  align-self: center;
+  font-weight: 700;
+  text-align: center;
+  display: block;
+  transition: all 0.2s ease;
 }
 
 .payNowBtn:hover {
-  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
-  transform: translateY(-2px);
-  color: #ffffff;
+  background: #b91c1c;
+  box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.3);
 }
 
-/* QR Code Card */
-.qrCodeContainer {
+/* Digital ID Card Style */
+.qrIdCard {
+  background: linear-gradient(135deg, #1B2A4A 0%, #2C3E6B 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.qrIdCard::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.idCardHeader {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.idCardBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.idCardLogo {
+  background: white;
+  color: #1B2A4A;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 900;
+  font-size: 0.8rem;
+}
+
+.idCardTitle {
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.idCardChip {
+  width: 32px;
+  height: 24px;
+  background: linear-gradient(135deg, #ffd700 0%, #daa520 100%);
+  border-radius: 4px;
+  opacity: 0.9;
+}
+
+.idCardBody {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
 }
 
 .qrCodeWrapper {
+  background: white;
+  padding: 0.5rem;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.idCardInfo {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(27, 42, 74, 0.03);
-  border: 2px solid rgba(27, 42, 74, 0.1);
-  border-radius: 8px;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
-.qrPlaceholder {
-  width: 150px;
-  height: 150px;
-  background: rgba(27, 42, 74, 0.03);
-  border: 2px dashed rgba(27, 42, 74, 0.15);
-  border-radius: 8px;
+.idLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  opacity: 0.6;
+  text-transform: uppercase;
 }
 
-.qrText {
-  color: #4A5568;
+.idValue {
   font-size: 0.85rem;
-  margin: 0;
+  font-weight: 600;
+  font-family: monospace;
+  margin-bottom: 0.5rem;
+}
+
+.idName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.idCardFooter {
+  margin-top: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 0.75rem;
+}
+
+.idCardSecure {
+  font-size: 0.6rem;
+  font-weight: 700;
+  opacity: 0.7;
 }
 
 /* Action Grid */
 .actionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-bottom: 3rem;
 }
 
 .actionCard {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
+  background: white;
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 8px 25px rgba(27, 42, 74, 0.06);
-  border: 1px solid rgba(27, 42, 74, 0.1);
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  backdrop-filter: blur(10px);
+  gap: 1.25rem;
+  text-decoration: none;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
 }
 
 .actionCard:hover {
-  box-shadow: 0 12px 35px rgba(27, 42, 74, 0.1);
-  transform: translateY(-4px);
-  border-color: rgba(27, 42, 74, 0.2);
+  border-color: #1B2A4A;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
 }
 
 .actionIcon {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  width: 54px;
+  height: 54px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
 }
 
 .actionTitle {
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #1B2A4A;
-  margin: 0.5rem 0;
+  margin-bottom: 0.25rem;
 }
 
 .actionDesc {
-  color: #4A5568;
-  font-size: 0.9rem;
-  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
 }
 
-/* Payment Section */
+/* Recent Activity Section */
 .paymentSection {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
+  background: white;
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 8px 25px rgba(27, 42, 74, 0.06);
-  border: 1px solid rgba(27, 42, 74, 0.1);
-  backdrop-filter: blur(10px);
+  border: 1px solid #f1f5f9;
 }
 
 .sectionTitle {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 800;
   color: #1B2A4A;
-  margin: 0 0 1.5rem 0;
+  margin-bottom: 1.5rem;
 }
 
 .paymentList {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
 
@@ -361,383 +465,127 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: rgba(27, 42, 74, 0.03);
-  border-radius: 8px;
-  border-left: 4px solid #1B2A4A;
-  transition: all 0.3s ease;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  transition: background 0.2s;
 }
 
 .paymentItem:hover {
-  background: rgba(27, 42, 74, 0.05);
-}
-
-.paymentInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  background: #f1f5f9;
 }
 
 .paymentMonth {
-  font-weight: 600;
-  color: #1B2A4A;
-  font-size: 0.95rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
+  font-weight: 700;
+  color: #1B2A4A;
 }
 
 .typeBadge {
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
   font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 800;
 }
 
-.typeBadge.bill {
-  background: #fee2e2;
-  color: #ef4444;
-}
-
-.typeBadge.payment {
-  background: #dcfce7;
-  color: #22c55e;
-}
+.typeBadge.bill { background: #fee2e2; color: #dc2626; }
+.typeBadge.payment { background: #dcfce7; color: #16a34a; }
 
 .paymentDate {
-  color: #4A5568;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  color: #64748b;
   margin-top: 0.25rem;
 }
 
 .paymentAmount {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
-.amount.billAmount {
-  color: #ef4444;
-}
-
-.amount.payAmount {
-  color: #22c55e;
-}
+.amount.billAmount { color: #dc2626; font-size: 1rem; }
+.amount.payAmount { color: #16a34a; font-size: 1rem; }
 
 .status {
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  min-width: 80px;
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  min-width: 100px;
   text-align: center;
-}
-
-.paid, .verified, .confirmed {
-  background: rgba(76, 175, 80, 0.2);
-  color: #2e7d32;
-}
-
-.pending, .pendingverification {
-  background: rgba(255, 193, 7, 0.2);
-  color: #f57f17;
-}
-
-.partiallypaid {
-  background: rgba(255, 152, 0, 0.2);
-  color: #e65100;
-}
-
-.rejected, .failed {
-  background: rgba(244, 67, 54, 0.2);
-  color: #d32f2f;
 }
 
 .viewAllBtn {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #1B2A4A 0%, #2C3E6B 100%);
+  background: #f1f5f9;
   border: none;
-  color: #ffffff;
-  border-radius: 8px;
-  font-weight: 600;
+  color: #1B2A4A;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
 
 .viewAllBtn:hover {
-  box-shadow: 0 8px 20px rgba(27, 42, 74, 0.3);
-  transform: translateY(-2px);
+  background: #e2e8f0;
 }
 
-/* Responsive */
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .infoGrid { grid-template-columns: repeat(2, 1fr); }
+  .qrIdCard { grid-column: span 2; }
+}
+
 @media (max-width: 1024px) {
-  .main {
-    padding: 1.5rem;
-  }
-
-  .infoGrid,
-  .actionGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .welcomeTitle {
-    font-size: 1.75rem;
-  }
+  .actionGrid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
-  .main {
-    padding: 1rem;
+  .welcomeSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
   }
-
-  .header {
-    padding: 1.25rem;
-  }
-
-  .welcomeTitle {
-    font-size: 1.5rem;
-  }
-
-  .headerContent {
-    padding: 0 1rem;
-  }
-
-  .amount {
-    font-size: 2rem;
-  }
-
-  .dueDate {
-    font-size: 1.2rem;
-  }
-
-  .infoGrid,
-  .actionGrid {
-    grid-template-columns: 1fr;
-  }
-
+  
+  .welcomeTitle { font-size: 1.75rem; }
+  
+  .infoGrid { grid-template-columns: 1fr; }
+  .qrIdCard { grid-column: span 1; }
+  
+  .actionGrid { grid-template-columns: 1fr; }
+  
   .paymentItem {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.75rem;
+    gap: 1rem;
   }
-
+  
   .paymentAmount {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .actionCard {
-    padding: 1rem;
-  }
-
-  .actionIcon {
-    font-size: 2rem;
-  }
-
-  .actionTitle {
-    font-size: 1rem;
-  }
-
-  .actionDesc {
-    font-size: 0.85rem;
-  }
-
-  .sectionTitle {
-    font-size: 1.25rem;
-  }
-
-  .infoCard {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 1rem;
-  }
-
-  .cardHeader {
-    margin-bottom: 0;
-    width: 100%;
-    justify-content: center;
-    gap: 0.5rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.75rem;
   }
 }
 
-
-  .actionBadge {
-    margin-left: 0;
-  }
 @media (max-width: 480px) {
-  .container {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 50%, #f5f5f5 100%);
-  }
-
-  .header {
-    padding: 1rem;
-    gap: 0.75rem;
-  }
-
-  .logo {
-    gap: 0.5rem;
-  }
-
-  .logoText {
-    font-size: 1rem;
-  }
-
-  .logoSubtext {
-    font-size: 0.6rem;
-  }
-
-  .logoutBtn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
-  }
-
-  .main {
-    max-width: 100%;
-    margin: 0;
-    padding: 0.75rem;
-  }
-
-  .welcomeSection {
-    margin-bottom: 1.5rem;
-  }
-
-  .welcomeTitle {
-    font-size: 1.25rem;
-    margin: 0 0 0.25rem 0;
-  }
-
-  .residentInfo {
-    font-size: 0.85rem;
-  }
-
-  .infoGrid,
-  .actionGrid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .infoCard,
-  .actionCard,
-  .paymentSection {
-    padding: 1.25rem;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    width: 100%;
-  }
-
-  .payNowBtn {
-    width: 100%;
-    max-width: 280px;
-    padding: 0.85rem 1.5rem;
-  }
-
-  .amount {
-    font-size: 1.75rem;
-  }
-
-  .dueDate {
-    font-size: 1.25rem;
-  }
-
-  .cardTitle {
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .cardHeader {
-    margin-bottom: 0.25rem;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .infoIcon,
-  .dateIcon,
-  .qrIcon {
-    font-size: 1.25rem;
-  }
-
-  .qrCodeWrapper {
-    padding: 0.75rem;
-  }
-
-  .qrPlaceholder {
-    width: 120px;
-    height: 120px;
-  }
-
-  .qrText {
-    font-size: 0.8rem;
-  }
-
-  .actionIcon {
-    font-size: 2rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .actionTitle {
-    font-size: 0.95rem;
-    margin: 0.25rem 0;
-  }
-
-  .actionDesc {
-    font-size: 0.8rem;
-    margin: 0;
-  }
-
-  .paymentSection {
-    padding: 1rem;
-  }
-
-  .sectionTitle {
-    font-size: 1.1rem;
-    margin: 0 0 1rem 0;
-  }
-
-  .paymentList {
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  .paymentItem {
-    padding: 0.75rem;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .paymentInfo {
-    gap: 0.2rem;
-  }
-
-  .paymentMonth {
-    font-size: 0.85rem;
-  }
-
-  .paymentDate {
-    font-size: 0.75rem;
-  }
-
-  .status {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.7rem;
-  }
-
-  .viewAllBtn {
-    padding: 0.75rem;
-    font-size: 0.9rem;
-  }
+  .main { padding: 1.25rem; }
+  
+  .welcomeTitle { font-size: 1.5rem; }
+  
+  .amount { font-size: 2rem; }
+  
+  .idCardBody { flex-direction: column; text-align: center; }
+  
+  .actionCard { padding: 1.25rem; }
+  
+  .paymentSection { padding: 1.5rem; }
 }
+
 
 /* Notifications */
 .notificationWrapper {

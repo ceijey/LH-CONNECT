@@ -78,62 +78,185 @@
 }
 
 /* Scanner */
-.scanner {
-  position: relative;
+.scannerContainer {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.qrReader {
-  width: 100%;
-  max-width: 500px;
-  border-radius: 8px;
+  background: #000;
+  border-radius: 12px;
   overflow: hidden;
-  border: 2px solid #1976d2;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-.qrReader > div {
-  border-radius: 8px !important;
-}
-
-.stopBtn {
-  background: #c62828;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.stopBtn:hover {
-  background: #b71c1c;
-  transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(198, 40, 40, 0.3);
-}
-
-.errorBox {
-  background: #ffebee;
-  border: 2px solid #c62828;
-  border-radius: 8px;
-  padding: 1rem;
+.scannerHeader {
+  padding: 1rem 1.5rem;
+  background: #1B2A4A;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  max-width: 500px;
+  color: white;
 }
 
-.closeError {
+.scannerTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.closeScanner {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.closeScanner:hover {
+  opacity: 1;
+}
+
+.scannerFrame {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  background: #000;
+}
+
+.qrReader {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.qrReader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.scanOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scannerLaser {
+  position: absolute;
+  top: 20%;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #ef5350;
+  box-shadow: 0 0 10px #ef5350;
+  animation: laserMove 2s infinite ease-in-out;
+  z-index: 10;
+}
+
+@keyframes laserMove {
+  0% { top: 20%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 80%; opacity: 0; }
+}
+
+.scannerCorner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 4px solid #1976d2;
+  z-index: 10;
+}
+
+.topLeft { top: 15%; left: 15%; border-right: none; border-bottom: none; border-top-left-radius: 8px; }
+.topRight { top: 15%; right: 15%; border-left: none; border-bottom: none; border-top-right-radius: 8px; }
+.bottomLeft { bottom: 15%; left: 15%; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
+.bottomRight { bottom: 15%; right: 15%; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
+
+.cameraLoading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #1B2A4A;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 20;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255,255,255,0.1);
+  border-top: 4px solid #1976d2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.scannerFooter {
+  padding: 1.5rem;
+  background: #f8faff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.scannerHint {
+  color: #546e7a;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.cancelBtn {
+  background: #cfd8dc;
+  color: #455a64;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  background: #b0bec5;
+}
+
+.scanErrorBox {
+  background: #ffebee;
+  color: #c62828;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.scanErrorBox button {
   background: transparent;
   border: none;
   color: #c62828;
-  font-size: 1.5rem;
   cursor: pointer;
-  padding: 0;
+  font-size: 1.1rem;
 }
 
 /* Result Section */
@@ -155,196 +278,232 @@
 
 /* Resident Card */
 .residentCard {
-  background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
-  border-radius: 12px;
-  padding: 2rem;
-  border: 1px solid #bbdefb;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(13, 71, 161, 0.08);
+  border: 1px solid #e3f2fd;
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .cardHeader {
+  background: #f8faff;
+  padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e3f2fd;
+  align-items: center;
+  border-bottom: 1px solid #e3f2fd;
+}
+
+.nameSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.idLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #90a4ae;
+  letter-spacing: 0.05em;
 }
 
 .residentName {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #0d47a1;
+  color: #1B2A4A;
   margin: 0;
 }
 
 .statusBadge {
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
+  padding: 0.4rem 1.25rem;
+  border-radius: 50px;
   color: white;
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 800;
+  font-size: 0.75rem;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-/* Sections */
-.section {
-  margin-bottom: 2rem;
-}
-
-.sectionTitle {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #0d47a1;
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid #1976d2;
-}
-
-.infoGrid {
+.cardBody {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
 }
 
-.infoItem {
+.mainInfo {
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 2rem;
 }
 
-.infoLabel {
-  font-weight: 600;
-  color: #546e7a;
-  font-size: 0.85rem;
+.infoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.infoValue {
-  color: #0d47a1;
-  font-size: 1rem;
-  font-weight: 500;
+.subTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1B2A4A;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-/* Billing Grid */
-.billingGrid {
+.subTitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e3f2fd;
+}
+
+.gridRow {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
 }
 
-.billingCard {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(13, 71, 161, 0.1);
-  border-left: 4px solid #1976d2;
+.dataGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
-.billingLabel {
-  color: #546e7a;
-  font-size: 0.85rem;
-  font-weight: 500;
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #90a4ae;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.billingAmount {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #0d47a1;
-}
-
-.billingValue {
-  color: #1976d2;
+.value {
   font-size: 1rem;
   font-weight: 600;
+  color: #455a64;
 }
 
-/* Action Buttons */
-.actionButtons {
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 2px solid #e3f2fd;
-}
-
-.rescanBtn,
-.viewDetailsBtn {
-  flex: 1;
+.fullAddress {
+  background: #f1f8ff;
   padding: 1rem;
   border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  text-align: center;
-  border: none;
+  border-left: 3px solid #1976d2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Sidebar & Balance */
+.balanceSidebar {
+  background: #fcfdfe;
+  padding: 2rem;
+  border-left: 1px solid #e3f2fd;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
 }
 
-.rescanBtn {
+.balanceCard {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e3f2fd;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.balanceLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #90a4ae;
+  text-align: center;
+}
+
+.balanceValue {
+  font-size: 2.25rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.balanceFooter {
+  font-size: 0.7rem;
+  color: #b0bec5;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+/* Actions */
+.cardActions {
+  background: #f8faff;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  border-top: 1px solid #e3f2fd;
+}
+
+.primaryAction {
   background: #1976d2;
   color: white;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
 }
 
-.rescanBtn:hover {
+.primaryAction:hover {
   background: #1565c0;
   transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(25, 118, 210, 0.3);
+  box-shadow: 0 6px 15px rgba(25, 118, 210, 0.3);
 }
 
-.viewDetailsBtn {
-  background: #0d47a1;
+.secondaryAction {
+  background: #1B2A4A;
   color: white;
-}
-
-.viewDetailsBtn:hover {
-  background: #0a3d8a;
-  transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(13, 71, 161, 0.3);
-}
-
-.utilityButtons {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.utilityBtn,
-.utilityBtnSecondary {
-  padding: 0.95rem 1rem;
+  padding: 0.8rem 1.5rem;
   border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.secondaryAction:hover {
+  background: #2C3E6B;
+  transform: translateY(-2px);
+}
+
+.textAction {
+  background: transparent;
+  color: #1976d2;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
   border: none;
+  cursor: pointer;
+  margin-left: auto;
 }
 
-.utilityBtn {
+.textAction:hover {
   background: #e3f2fd;
-  color: #0d47a1;
-}
-
-.utilityBtn:hover {
-  background: #bbdefb;
-  transform: translateY(-2px);
-}
-
-.utilityBtnSecondary {
-  background: #ede7f6;
-  color: #4527a0;
-}
-
-.utilityBtnSecondary:hover {
-  background: #d1c4e9;
-  transform: translateY(-2px);
 }
 
 /* Info Sidebar */
@@ -471,37 +630,92 @@
 
 @media (max-width: 768px) {
   .scannerSection {
-    padding: 1.5rem;
+    padding: 0.75rem;
   }
   
-  .qrReader {
-    max-width: 100%;
+  .scanPrompt {
+    padding: 2rem 1rem;
+  }
+
+  .promptTitle {
+    font-size: 1.25rem;
   }
 
   .residentCard {
-    padding: 1rem;
+    border-radius: 12px;
   }
 
   .cardHeader {
     flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
     gap: 0.75rem;
   }
 
-  .residentName {
-    font-size: 1.5rem;
+  .idLabel {
+    font-size: 0.65rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
-  .infoGrid, .billingGrid {
+  .residentName {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .cardBody {
+    grid-template-columns: 1fr;
+  }
+
+  .mainInfo {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  .gridRow {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
 
-  .actionButtons {
-    flex-direction: column;
-    gap: 0.75rem;
+  .balanceSidebar {
+    padding: 1.25rem 1rem;
+    border-left: none;
+    border-top: 1px solid #e3f2fd;
+    background: #fcfdfe;
   }
 
-  .utilityButtons {
-    grid-template-columns: 1fr;
+  .balanceValue {
+    font-size: 1.5rem;
+  }
+
+  .cardActions {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .primaryAction, .secondaryAction, .textAction {
+    width: 100%;
+    justify-content: center;
+    margin: 0;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .fullAddress {
+    padding: 0.75rem;
+  }
+
+  .value {
+    font-size: 0.85rem;
+    word-break: break-word;
+  }
+
+  .infoSidebar {
+    margin-top: 1rem;
   }
 }

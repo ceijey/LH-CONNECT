@@ -77,6 +77,44 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     await adminDb.collection('users').doc(id).update(updatePayload);
 
+    // If approvalStatus is changed, mark corresponding registration notification as read
+    if (updatePayload.approvalStatus) {
+      try {
+        const notificationsSnapshot = await adminDb
+          .collection('admin_notifications')
+          .where('residentId', '==', id)
+          .where('type', '==', 'resident_registration')
+          .where('read', '==', false)
+          .get();
+        
+        const batch = adminDb.batch();
+        notificationsSnapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+          batch.update(doc.ref, { read: true });
+        });
+        await batch.commit();
+
+        // Create a new notification for the action taken
+        if (updatePayload.approvalStatus === 'Approved' || updatePayload.approvalStatus === 'Rejected') {
+          try {
+            await adminDb.collection('admin_notifications').add({
+              type: 'resident_action',
+              title: `Resident ${updatePayload.approvalStatus}`,
+              message: `${currentData?.fullName || 'Resident'} has been ${updatePayload.approvalStatus.toLowerCase()}.`,
+              residentId: id,
+              residentName: currentData?.fullName || 'Resident',
+              status: updatePayload.approvalStatus.toLowerCase(),
+              read: true, // Mark as read since the admin just took this action
+              createdAt: new Date(),
+            });
+          } catch (notifyErr) {
+            console.error('Failed to create admin notification for action:', notifyErr);
+          }
+        }
+      } catch (notifyErr) {
+        console.error('Failed to update registration notifications:', notifyErr);
+      }
+    }
+
     // Create notification and send email if balance is being set
     if (updatePayload.balance !== undefined && updatePayload.balance > 0) {
       const now = new Date();

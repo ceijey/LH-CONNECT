@@ -167,6 +167,24 @@ export async function POST(request: NextRequest) {
 
       await threadRef.set(updatedThread, { merge: true });
 
+      // Create admin notification if message is for admin
+      if (updatedThread.recipientId === 'admin') {
+        try {
+          await adminDb.collection('admin_notifications').add({
+            type: 'new_message',
+            title: 'New Message Received',
+            message: `${senderName}: ${messageText.slice(0, 50)}${messageText.length > 50 ? '...' : ''}`,
+            residentId: decoded.uid,
+            residentName: senderName,
+            threadId: threadId,
+            read: false,
+            createdAt: new Date(),
+          });
+        } catch (notifyErr) {
+          console.error('Failed to create admin notification for message reply:', notifyErr);
+        }
+      }
+
       return NextResponse.json({
         message: { id: threadDoc.id, ...updatedThread },
       }, { status: 200 });
@@ -202,6 +220,24 @@ export async function POST(request: NextRequest) {
       ...messagePayload,
       threadId: ref.id,
     });
+
+    // Create admin notification if message is for admin
+    if (messagePayload.recipientId === 'admin') {
+      try {
+        await adminDb.collection('admin_notifications').add({
+          type: 'new_message',
+          title: 'New Message Received',
+          message: `${senderName}: ${messageText.slice(0, 50)}${messageText.length > 50 ? '...' : ''}`,
+          residentId: decoded.uid,
+          residentName: senderName,
+          threadId: ref.id,
+          read: false,
+          createdAt: new Date(),
+        });
+      } catch (notifyErr) {
+        console.error('Failed to create admin notification for new message:', notifyErr);
+      }
+    }
 
     return NextResponse.json({
       message: { id: ref.id, ...messagePayload, threadId: ref.id },

@@ -147,3 +147,48 @@
 .viewDetailsBtn:active {
   transform: translateY(0);
 }
+
+@media (max-width: 480px) {
+  .popup {
+    width: calc(100% - 32px);
+    margin: 16px;
+    border-radius: 20px;
+  }
+
+  .header {
+    padding: 24px 20px;
+  }
+
+  .icon {
+    font-size: 36px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .body {
+    padding: 20px;
+  }
+
+  .amount {
+    font-size: 28px;
+  }
+
+  .message {
+    font-size: 14px;
+  }
+
+  .footer {
+    padding: 16px 20px;
+  }
+
+  .buttonGroup {
+    flex-direction: column-reverse;
+  }
+
+  .button {
+    width: 100%;
+    padding: 14px;
+  }
+}

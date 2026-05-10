@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import Toast from '@/app/components/Toast';
@@ -9,6 +9,7 @@ import reportsStyles from './reports.module.css';
 import Skeleton from '@/app/components/Skeleton';
 
 interface ReportData {
+  id: string;
   block: string;
   lot: string;
   resident: string;
@@ -16,20 +17,36 @@ interface ReportData {
   amountPaid: number;
   balance: number;
   status: 'Paid' | 'Pending' | 'Delinquent';
+  paymentMethod?: string;
 }
+
+interface AnalyticsData {
+  verifiedCount: number;
+  pendingCount: number;
+  methods: { name: string; value: number }[];
+}
+
+type SortConfig = {
+  key: keyof ReportData;
+  direction: 'ascending' | 'descending';
+} | null;
 
 export default function AdminReports() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState('February 2026');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedReportType, setSelectedReportType] = useState('Monthly Report');
   const [financialData, setFinancialData] = useState<ReportData[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [summary, setSummary] = useState({
     totalDues: 0,
     totalCollected: 0,
     outstandingBalance: 0,
     collectionRate: '0'
   });
+  const [sortConfig, setSortConfig] = useState<SortConfig>(null);
+  
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
@@ -43,8 +60,14 @@ export default function AdminReports() {
   const fetchReport = async () => {
     setIsLoading(true);
     try {
-      const data = await apiCall(`/api/reports?month=${selectedMonth}&type=${selectedReportType}`);
+      const query = new URLSearchParams({
+        month: selectedMonth,
+        type: selectedReportType,
+        date: selectedDate
+      });
+      const data = await apiCall(`/api/reports?${query.toString()}`);
       setFinancialData(data.financialData || []);
+      setAnalytics(data.analytics || null);
       setSummary(data.summary || {
         totalDues: 0,
         totalCollected: 0,
@@ -61,7 +84,34 @@ export default function AdminReports() {
 
   useEffect(() => {
     fetchReport();
-  }, [selectedMonth, selectedReportType]);
+  }, [selectedMonth, selectedReportType, selectedDate]);
+
+  const sortedData = useMemo(() => {
+    let sortableItems = [...financialData];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        const aVal = a[sortConfig.key] ?? '';
+        const bVal = b[sortConfig.key] ?? '';
+        
+        if (aVal < bVal) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (aVal > bVal) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [financialData, sortConfig]);
+
+  const requestSort = (key: keyof ReportData) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage(message);
@@ -75,12 +125,10 @@ export default function AdminReports() {
 
   const handleExportExcel = () => {
     if (financialData.length === 0) return;
-    
-    const headers = ['Block', 'Lot', 'Resident', 'Monthly Dues', 'Amount Paid', 'Balance', 'Status'];
+    const headers = ['Block', 'Lot', 'Resident', 'Monthly Dues', 'Amount Paid', 'Balance', 'Status', 'Method'];
     const rows = financialData.map(d => [
-      d.block, d.lot, d.resident, d.monthlyDues, d.amountPaid, d.balance, d.status
+      d.block, d.lot, d.resident, d.monthlyDues, d.amountPaid, d.balance, d.status, d.paymentMethod || 'N/A'
     ]);
-    
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -88,9 +136,7 @@ export default function AdminReports() {
     link.setAttribute("href", url);
     link.setAttribute("download", `LH-Connect_Report_${selectedMonth.replace(' ', '_')}.csv`);
     link.style.visibility = 'hidden';
-    if (document.body) {
-      document.body.appendChild(link);
-    }
+    document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
@@ -100,65 +146,16 @@ export default function AdminReports() {
   if (isLoading) {
     return (
       <div className={styles.content}>
-        {/* Controls Skeleton */}
         <div className={`${reportsStyles.controlsRow} no-print`}>
-          <div className={reportsStyles.selectGroup}>
-            <Skeleton height="42px" width="240px" borderRadius="8px" />
-            <Skeleton height="42px" width="240px" borderRadius="8px" />
-          </div>
-          <div className={reportsStyles.exportButtons}>
-            <Skeleton height="42px" width="140px" borderRadius="8px" />
-            <Skeleton height="42px" width="140px" borderRadius="8px" />
-          </div>
+          <Skeleton height="42px" width="500px" borderRadius="10px" />
+          <Skeleton height="42px" width="300px" borderRadius="10px" />
         </div>
-
-        {/* Summary Cards Skeleton */}
         <div className={reportsStyles.statsGrid}>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className={reportsStyles.statCard}>
-              <Skeleton height="0.875rem" width="50%" style={{ marginBottom: '0.625rem' }} />
-              <Skeleton height="2rem" width="65%" />
-            </div>
+            <Skeleton key={i} height="120px" borderRadius="16px" />
           ))}
         </div>
-
-        {/* Report Content Skeleton */}
-        <div className={reportsStyles.reportContent}>
-          <Skeleton height="1.375rem" width="280px" style={{ marginBottom: '1.25rem' }} />
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Block/Lot</th>
-                  <th>Resident Name</th>
-                  <th>Monthly Dues</th>
-                  <th>Amount Paid</th>
-                  <th>Balance</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}>
-                    <td><Skeleton height="0.9rem" width="82%" /></td>
-                    <td><Skeleton height="0.9rem" width="88%" /></td>
-                    <td><Skeleton height="0.9rem" width="78%" /></td>
-                    <td><Skeleton height="0.9rem" width="78%" /></td>
-                    <td><Skeleton height="0.9rem" width="75%" /></td>
-                    <td><Skeleton height="1.5rem" width="70%" borderRadius="4px" /></td>
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={2}><Skeleton height="0.9rem" width="40%" /></td>
-                  <td><Skeleton height="0.9rem" width="78%" /></td>
-                  <td><Skeleton height="0.9rem" width="78%" /></td>
-                  <td><Skeleton height="0.9rem" width="75%" /></td>
-                  <td><Skeleton height="0.9rem" width="20%" /></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Skeleton height="400px" borderRadius="16px" />
       </div>
     );
   }
@@ -173,15 +170,17 @@ export default function AdminReports() {
       />
       <div className={styles.content}>
           {/* Print Header */}
-          <div className={`${reportsStyles.printOnly} ${reportsStyles.printHeader}`}>
-            <div className={reportsStyles.printLogo}>
-              <span className={reportsStyles.printLogoIcon}>🏠</span>
-              <span className={reportsStyles.printLogoText}>LH-Connect</span>
-            </div>
-            <div className={reportsStyles.printReportDetails}>
-              <h1 className={reportsStyles.printReportTitle}>{selectedReportType}</h1>
-              <div className={reportsStyles.printDate}>
-                Period: {selectedMonth} | Generated: {new Date().toLocaleDateString()}
+          <div className={reportsStyles.printOnly}>
+            <div className={reportsStyles.printHeader}>
+              <div className={reportsStyles.printLogo}>
+                <span className={reportsStyles.printLogoIcon}>🏠</span>
+                <span className={reportsStyles.printLogoText}>LH-Connect</span>
+              </div>
+              <div className={reportsStyles.printReportDetails}>
+                <h1 className={reportsStyles.printReportTitle}>{selectedReportType}</h1>
+                <div className={reportsStyles.printDate}>
+                  Period: {selectedReportType === 'Daily Report' ? selectedDate : selectedMonth} | Generated: {new Date().toLocaleDateString()}
+                </div>
               </div>
             </div>
           </div>
@@ -189,125 +188,167 @@ export default function AdminReports() {
           <div className={`${reportsStyles.controlsRow} no-print`}>
             <div className={reportsStyles.selectGroup}>
               <select 
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className={reportsStyles.select}
-              >
-                {months.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-              <select 
                 value={selectedReportType}
                 onChange={(e) => setSelectedReportType(e.target.value)}
                 className={reportsStyles.select}
               >
                 <option>Monthly Report</option>
-                <option>Annual Report</option>
+                <option>Daily Report</option>
                 <option>Delinquency Report</option>
+                <option>Annual Report</option>
               </select>
+
+              {selectedReportType === 'Daily Report' ? (
+                <input 
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className={reportsStyles.select}
+                />
+              ) : (
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className={reportsStyles.select}
+                >
+                  {months.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              )}
             </div>
             <div className={reportsStyles.exportButtons}>
-              <button 
-                onClick={handleExportPDF}
-                className={reportsStyles.exportBtn}
-                style={{ borderRadius: '8px' }}
-              >
-                📄 Export PDF
-              </button>
-              <button 
-                onClick={handleExportExcel}
-                className={reportsStyles.exportBtn}
-                style={{ borderRadius: '8px' }}
-              >
-                📊 Export Excel
-              </button>
+              <button onClick={handleExportPDF} className={reportsStyles.exportBtn}>📄 PDF Report</button>
+              <button onClick={handleExportExcel} className={reportsStyles.exportBtn}>📊 Excel/CSV</button>
             </div>
           </div>
 
           <div className={reportsStyles.statsGrid}>
             <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statLabel}>Total Dues</div>
-              <div className={reportsStyles.statValue}>₱{summary.totalDues.toLocaleString()}</div>
+              <span className={reportsStyles.statLabel}>Total Receivables</span>
+              <span className={reportsStyles.statValue}>₱{summary.totalDues.toLocaleString()}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statLabel}>Total Collected</div>
-              <div className={reportsStyles.statValue} style={{ color: '#2e7d32' }}>₱{summary.totalCollected.toLocaleString()}</div>
+              <span className={reportsStyles.statLabel}>Total Collected</span>
+              <span className={reportsStyles.statValue} style={{ color: '#16a34a' }}>₱{summary.totalCollected.toLocaleString()}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statLabel}>Outstanding Balance</div>
-              <div className={reportsStyles.statValue} style={{ color: '#d32f2f' }}>₱{summary.outstandingBalance.toLocaleString()}</div>
+              <span className={reportsStyles.statLabel}>Outstanding</span>
+              <span className={reportsStyles.statValue} style={{ color: '#dc2626' }}>₱{summary.outstandingBalance.toLocaleString()}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statLabel}>Collection Rate</div>
-              <div className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary.collectionRate}%</div>
+              <span className={reportsStyles.statLabel}>Collection Rate</span>
+              <span className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary.collectionRate}%</span>
+            </div>
+          </div>
+
+          {/* Analytics Visualization (Visible in App & Print) */}
+          <div className={reportsStyles.analyticsGrid}>
+            <div className={reportsStyles.analyticsCard}>
+              <h3 className={reportsStyles.analyticsTitle}>📊 Payment Methods Breakdown</h3>
+              <div className={reportsStyles.methodList}>
+                {analytics?.methods.map(m => (
+                  <div key={m.name} className={reportsStyles.methodItem}>
+                    <span className={reportsStyles.methodName}>{m.name}</span>
+                    <div className={reportsStyles.methodBarContainer}>
+                      <div 
+                        className={reportsStyles.methodBar} 
+                        style={{ width: `${(m.value / (analytics.verifiedCount || 1)) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className={reportsStyles.methodValue}>{m.value}</span>
+                  </div>
+                ))}
+                {(!analytics?.methods || analytics.methods.length === 0) && (
+                  <div style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'center', padding: '10px' }}>
+                    No payment data for this period.
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className={reportsStyles.analyticsCard}>
+              <h3 className={reportsStyles.analyticsTitle}>📈 Efficiency</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                  <div className={reportsStyles.statLabel}>Verified Transactions</div>
+                  <div className={reportsStyles.statValue} style={{ fontSize: '1.25rem' }}>{analytics?.verifiedCount || 0}</div>
+                </div>
+                <div>
+                  <div className={reportsStyles.statLabel}>Pending Verification</div>
+                  <div className={reportsStyles.statValue} style={{ fontSize: '1.25rem', color: '#f59e0b' }}>{analytics?.pendingCount || 0}</div>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className={reportsStyles.reportContent}>
-            <h2 className={reportsStyles.reportTitle}>{selectedReportType} - {selectedMonth}</h2>
+            <h2 className={reportsStyles.reportTitle}>
+              {selectedReportType} — {selectedReportType === 'Daily Report' ? selectedDate : selectedMonth}
+            </h2>
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Block/Lot</th>
-                    <th>Resident Name</th>
-                    <th>Monthly Dues</th>
-                    <th>Amount Paid</th>
-                    <th>Balance</th>
-                    <th>Status</th>
+                    <th onClick={() => requestSort('block')} className={reportsStyles.sortableHeader}>
+                      Blk/Lot {sortConfig?.key === 'block' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    </th>
+                    <th onClick={() => requestSort('resident')} className={reportsStyles.sortableHeader}>
+                      Resident Name {sortConfig?.key === 'resident' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    </th>
+                    <th onClick={() => requestSort('monthlyDues')} className={reportsStyles.sortableHeader}>
+                      Dues {sortConfig?.key === 'monthlyDues' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    </th>
+                    <th onClick={() => requestSort('amountPaid')} className={reportsStyles.sortableHeader}>
+                      Paid {sortConfig?.key === 'amountPaid' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    </th>
+                    <th onClick={() => requestSort('balance')} className={reportsStyles.sortableHeader}>
+                      Balance {sortConfig?.key === 'balance' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    </th>
+                    <th onClick={() => requestSort('status')} className={reportsStyles.sortableHeader}>
+                      Status {sortConfig?.key === 'status' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {financialData.map((row, idx) => (
-                    <tr key={idx}>
+                  {sortedData.map((row) => (
+                    <tr key={row.id}>
                       <td>Blk {row.block} Lot {row.lot}</td>
                       <td>{row.resident}</td>
-                      <td>₱{row.monthlyDues}</td>
-                      <td style={{ color: row.amountPaid > 0 ? '#2e7d32' : '#000' }}>₱{row.amountPaid}</td>
-                      <td style={{ color: row.balance > 0 ? '#d32f2f' : '#000' }}>₱{row.balance}</td>
+                      <td>₱{row.monthlyDues.toLocaleString()}</td>
+                      <td style={{ color: row.amountPaid > 0 ? '#16a34a' : '#64748b', fontWeight: 700 }}>
+                        ₱{row.amountPaid.toLocaleString()}
+                      </td>
+                      <td style={{ color: row.balance > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>
+                        ₱{row.balance.toLocaleString()}
+                      </td>
                       <td>
-                        <span style={{
-                          padding: '0.3rem 0.8rem',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          background: row.status === 'Paid' ? '#e8f5e9' : row.status === 'Pending' ? '#fff3e0' : '#ffebee',
-                          color: row.status === 'Paid' ? '#2e7d32' : row.status === 'Pending' ? '#f57c00' : '#d32f2f'
-                        }}>
+                        <span className={`${styles.badge} ${row.status === 'Paid' ? styles.verified : row.status === 'Pending' ? styles.pending : styles.rejected}`}>
                           {row.status}
                         </span>
                       </td>
                     </tr>
                   ))}
-                  <tr style={{ fontWeight: 'bold', borderTop: '2px solid #e0e0e0', background: '#fafafa' }}>
-                    <td colSpan={2}>TOTAL</td>
-                    <td>₱{summary.totalDues.toLocaleString()}</td>
-                    <td style={{ color: '#2e7d32' }}>₱{summary.totalCollected.toLocaleString()}</td>
-                    <td style={{ color: '#d32f2f' }}>₱{summary.outstandingBalance.toLocaleString()}</td>
-                    <td></td>
-                  </tr>
+                  {sortedData.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                        No records found for this period.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
+            </div>
           </div>
 
-          {/* Print Footer */}
           <div className={`${reportsStyles.printOnly} ${reportsStyles.printFooter}`}>
-            <div>LH-Connect Financial Management System - Property of LH Homeowners Association</div>
-            <div>This is an electronically generated report.</div>
+            <div>LH-Connect Financial Analytics System — Property of LH Homeowners Association</div>
+            <div>Report generated on {new Date().toLocaleString()} by System Administrator</div>
           </div>
-        </div>
       </div>
+
       <style jsx global>{`
         @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            background: white !important;
-          }
-          .content {
-            box-shadow: none !important;
-            padding: 0 !important;
-          }
+          .no-print { display: none !important; }
+          body { background: white !important; padding: 0 !important; }
+          .content { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
         }
       `}</style>
     </>

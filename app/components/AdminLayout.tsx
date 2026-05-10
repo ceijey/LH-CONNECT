@@ -8,6 +8,7 @@ import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import UnreadMessagesBadge from './UnreadMessagesBadge';
 import ConfirmationModal from './ConfirmationModal';
+import AdminNotifications from './AdminNotifications';
 import styles from './AdminLayout.module.css';
 
 interface AdminLayoutProps {
@@ -138,6 +139,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             <h1 className={styles.pageTitle}>{getActiveTitle()}</h1>
           </div>
           <div className={styles.headerRight}>
+            <AdminNotifications />
             <span className={styles.userLabel}>{userName}</span>
             <div className={styles.userAvatar}>👤</div>
           </div>

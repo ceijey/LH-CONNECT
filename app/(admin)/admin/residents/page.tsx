@@ -89,7 +89,7 @@ export default function AdminResidents() {
       });
 
       setAllResidents(residents);
-      setFilteredResidents(residents);
+      applyFiltersAndSorting(searchTerm, sortConfig);
     } catch (error) {
       console.error('Failed to load residents:', error);
       setAllResidents([]);
@@ -103,14 +103,33 @@ export default function AdminResidents() {
     loadResidents();
   }, []);
 
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Resident; direction: 'asc' | 'desc' } | null>({
+    key: 'name',
+    direction: 'asc'
+  });
+
   const handleSearch = (term: string) => {
     setSearchTerm(term);
+    applyFiltersAndSorting(term, sortConfig);
+  };
+
+  const handleSort = (key: keyof Resident) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    const newSortConfig = { key, direction };
+    setSortConfig(newSortConfig);
+    applyFiltersAndSorting(searchTerm, newSortConfig);
+  };
+
+  const applyFiltersAndSorting = (term: string, config: typeof sortConfig) => {
     const normalizedTerm = term.toLowerCase().trim();
-    
-    if (!normalizedTerm) {
-      setFilteredResidents(allResidents);
-    } else {
-      const filtered = allResidents.filter(resident => {
+    let result = [...allResidents];
+
+    // Filter
+    if (normalizedTerm) {
+      result = result.filter(resident => {
         const name = (resident.name || '').toLowerCase();
         const id = (resident.id || '').toLowerCase();
         const address = `${resident.phase || ''} Block ${resident.block || ''}`.toLowerCase();
@@ -123,8 +142,27 @@ export default function AdminResidents() {
           phone.includes(normalizedTerm)
         );
       });
-      setFilteredResidents(filtered);
     }
+
+    // Sort
+    if (config) {
+      result.sort((a, b) => {
+        const aValue = a[config.key];
+        const bValue = b[config.key];
+
+        if (aValue === undefined || bValue === undefined) return 0;
+
+        if (aValue < bValue) {
+          return config.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return config.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    setFilteredResidents(result);
   };
 
   const handleConfirmDelete = async () => {
@@ -229,6 +267,20 @@ export default function AdminResidents() {
     );
   }
 
+  const renderSortHeader = (label: string, key: keyof Resident) => {
+    const isActive = sortConfig?.key === key;
+    return (
+      <th onClick={() => handleSort(key)} className={styles.sortableHeader}>
+        <div className={styles.headerContent}>
+          {label}
+          <span className={`${styles.sortIcon} ${isActive ? styles.activeSort : ''}`}>
+            {isActive ? (sortConfig.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+          </span>
+        </div>
+      </th>
+    );
+  };
+
   return (
     <>
       <ConfirmationModal
@@ -243,38 +295,56 @@ export default function AdminResidents() {
 
       <div className={styles.statsGrid}>
           <div className={styles.registryStat}>
-            <div className={styles.registryStatLabel}>Total Residents</div>
-            <div className={styles.registryStatValue}>{totalResidents}</div>
+            <div className={styles.registryStatIcon}>👥</div>
+            <div className={styles.registryStatInfo}>
+              <div className={styles.registryStatLabel}>Total Residents</div>
+              <div className={styles.registryStatValue}>{totalResidents}</div>
+            </div>
           </div>
           <div className={styles.registryStat}>
-            <div className={styles.registryStatLabel}>Active</div>
-            <div className={styles.registryStatValue} style={{ color: '#4caf50' }}>{activeCount}</div>
+            <div className={styles.registryStatIcon} style={{ background: '#e8f5e9', color: '#4caf50' }}>✓</div>
+            <div className={styles.registryStatInfo}>
+              <div className={styles.registryStatLabel}>Active</div>
+              <div className={styles.registryStatValue} style={{ color: '#4caf50' }}>{activeCount}</div>
+            </div>
           </div>
           <div className={styles.registryStat}>
-            <div className={styles.registryStatLabel}>Delinquent</div>
-            <div className={styles.registryStatValue} style={{ color: '#f44336' }}>{delinquentCount}</div>
+            <div className={styles.registryStatIcon} style={{ background: '#ffebee', color: '#f44336' }}>⚠</div>
+            <div className={styles.registryStatInfo}>
+              <div className={styles.registryStatLabel}>Delinquent</div>
+              <div className={styles.registryStatValue} style={{ color: '#f44336' }}>{delinquentCount}</div>
+            </div>
           </div>
           <div className={styles.registryStat}>
-            <div className={styles.registryStatLabel}>Pending Approval</div>
-            <div className={styles.registryStatValue} style={{ color: '#e65100' }}>{pendingApprovalCount}</div>
+            <div className={styles.registryStatIcon} style={{ background: '#fff3e0', color: '#e65100' }}>⏳</div>
+            <div className={styles.registryStatInfo}>
+              <div className={styles.registryStatLabel}>Pending Approval</div>
+              <div className={styles.registryStatValue} style={{ color: '#e65100' }}>{pendingApprovalCount}</div>
+            </div>
           </div>
           <div className={styles.registryStat}>
-            <div className={styles.registryStatLabel}>New This Month</div>
-            <div className={styles.registryStatValue} style={{ color: '#2196f3' }}>{newThisMonth}</div>
+            <div className={styles.registryStatIcon} style={{ background: '#e3f2fd', color: '#2196f3' }}>🆕</div>
+            <div className={styles.registryStatInfo}>
+              <div className={styles.registryStatLabel}>New This Month</div>
+              <div className={styles.registryStatValue} style={{ color: '#2196f3' }}>{newThisMonth}</div>
+            </div>
           </div>
         </div>
 
         <div className={styles.content}>
           <div className={styles.searchSection}>
-            <input
-              type="search"
-              className={styles.searchInput}
-              placeholder="Search by name, block/lot, or ID..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
+            <div className={styles.searchWrapper}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="search"
+                className={styles.searchInput}
+                placeholder="Search by name, block/lot, or ID..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+            </div>
             <button className={styles.addBtn} onClick={() => router.push('/admin/residents/new')}>
-              + Add Resident
+              <span>+</span> Add Resident
             </button>
           </div>
           
@@ -282,12 +352,12 @@ export default function AdminResidents() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Block/Lot</th>
-                  <th>Status</th>
-                  <th>Verification</th>
-                  <th>Balance</th>
+                  {renderSortHeader('ID', 'id')}
+                  {renderSortHeader('Name', 'name')}
+                  {renderSortHeader('Block/Lot', 'phase')}
+                  {renderSortHeader('Status', 'status')}
+                  {renderSortHeader('Verification', 'approvalStatus')}
+                  {renderSortHeader('Balance', 'balance')}
                   <th>Contact</th>
                   <th>Actions</th>
                 </tr>

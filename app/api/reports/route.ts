@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const monthStr = searchParams.get('month'); // e.g. "February 2026"
+  const dateStr = searchParams.get('date');   // e.g. "2026-05-10"
   const type = searchParams.get('type') || 'Monthly Report';
 
   try {
@@ -25,24 +26,33 @@ export async function GET(request: NextRequest) {
       ...doc.data()
     }));
 
-    // 2. Fetch payments/submissions for the selected month
-    // For simplicity, we'll look at 'Verified' payments in the 'payments' collection
-    // and 'Pending' submissions in 'payment_submissions'
-    const submissionsSnapshot = await adminDb
-      .collection('payment_submissions')
-      .where('status', 'in', ['Verified', 'Pending'])
-      .get();
+    // 2. Fetch submissions
+    let submissionsQuery: any = adminDb.collection('payment_submissions');
+    
+    if (type === 'Daily Report' && dateStr) {
+      // For daily report, we filter by the exact day in the 'submittedDate'
+      // Note: In a real app, you'd probably use a timestamp range. 
+      // Here we'll match the ISO string prefix or a specific field if available.
+      submissionsQuery = submissionsQuery.where('submittedDate', '>=', `${dateStr}T00:00:00`);
+      submissionsQuery = submissionsQuery.where('submittedDate', '<=', `${dateStr}T23:59:59`);
+    } else if (type === 'Delinquency Report') {
+      // For delinquency, we look at all residents with balance > 0
+    } else {
+      // Monthly/Annual (Annual would need more logic, for now we match monthStr)
+      submissionsQuery = submissionsQuery.where('month', '==', monthStr);
+    }
 
-    const submissions = submissionsSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data());
+    const submissionsSnapshot = await submissionsQuery.get();
+    const submissions = submissionsSnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
     // 3. Process data
-    const monthlyDues = 400; // Fixed for now
+    const monthlyDues = 400; 
     
     const financialData = residents.map((resident: any) => {
-      // Find submission for this resident in the selected month
-      const residentSubmissions = submissions.filter((s: any) => 
-        s.residentId === resident.id && s.month === monthStr
-      );
+      const residentSubmissions = submissions.filter((s: any) => s.residentId === resident.id);
 
       const amountPaid = residentSubmissions
         .filter((s: any) => s.status === 'Verified')
@@ -62,30 +72,51 @@ export async function GET(request: NextRequest) {
       }
 
       return {
+        id: resident.id,
         block: resident.block || '-',
         lot: resident.lot || '-',
         resident: resident.fullName || 'Unknown',
         monthlyDues,
         amountPaid,
         balance: Number(resident.balance || 0),
-        status
+        status,
+        paymentMethod: residentSubmissions[0]?.paymentMethod || 'N/A'
       };
     });
 
-    // 4. Calculate Summary
-    const totalDues = financialData.reduce((sum: number, d: any) => sum + d.monthlyDues, 0);
-    const totalCollected = financialData.reduce((sum: number, d: any) => sum + d.amountPaid, 0);
-    const outstandingBalance = financialData.reduce((sum: number, d: any) => sum + d.balance, 0);
+    // Filter Delinquency Report if requested
+    const finalData = type === 'Delinquency Report' 
+      ? financialData.filter(d => d.status === 'Delinquent') 
+      : financialData;
+
+    // 4. Calculate Summary & Analytics
+    const totalDues = finalData.reduce((sum: number, d: any) => sum + d.monthlyDues, 0);
+    const totalCollected = finalData.reduce((sum: number, d: any) => sum + d.amountPaid, 0);
+    const outstandingBalance = finalData.reduce((sum: number, d: any) => sum + d.balance, 0);
     const collectionRate = totalDues > 0 ? ((totalCollected / totalDues) * 100).toFixed(1) : '0';
 
+    // Analytics: Payment Method Breakdown
+    const methodCounts: Record<string, number> = {};
+    submissions.filter(s => s.status === 'Verified').forEach(s => {
+      const method = s.paymentMethod || 'Other';
+      methodCounts[method] = (methodCounts[method] || 0) + 1;
+    });
+
+    const analytics = {
+      verifiedCount: submissions.filter(s => s.status === 'Verified').length,
+      pendingCount: submissions.filter(s => s.status === 'Pending').length,
+      methods: Object.entries(methodCounts).map(([name, value]) => ({ name, value }))
+    };
+
     return NextResponse.json({
-      financialData,
+      financialData: finalData,
       summary: {
         totalDues,
         totalCollected,
         outstandingBalance,
         collectionRate
-      }
+      },
+      analytics
     });
 
   } catch (error: any) {

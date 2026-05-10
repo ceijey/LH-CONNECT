@@ -291,19 +291,30 @@ export default function DashboardPage() {
 
       <main className={styles.main}>
         <section className={styles.welcomeSection}>
-          <h2 className={styles.welcomeTitle}>Welcome back, {userName}!</h2>
-          <p className={styles.residentInfo}>
-            {profile.phase ? `${profile.phase} ` : ''}
-            {profile.block ? `Blk ${profile.block} ` : ''}
-            {profile.lot ? `Lot ${profile.lot}` : ''}
-          </p>
+          <div className={styles.welcomeText}>
+            <h2 className={styles.welcomeTitle}>Welcome back, {userName}!</h2>
+            <p className={styles.residentInfo}>
+              <span className={styles.locationBadge}>
+                {profile.phase ? `${profile.phase}` : 'Lincoln Heights'}
+              </span>
+              <span className={styles.addressText}>
+                {profile.block ? `Block ${profile.block} ` : ''}
+                {profile.lot ? `Lot ${profile.lot}` : ''}
+              </span>
+            </p>
+          </div>
+          <div className={styles.statusQuickView}>
+            <div className={`${styles.statusPill} ${currentBalance > 0 ? styles.pillDelinquent : styles.pillPaid}`}>
+              {currentBalance > 0 ? '● Delinquent' : '● Up to Date'}
+            </div>
+          </div>
         </section>
 
         <div className={styles.infoGrid}>
           <div className={`${styles.infoCard} ${currentBalance > 0 ? styles.unpaidCard : ''}`}>
             <div className={styles.cardHeader}>
               <span className={styles.cardTitle}>
-                {currentBalance > 0 ? 'Unpaid Balance' : 'Current Balance'}
+                ACCOUNT BALANCE
               </span>
               <span className={styles.infoIcon}>{currentBalance > 0 ? '⚠️' : 'ℹ️'}</span>
             </div>
@@ -312,49 +323,64 @@ export default function DashboardPage() {
                 ₱{currentBalance.toLocaleString()}
               </div>
               {currentBalance > 0 ? (
-                <>
-                  <p className={styles.cardSubtext}>You have an outstanding balance.</p>
+                <div className={styles.cardActions}>
+                  <p className={styles.cardSubtext}>Action required to settle dues.</p>
                   <Link
                     href="/dashboard/submit-payment"
                     className={styles.payNowBtn}
                   >
-                    💳 Pay Now
+                    💳 Settle Balance
                   </Link>
-                </>
+                </div>
               ) : (
-                <p className={styles.cardSubtext}>All caught up! 🎉</p>
+                <p className={styles.cardSubtext}>Your account is in good standing. 🎉</p>
               )}
             </div>
           </div>
 
           <div className={styles.infoCard}>
             <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Next Due Date</span>
+              <span className={styles.cardTitle}>NEXT BILLING</span>
               <span className={styles.dateIcon}>📅</span>
             </div>
             <div className={styles.cardContent}>
               <div className={styles.dueDate}>{nextDueDate}</div>
-              <p className={styles.cardSubtext}>Monthly Dues: ₱{monthlyDues}</p>
+              <div className={styles.billDetail}>
+                <span className={styles.billLabel}>Monthly Dues:</span>
+                <span className={styles.billValue}>₱{monthlyDues}</span>
+              </div>
+              <p className={styles.cardSubtext}>Set to recur every month.</p>
             </div>
           </div>
 
-          <div className={styles.infoCard}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Your QR Code</span>
-              <span className={styles.qrIcon}>📱</span>
+          <div className={`${styles.infoCard} ${styles.qrIdCard}`}>
+            <div className={styles.idCardHeader}>
+              <div className={styles.idCardBrand}>
+                <span className={styles.idCardLogo}>LH</span>
+                <span className={styles.idCardTitle}>RESIDENT ID</span>
+              </div>
+              <span className={styles.idCardChip}></span>
             </div>
-            <div className={styles.qrCodeContainer}>
+            <div className={styles.idCardBody}>
               <div className={styles.qrCodeWrapper}>
                 <QRCodeCanvas 
                   value={qrCode} 
-                  size={150}
+                  size={120}
                   level="H"
-                  includeMargin={true}
+                  includeMargin={false}
                   fgColor="#1B2A4A"
                   bgColor="#ffffff"
                 />
               </div>
-              <p className={styles.qrText}>{qrCode}</p>
+              <div className={styles.idCardInfo}>
+                <div className={styles.idLabel}>ID NUMBER</div>
+                <div className={styles.idValue}>{userId.substring(0, 12)}...</div>
+                <div className={styles.idLabel}>RESIDENT</div>
+                <div className={styles.idName}>{userName}</div>
+              </div>
+            </div>
+            <div className={styles.idCardFooter}>
+              <span className={styles.idCardSecure}>🔒 SECURE DIGITAL ACCESS</span>
             </div>
           </div>
         </div>
