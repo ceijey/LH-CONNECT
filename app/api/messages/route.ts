@@ -67,22 +67,29 @@ export async function GET(request: NextRequest) {
     let messagesSnapshot;
 
     if (userRole === 'admin') {
-      messagesSnapshot = await adminDb.collection('messages').orderBy('updatedAt', 'desc').get();
+      // Admins see all tickets — simple collection fetch, sorted client-side
+      messagesSnapshot = await adminDb.collection('messages').get();
     } else {
+      // Residents see only their own tickets
+      // NOTE: Avoid compound where+orderBy queries to prevent requiring Firestore composite indexes
       messagesSnapshot = await adminDb.collection('messages')
         .where('senderId', '==', userId)
-        .orderBy('updatedAt', 'desc')
         .get();
     }
 
-    const messages = (messagesSnapshot.docs || []).map((doc: any) => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const messages = (messagesSnapshot.docs || [])
+      .map((doc: any) => ({ id: doc.id, ...doc.data() }))
+      // Sort by updatedAt client-side (most recent first)
+      .sort((a: any, b: any) => {
+        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return bTime - aTime;
+      });
 
     return NextResponse.json({ messages, user: decoded });
   } catch (error: any) {
-    console.error('Error fetching messages:', error.message || error);
+    // Log the full error detail so server logs show the real cause
+    console.error('Error fetching messages:', error?.message || error?.code || String(error));
     return createErrorResponse('Internal server error', 500);
   }
 }
