@@ -59,6 +59,143 @@ async function generatePDF(statement: any, residentName: string) {
   return pdfDoc.save();
 }
 
+async function generateAuditPDF(events: any[], residentName: string, title: string) {
+  const pdfDoc = await PDFDocument.create();
+  let page = pdfDoc.addPage([595.28, 841.89]);
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+
+  const width = page.getWidth();
+  const height = page.getHeight();
+  let y = 790;
+
+  const drawCenteredText = (text: string, size: number, font: any, color: any, yPos: number, currentPage: any) => {
+    const textWidth = font.widthOfTextAtSize(text, size);
+    const x = (width - textWidth) / 2;
+    currentPage.drawText(text, { x, y: yPos, size, font, color });
+  };
+
+  // Header
+  drawCenteredText('LH-Connect', 22, fontBold, rgb(0.1, 0.2, 0.4), y, page);
+  y -= 25;
+  drawCenteredText(title, 16, fontBold, rgb(0.3, 0.3, 0.3), y, page);
+  y -= 35;
+
+  // Info Section
+  page.drawText(`Resident: ${residentName}`, { x: 50, y, size: 12, font: fontBold });
+  const dateStr = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
+  const dateWidth = fontRegular.widthOfTextAtSize(`Report Date: ${dateStr}`, 10);
+  page.drawText(`Report Date: ${dateStr}`, { x: width - 50 - dateWidth, y, size: 10, font: fontRegular });
+  y -= 30;
+
+  // Table Headers
+  const cols = [
+    { label: 'Date', x: 50, w: 80 },
+    { label: 'Description', x: 130, w: 220 },
+    { label: 'Type', x: 350, w: 60 },
+    { label: 'Amount', x: 410, w: 80, align: 'right' },
+    { label: 'Status', x: 500, w: 60 }
+  ];
+
+  page.drawRectangle({
+    x: 45,
+    y: y - 5,
+    width: width - 90,
+    height: 20,
+    color: rgb(0.9, 0.9, 0.95),
+  });
+
+  cols.forEach(col => {
+    page.drawText(col.label, { x: col.x, y, size: 10, font: fontBold });
+  });
+  y -= 25;
+
+  // Table Rows
+  events.forEach((event, index) => {
+    if (y < 70) {
+      page = pdfDoc.addPage([595.28, 841.89]);
+      y = 790;
+      // Redraw headers on new page
+      page.drawRectangle({ x: 45, y: y - 5, width: width - 90, height: 20, color: rgb(0.9, 0.9, 0.95) });
+      cols.forEach(col => { page.drawText(col.label, { x: col.x, y, size: 10, font: fontBold }); });
+      y -= 25;
+    }
+
+    if (index % 2 === 1) {
+      page.drawRectangle({
+        x: 45,
+        y: y - 5,
+        width: width - 90,
+        height: 18,
+        color: rgb(0.97, 0.97, 0.98),
+      });
+    }
+
+    page.drawText(event.date, { x: 50, y, size: 9, font: fontRegular });
+    page.drawText(event.description, { x: 130, y, size: 9, font: fontRegular });
+    page.drawText(event.type, { x: 350, y, size: 9, font: fontRegular });
+    
+    const amountText = `${event.type === 'BILL' ? '+' : '-'} P${event.amount.toLocaleString()}`;
+    const amountWidth = fontRegular.widthOfTextAtSize(amountText, 9);
+    page.drawText(amountText, { 
+      x: 490 - amountWidth, 
+      y, 
+      size: 9, 
+      font: fontRegular,
+      color: event.type === 'BILL' ? rgb(0.7, 0.1, 0.1) : rgb(0.1, 0.5, 0.1)
+    });
+
+    page.drawText(event.status, { x: 500, y, size: 8, font: fontItalic });
+    
+    y -= 18;
+  });
+
+  y -= 20;
+
+  // Totals Section
+  if (y < 120) {
+    page = pdfDoc.addPage([595.28, 841.89]);
+    y = 790;
+  }
+
+  const totalBilled = events.filter(e => e.type === 'BILL').reduce((sum, e) => sum + e.amount, 0);
+  const totalPaid = events.filter(e => e.type === 'PAYMENT' && (e.status === 'Confirmed' || e.status === 'Verified')).reduce((sum, e) => sum + e.amount, 0);
+  const netBalance = totalBilled - totalPaid;
+
+  page.drawLine({
+    start: { x: 350, y: y + 10 },
+    end: { x: width - 50, y: y + 10 },
+    thickness: 1,
+    color: rgb(0.8, 0.8, 0.8)
+  });
+
+  const drawTotal = (label: string, value: number, isLast = false) => {
+    page.drawText(label, { x: 350, y, size: 10, font: isLast ? fontBold : fontRegular });
+    const valText = `P${value.toLocaleString()}`;
+    const valWidth = (isLast ? fontBold : fontRegular).widthOfTextAtSize(valText, 10);
+    page.drawText(valText, { x: width - 50 - valWidth, y, size: 10, font: isLast ? fontBold : fontRegular });
+    y -= 15;
+  };
+
+  drawTotal('Total Billed:', totalBilled);
+  drawTotal('Total Paid:', totalPaid);
+  y -= 5;
+  drawTotal('NET BALANCE:', netBalance, true);
+
+  // Footer
+  drawCenteredText(
+    'This is a computer-generated report. LH-Connect Community Management.',
+    8,
+    fontItalic,
+    rgb(0.5, 0.5, 0.5),
+    40,
+    page
+  );
+
+  return pdfDoc.save();
+}
+
 function generateAuditCSV(events: any[], residentName: string, title: string): string {
   const headers = ['Date', 'Description', 'Type', 'Amount', 'Status'];
   const rows = events.map((e: any) => [
@@ -207,14 +344,25 @@ export async function GET(request: NextRequest) {
       reportTitle = `Audit Log - ${year}`;
     }
 
-    const csv = generateAuditCSV(filteredEvents, residentName, reportTitle);
-    
-    return new NextResponse(csv, {
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${reportType}_report_${year}.csv"`,
-      },
-    });
+    if (format === 'csv') {
+      const csv = generateAuditCSV(filteredEvents, residentName, reportTitle);
+      
+      return new NextResponse(csv, {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${reportType}_report_${year}.csv"`,
+        },
+      });
+    } else {
+      const pdf = await generateAuditPDF(filteredEvents, residentName, reportTitle);
+      
+      return new NextResponse(new Uint8Array(pdf), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${reportType}_report_${year}.pdf"`,
+        },
+      });
+    }
 
   } catch (error: any) {
     console.error('Error generating download:', error.message);

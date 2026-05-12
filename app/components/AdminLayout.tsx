@@ -54,7 +54,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
 
   const confirmLogout = async () => {
     setIsLogoutModalOpen(false);
-    await logoutAndRedirect(router, '/');
+    await logoutAndRedirect(router, '/login');
   };
 
   const cancelLogout = () => {
@@ -72,6 +72,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     { href: '/admin/qr-scanner', icon: '📱', label: 'QR Scanner', id: 'qr-scanner' },
     { href: '/admin/messages', icon: '💬', label: 'Messages', id: 'messages', showBadge: true },
     { href: '/admin/reports', icon: '📑', label: 'Reports', id: 'reports' },
+    { href: '/admin/payments/manual', icon: '💵', label: 'Manual Payment', id: 'manual-payment' },
   ];
 
   const getActiveTitle = () => {

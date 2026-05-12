@@ -29,7 +29,7 @@ export async function destroyServerSession() {
   }
 }
 
-export async function logoutAndRedirect(router: RouterLike, targetPath = '/') {
+export async function logoutAndRedirect(router: RouterLike, targetPath = '/login') {
   await destroyServerSession();
 
   try {

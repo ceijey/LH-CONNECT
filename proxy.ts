@@ -8,10 +8,13 @@ function redirectTo(request: NextRequest, path: string) {
 }
 
 export function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
+  
   const sessionCookie = request.cookies.get('lh_session')?.value;
-  const isAuthenticated = Boolean(sessionCookie);
-  const role = request.cookies.get('lh_role')?.value;
+  const roleCookie = request.cookies.get('lh_role')?.value;
+
+  const isAuthenticated = !!sessionCookie;
+  const role = roleCookie as 'admin' | 'resident' | undefined;
 
   const isAdminRoute = pathname.startsWith('/admin');
   const isResidentRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');

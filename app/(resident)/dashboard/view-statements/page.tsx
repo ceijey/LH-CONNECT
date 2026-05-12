@@ -189,7 +189,7 @@ export default function ViewStatementsPage() {
               </div>
             </div>
           </div>
-          <button className={styles.logoutBtn} onClick={() => logoutAndRedirect(router, '/')}>
+          <button className={styles.logoutBtn} onClick={() => logoutAndRedirect(router, '/login')}>
             ⬅ Logout
           </button>
         </div>
@@ -222,10 +222,10 @@ export default function ViewStatementsPage() {
             </div>
             <button 
               className={styles.downloadReportBtn}
-              onClick={() => handleDownloadReport('csv')}
+              onClick={() => handleDownloadReport('pdf')}
               disabled={isDownloading || filteredEvents.length === 0}
             >
-              {isDownloading ? '...' : '⬇ Export CSV'}
+              {isDownloading ? '...' : '⬇ Export PDF'}
             </button>
           </div>
         </section>

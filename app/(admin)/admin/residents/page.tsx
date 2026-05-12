@@ -89,7 +89,7 @@ export default function AdminResidents() {
       });
 
       setAllResidents(residents);
-      applyFiltersAndSorting(searchTerm, sortConfig);
+      applyFiltersAndSorting(searchTerm, sortConfig, residents);
     } catch (error) {
       console.error('Failed to load residents:', error);
       setAllResidents([]);
@@ -110,7 +110,7 @@ export default function AdminResidents() {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    applyFiltersAndSorting(term, sortConfig);
+    applyFiltersAndSorting(term, sortConfig, allResidents);
   };
 
   const handleSort = (key: keyof Resident) => {
@@ -120,12 +120,12 @@ export default function AdminResidents() {
     }
     const newSortConfig = { key, direction };
     setSortConfig(newSortConfig);
-    applyFiltersAndSorting(searchTerm, newSortConfig);
+    applyFiltersAndSorting(searchTerm, newSortConfig, allResidents);
   };
 
-  const applyFiltersAndSorting = (term: string, config: typeof sortConfig) => {
+  const applyFiltersAndSorting = (term: string, config: typeof sortConfig, source: Resident[]) => {
     const normalizedTerm = term.toLowerCase().trim();
-    let result = [...allResidents];
+    let result = [...source];
 
     // Filter
     if (normalizedTerm) {

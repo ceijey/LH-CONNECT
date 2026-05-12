@@ -143,7 +143,7 @@ export default function AccountPage() {
           <button
             className={styles.logoutBtn}
             onClick={async () => {
-              await logoutAndRedirect(router, '/');
+              await logoutAndRedirect(router, '/login');
             }}
           >
             ⬅ Logout

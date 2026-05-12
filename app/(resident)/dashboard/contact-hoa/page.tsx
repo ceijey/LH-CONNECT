@@ -135,8 +135,9 @@ export default function ContactHOAPage() {
 
         initialLoadRef.current = false;
       }
-    } catch (err) {
-      console.error('Failed to fetch messages:', err);
+    } catch (err: any) {
+      // Use console.warn to avoid triggering the Next.js dev error overlay on network hiccups
+      console.warn('Polling notice - failed to fetch messages:', err?.message || err);
     } finally {
       if (initialLoadRef.current === false) {
         setIsLoading(false);
@@ -335,7 +336,7 @@ export default function ContactHOAPage() {
           <button
             className={styles.logoutBtn}
             onClick={async () => {
-              await logoutAndRedirect(router, '/');
+              await logoutAndRedirect(router, '/login');
             }}
           >
             ⬅ Logout

@@ -386,38 +386,6 @@ export default function AdminPayments() {
                         </td>
                         <td>{payment.paymentMethod}</td>
                         <td className={styles.paymentActions}>
-                          <button 
-                            type="button"
-                            className={styles.viewProofBtn} 
-                            style={{ background: '#1B2A4A', color: 'white', borderColor: '#1B2A4A' }}
-                            title="View Official Receipt"
-                            onClick={() => {
-                              setReceiptModal({
-                                isOpen: true,
-                                payment: {
-                                  ...payment,
-                                  fileUrl: proofKind === 'image' ? proofSrc : undefined
-                                }
-                              });
-                            }}
-                          >
-                            📄 View Receipt
-                          </button>
-                          <button 
-                            type="button"
-                            className={styles.viewProofBtn} 
-                            title="View Proof"
-                            onClick={() => {
-                              setProofModal({
-                                isOpen: true,
-                                url: proofSrc,
-                                title: `Payment Proof - ${payment.residentName}`,
-                                proofKind
-                              });
-                            }}
-                          >
-                            🖼️ View Proof
-                          </button>
                           {payment.status === 'Pending' && (
                             <>
                               <button 

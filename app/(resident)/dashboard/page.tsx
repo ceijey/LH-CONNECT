@@ -196,7 +196,7 @@ export default function DashboardPage() {
 
   const confirmLogout = async () => {
     setShowLogoutModal(false);
-    await logoutAndRedirect(router, '/');
+    await logoutAndRedirect(router, '/login');
   };
 
   if (isLoading) {
