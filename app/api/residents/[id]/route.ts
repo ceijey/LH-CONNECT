@@ -88,7 +88,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           .get();
         
         const batch = adminDb.batch();
-        notificationsSnapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+        notificationsSnapshot.docs.forEach((doc: any) => {
           batch.update(doc.ref, { read: true });
         });
         await batch.commit();

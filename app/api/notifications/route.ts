@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       .get();
 
     const notifications = notificationsSnapshot.docs
-      .map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+      .map((doc: any) => {
         const data = doc.data();
         const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now());
         return {

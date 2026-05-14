@@ -80,8 +80,8 @@ export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalP
             </div>
 
             {/* Status Watermark */}
-            <div className={`${styles.watermark} ${styles[payment.status.toLowerCase()]}`}>
-              {payment.status.toUpperCase()}
+            <div className={`${styles.watermark} ${styles[(payment.status || 'pending').toLowerCase()]}`}>
+              {(payment.status || 'pending').toUpperCase()}
             </div>
 
             {/* Transaction Body */}

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       .limit(50)
       .get();
 
-    const notifications = notificationsSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+    const notifications = notificationsSnapshot.docs.map((doc: any) => {
       const data = doc.data();
       const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now());
       return {
@@ -67,7 +67,7 @@ export async function PATCH(request: NextRequest) {
         .get();
       
       const batch = adminDb.batch();
-      unreadSnapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+      unreadSnapshot.docs.forEach((doc: any) => {
         batch.update(doc.ref, { read: true });
       });
       await batch.commit();
@@ -111,7 +111,7 @@ export async function DELETE(request: NextRequest) {
     if (clearAll) {
       const snapshot = await adminDb.collection('admin_notifications').get();
       const batch = adminDb.batch();
-      snapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+      snapshot.docs.forEach((doc: any) => {
         batch.delete(doc.ref);
       });
       await batch.commit();

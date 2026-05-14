@@ -269,7 +269,7 @@ export default function ViewStatementsPage() {
                       </td>
                       <td className={styles.descCell}>{event.description}</td>
                       <td className={styles.typeCell}>
-                        <span className={`${styles.typeBadge} ${styles[event.type.toLowerCase()]}`}>
+                        <span className={`${styles.typeBadge} ${styles[(event.type || 'bill').toLowerCase()]}`}>
                           {event.type}
                         </span>
                       </td>
@@ -279,7 +279,7 @@ export default function ViewStatementsPage() {
                         </span>
                       </td>
                       <td className={styles.statusCell}>
-                        <span className={`${styles.statusBadge} ${styles[event.status.toLowerCase().replace(/\s/g, '')]}`}>
+                        <span className={`${styles.statusBadge} ${styles[(event.status || 'pending').toLowerCase().replace(/\s/g, '')]}`}>
                           {event.status}
                         </span>
                       </td>

@@ -766,7 +766,7 @@ export default function SubmitPaymentPage() {
                               <p className={styles.submissionAmount}>₱{submission.amount?.toLocaleString()}</p>
                             </div>
                             <div className={styles.detailsRight}>
-                              <span className={`${styles.statusBadge} ${styles[submission.status.toLowerCase()]}`}>
+                              <span className={`${styles.statusBadge} ${styles[(submission.status || 'pending').toLowerCase()]}`}>
                                 {isVerified ? '✓ Verified' : '⏳ Pending'}
                               </span>
                               {daysAgo > 0 && !isVerified && (

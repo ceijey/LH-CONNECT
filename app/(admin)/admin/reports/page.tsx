@@ -130,7 +130,7 @@ export default function AdminReports() {
   const handleExportExcel = () => {
     if (financialData.length === 0) return;
     const headers = ['Block', 'Lot', 'Resident', 'Monthly Dues', 'Amount Paid', 'Balance', 'Status', 'Method'];
-    const rows = financialData.map(d => [
+    const rows = (financialData || []).map(d => [
       d.block, d.lot, d.resident, d.monthlyDues, d.amountPaid, d.balance, d.status, d.paymentMethod || 'N/A'
     ]);
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -235,25 +235,25 @@ export default function AdminReports() {
               <span className={reportsStyles.statLabel}>
                 {selectedReportType === 'Daily Report' ? 'Total Submissions' : 'Total Receivables'}
               </span>
-              <span className={reportsStyles.statValue}>₱{summary.totalDues.toLocaleString()}</span>
+              <span className={reportsStyles.statValue}>₱{summary?.totalDues?.toLocaleString() || 0}</span>
             </div>
             <div className={reportsStyles.statCard}>
               <span className={reportsStyles.statLabel}>
                 {selectedReportType === 'Daily Report' ? 'Collected Today' : 'Total Collected'}
               </span>
-              <span className={reportsStyles.statValue} style={{ color: '#16a34a' }}>₱{summary.totalCollected.toLocaleString()}</span>
+              <span className={reportsStyles.statValue} style={{ color: '#16a34a' }}>₱{summary?.totalCollected?.toLocaleString() || 0}</span>
             </div>
             <div className={reportsStyles.statCard}>
               <span className={reportsStyles.statLabel}>
                 {selectedReportType === 'Daily Report' ? 'Pending/Rejected' : 'Outstanding'}
               </span>
-              <span className={reportsStyles.statValue} style={{ color: '#dc2626' }}>₱{summary.outstandingBalance.toLocaleString()}</span>
+              <span className={reportsStyles.statValue} style={{ color: '#dc2626' }}>₱{summary?.outstandingBalance?.toLocaleString() || 0}</span>
             </div>
             <div className={reportsStyles.statCard}>
               <span className={reportsStyles.statLabel}>
                 {selectedReportType === 'Daily Report' ? 'Realization Rate' : 'Collection Rate'}
               </span>
-              <span className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary.collectionRate}%</span>
+              <span className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary?.collectionRate || 0}%</span>
             </div>
           </div>
 
@@ -270,7 +270,7 @@ export default function AdminReports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {analytics?.methods.map(m => (
+                  {analytics?.methods?.map(m => (
                     <tr key={m.name}>
                       <td style={{ fontWeight: 600 }}>{m.name}</td>
                       <td>{m.value}</td>

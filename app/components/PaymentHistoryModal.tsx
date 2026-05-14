@@ -147,7 +147,7 @@ export default function PaymentHistoryModal({
                         <td>{new Date(event.date).toLocaleDateString()}</td>
                         <td>{event.description}</td>
                         <td>
-                          <span className={`${styles.typeBadge} ${styles[event.type.toLowerCase()]}`}>
+                          <span className={`${styles.typeBadge} ${styles[(event.type || 'bill').toLowerCase()]}`}>
                             {event.type}
                           </span>
                         </td>
@@ -155,7 +155,7 @@ export default function PaymentHistoryModal({
                           {event.type === 'BILL' ? '+' : '-'} ₱{event.amount.toLocaleString()}
                         </td>
                         <td>
-                          <span className={`${styles.statusBadge} ${styles[event.status.toLowerCase().replace(/\s/g, '')]}`}>
+                          <span className={`${styles.statusBadge} ${styles[(event.status || 'pending').toLowerCase().replace(/\s/g, '')]}`}>
                             {event.status}
                           </span>
                         </td>
