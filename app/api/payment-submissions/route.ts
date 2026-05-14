@@ -46,8 +46,8 @@ async function resolveFileUrl(data: any): Promise<string | undefined> {
     });
 
     return signedUrl;
-  } catch (error) {
-    console.error('Failed to resolve file URL from filePath:', error);
+  } catch (error: any) {
+    console.error(`[resolveFileUrl] Failed to resolve filePath: ${data.filePath}. Error: ${error.message}`);
     return undefined;
   }
 }
@@ -175,6 +175,10 @@ export async function POST(request: NextRequest) {
     const referenceNumber = String(formData.get('referenceNumber') ?? '').trim();
     const notes = String(formData.get('notes') ?? '').trim();
     const file = formData.get('file');
+    let fileUrl = String(formData.get('fileUrl') ?? '').trim();
+    let filePath = String(formData.get('filePath') ?? '').trim();
+    let fileBase64 = String(formData.get('fileBase64') ?? '').trim();
+    let fileName = String(formData.get('fileName') ?? '').trim();
 
     // Detailed validation
     if (!residentName) {
@@ -200,22 +204,33 @@ export async function POST(request: NextRequest) {
     if (!referenceNumber) {
       return createErrorResponse('Reference number is required', 400);
     }
-
-    if (!(file instanceof File)) {
+    
+    // Only require file if URL or Base64 is not provided
+    if (!fileUrl && !fileBase64 && !(file instanceof File)) {
       return createErrorResponse('Payment proof file is required', 400);
     }
 
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const filePath = `payment-submissions/${userId}/${Date.now()}-${safeFileName}`;
+    if (!fileName) {
+      fileName = (file instanceof File) ? file.name : (filePath.split('/').pop() || 'proof');
+    }
+    
+    let fileUploadError: any = null;
+
+    // Use Base64 as the URL if provided
+    if (fileBase64) {
+      fileUrl = fileBase64;
+      console.log(`[POST Submission] Using Base64 image data for: ${fileName}`);
+    } else if (!fileUrl && file instanceof File) {
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      filePath = `payment-submissions/${userId}/${Date.now()}-${safeFileName}`;
       const buffer = Buffer.from(await file.arrayBuffer());
-      let fileUrl: string | null = null;
-      let usedFilePath: string | null = filePath;
-      let fileUploadError: any = null;
 
       try {
-        // Upload to Firebase Storage
+        // Upload to Firebase Storage (as fallback/alternate)
         const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
         const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
+        
+        console.log(`[POST Submission] Using bucket: ${bucket.name}`);
         const storageFile = bucket.file(filePath);
         
         await storageFile.save(buffer, {
@@ -225,20 +240,28 @@ export async function POST(request: NextRequest) {
         });
 
         // Get a signed URL for immediate use
+        // Use a Date object for better compatibility
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 50); // 50 years from now
+
         const [signedUrl] = await storageFile.getSignedUrl({
           action: 'read',
-          expires: '01-01-2500',
+          expires: expiryDate,
         });
         fileUrl = signedUrl;
+        console.log(`[POST Submission] Successfully uploaded and generated signed URL for: ${filePath}`);
       } catch (uploadError: any) {
-        console.error('Firebase upload failed:', {
-          message: uploadError?.message ?? uploadError,
-        });
-        fileUploadError = {
-          message: uploadError?.message ?? String(uploadError),
-        };
-        // Continue: we will still create a submission record so admins can follow up
+        console.error(`[POST Submission] STEP FAILED: Firebase Storage operation failed`);
+        console.error(`Bucket: ${process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}`);
+        console.error(`FilePath: ${filePath}`);
+        console.error(`Error Message: ${uploadError.message}`);
+        console.error(`Error Stack: ${uploadError.stack}`);
+        
+        // If we have a file but upload failed, we can still try to convert to Base64 on server side
+        // but client side is better. For now, we allow it to fail to encourage client-side base64.
+        return createErrorResponse(`Failed to upload payment proof: ${uploadError.message}`, 500);
       }
+    }
 
     const submittedAt = new Date();
     const currentMonth = submittedAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
@@ -251,7 +274,7 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       referenceNumber,
       notes,
-      fileName: file.name,
+      fileName,
       fileUrl,
       filePath,
       status: 'Pending',
@@ -273,9 +296,9 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       referenceNumber,
       notes,
-      fileName: file.name,
+      fileName,
       fileUrl,
-      filePath: usedFilePath,
+      filePath,
       fileUploadError: fileUploadError ?? null,
       status: 'Pending' as const,
       month: currentMonth,
@@ -296,7 +319,7 @@ export async function POST(request: NextRequest) {
         paymentAmount,
         paymentMethod,
         referenceNumber,
-        fileName: file.name,
+        fileName,
         fileUrl: fileUrl ?? null,
         fileUploadError: fileUploadError ?? null,
         status: 'pending',

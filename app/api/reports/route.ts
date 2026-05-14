@@ -103,13 +103,26 @@ export async function GET(request: NextRequest) {
     });
 
     // 4. Filter and Calculate Summary & Analytics
-    let finalData = financialData;
+    let finalData: any[] = financialData;
     
     if (type === 'Daily Report') {
-      // For Daily Report, only show residents who had activity (submissions) today
-      finalData = financialData.filter(d => 
-        submissions.some((s: any) => s.residentId === d.id)
-      );
+      // For Daily Report, show individual transactions (submissions) for that day
+      finalData = submissions.map((s: any) => {
+        const resident = residents.find(r => r.id === s.residentId) || {};
+        return {
+          id: s.id,
+          block: resident.block || s.blockLot?.split(' ')[1] || '-',
+          lot: resident.lot || s.blockLot?.split(' ')[3] || '-',
+          resident: resident.fullName || s.residentName || 'Unknown',
+          monthlyDues: 400,
+          amountPaid: Number(s.paymentAmount) || 0,
+          balance: Number(resident.balance || 0),
+          status: s.status === 'Verified' ? 'Paid' : s.status, // Map to table status types
+          paymentMethod: s.paymentMethod || 'N/A',
+          referenceNumber: s.referenceNumber || '-',
+          date: s.submittedDate
+        };
+      });
     }
 
     // Summary logic

@@ -12,6 +12,13 @@ import LoadingScreen from '@/app/components/LoadingScreen';
 import ReceiptModal from '@/app/components/ReceiptModal';
 import styles from './submit-payment.module.css';
 
+// Type definition for Tesseract
+declare global {
+  interface Window {
+    Tesseract: any;
+  }
+}
+
 interface FormData {
   referenceNumber: string;
   notes: string;
@@ -61,9 +68,11 @@ export default function SubmitPaymentPage() {
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOCRProcessing, setIsOCRProcessing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('gcash');
-  const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
+  const [selectedBank, setSelectedBank] = useState('BDO');
+  const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -152,7 +161,53 @@ export default function SubmitPaymentPage() {
     }
   }, [isMounted]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const processImageOCR = async (file: File) => {
+    setIsOCRProcessing(true);
+    try {
+      // Load Tesseract if not already loaded
+      if (!window.Tesseract) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.async = true;
+        document.body.appendChild(script);
+        await new Promise((resolve) => (script.onload = resolve));
+      }
+
+      const { data: { text } } = await window.Tesseract.recognize(file, 'eng');
+      
+      console.log('Extracted text:', text);
+
+      // Search for reference number patterns
+      // GCash/Maya reference numbers are typically 12-13 digits
+      const refNumberRegex = /\b\d{4}\s?\d{3}\s?\d{6}\b|\b\d{12,13}\b/g;
+      const matches = text.match(refNumberRegex);
+
+      if (matches && matches.length > 0) {
+        // Clean the found number (remove spaces)
+        const foundRef = matches[0].replace(/\s/g, '');
+        setFormData(prev => ({ ...prev, referenceNumber: foundRef }));
+        setToast({ message: `Automatically detected Reference Number: ${foundRef}`, type: 'success' });
+      } else {
+        // Try to find alphanumeric patterns if no digits-only found
+        const alphanumericRef = /\b[A-Z0-9]{8,16}\b/g;
+        const alphaMatches = text.match(alphanumericRef);
+        if (alphaMatches && alphaMatches.length > 0) {
+           // Basic heuristic: check if it contains at least one digit and one letter
+           const likelyRef = alphaMatches.find((m: string) => /\d/.test(m) && /[A-Z]/.test(m));
+           if (likelyRef) {
+             setFormData(prev => ({ ...prev, referenceNumber: likelyRef }));
+             setToast({ message: `Detected Alphanumeric Reference: ${likelyRef}`, type: 'success' });
+           }
+        }
+      }
+    } catch (error) {
+      console.error('OCR Error:', error);
+    } finally {
+      setIsOCRProcessing(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Check file size (max 10MB)
@@ -160,6 +215,7 @@ export default function SubmitPaymentPage() {
         setToast({ message: 'File size must be less than 10MB', type: 'error' });
         return;
       }
+      
       if (isMounted) {
         setFormData({ ...formData, file });
         setFileName(file.name);
@@ -179,6 +235,9 @@ export default function SubmitPaymentPage() {
         }
       };
       reader.readAsDataURL(file);
+
+      // Trigger OCR detection
+      processImageOCR(file);
     }
   };
 
@@ -234,14 +293,64 @@ export default function SubmitPaymentPage() {
     setIsSubmitting(true);
 
     try {
+      let fileBase64 = '';
+      
+      // If there's a file, compress it and convert to Base64
+      if (formData.file) {
+        fileBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new window.Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              
+              // Max dimension 800px for reasonably small Base64
+              const maxDim = 800;
+              if (width > height) {
+                if (width > maxDim) {
+                  height *= maxDim / width;
+                  width = maxDim;
+                }
+              } else {
+                if (height > maxDim) {
+                  width *= maxDim / height;
+                  height = maxDim;
+                }
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+              
+              // Compress to JPEG with 0.6 quality to keep it well under 1MB
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+              resolve(dataUrl);
+            };
+            img.onerror = () => reject(new Error('Failed to load image for compression'));
+            img.src = e.target?.result as string;
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(formData.file!);
+        });
+      }
+
       const payload = new FormData();
       payload.append('residentName', formData.residentName.trim());
       payload.append('blockLot', formData.blockLot.trim());
       payload.append('paymentAmount', formData.paymentAmount.trim());
-      payload.append('paymentMethod', paymentMethod);
+      payload.append('paymentMethod', paymentMethod === 'bank' ? `Bank Transfer (${selectedBank})` : paymentMethod);
       payload.append('referenceNumber', formData.referenceNumber.trim());
       payload.append('notes', formData.notes.trim());
-      payload.append('file', formData.file);
+      
+      if (fileBase64) {
+        payload.append('fileBase64', fileBase64);
+        payload.append('fileName', formData.file.name);
+      } else {
+        payload.append('file', formData.file);
+      }
 
       const response = await fetch('/api/payment-submissions', {
         method: 'POST',
@@ -249,26 +358,20 @@ export default function SubmitPaymentPage() {
         credentials: 'include',
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers));
-
-      let data;
+      console.log('Submission Response Status:', response.status);
+      
+      const responseText = await response.text();
+      let data: any = {};
       try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
-        const text = await response.text();
-        console.error('Response text:', text);
-        data = {};
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON. Raw response:', responseText);
       }
 
       if (!response.ok) {
-        console.error('Payment submission error:', {
-          status: response.status,
-          statusText: response.statusText,
-          data,
-        });
-        throw new Error(data?.error || `Server error: ${response.status} ${response.statusText}`);
+        console.error('API Error Response:', data);
+        const errorMessage = data && data.error ? data.error : (typeof data === 'string' ? data : `Server error: ${response.status} ${response.statusText}`);
+        throw new Error(errorMessage);
       }
 
       const submission = data.submission as Submission;
@@ -410,25 +513,83 @@ export default function SubmitPaymentPage() {
                     className={styles.input}
                   />
                 </div>
-
-                {/* Payment Method */}
                 <div className={styles.formGroup}>
-                  <label className={styles.label}>Payment Method</label>
-                  <select
-                    className={styles.select}
-                    value={paymentMethod}
-                    onChange={handlePaymentMethodChange}
-                  >
-                    <option value="gcash">GCash</option>
-                    <option value="maya">Maya</option>
-                    <option value="bank">Bank Transfer</option>
-                    <option value="cash">Cash</option>
-                  </select>
+                  <label className={styles.label}>Select Payment Method</label>
+                  <div className={styles.methodGrid}>
+                    <div 
+                      className={`${styles.methodCard} ${paymentMethod === 'gcash' ? styles.activeCard : ''}`}
+                      onClick={() => setPaymentMethod('gcash')}
+                    >
+                      <div className={styles.methodIcon}>💸</div>
+                      <div className={styles.methodName}>GCash</div>
+                    </div>
+                    <div 
+                      className={`${styles.methodCard} ${paymentMethod === 'maya' ? styles.activeCard : ''}`}
+                      onClick={() => setPaymentMethod('maya')}
+                    >
+                      <div className={styles.methodIcon}>💳</div>
+                      <div className={styles.methodName}>Maya</div>
+                    </div>
+                    <div 
+                      className={`${styles.methodCard} ${paymentMethod === 'bank' ? styles.activeCard : ''}`}
+                      onClick={() => setPaymentMethod('bank')}
+                    >
+                      <div className={styles.methodIcon}>🏦</div>
+                      <div className={styles.methodName}>Bank</div>
+                    </div>
+                    <div 
+                      className={`${styles.methodCard} ${paymentMethod === 'cash' ? styles.activeCard : ''}`}
+                      onClick={() => setPaymentMethod('cash')}
+                    >
+                      <div className={styles.methodIcon}>💵</div>
+                      <div className={styles.methodName}>Cash</div>
+                    </div>
+                  </div>
+                  
+                  {['gcash', 'maya'].includes(paymentMethod) && (
+                    <button 
+                      type="button"
+                      className={styles.appRedirectBtn}
+                      onClick={() => {
+                        const url = paymentMethod === 'gcash' 
+                          ? 'https://m.gcash.com/' 
+                          : 'https://www.maya.ph/login';
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      🚀 Launch {paymentMethod === 'gcash' ? 'GCash' : 'Maya'} App
+                    </button>
+                  )}
                 </div>
+
+                {/* Bank Selection */}
+                {paymentMethod === 'bank' && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Select Your Bank</label>
+                    <select
+                      className={styles.select}
+                      value={selectedBank}
+                      onChange={(e) => setSelectedBank(e.target.value)}
+                    >
+                      <option value="BDO">BDO (Banco de Oro)</option>
+                      <option value="BPI">BPI (Bank of the Philippine Islands)</option>
+                      <option value="Metrobank">Metrobank</option>
+                      <option value="UnionBank">UnionBank of the Philippines</option>
+                      <option value="Landbank">Landbank of the Philippines</option>
+                      <option value="Security Bank">Security Bank</option>
+                      <option value="PNB">PNB (Philippine National Bank)</option>
+                      <option value="Chinabank">Chinabank</option>
+                      <option value="RCBC">RCBC</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Reference Number */}
                 <div className={styles.formGroup}>
-                  <label className={styles.label}>Reference Number</label>
+                  <label className={styles.label}>
+                    Reference Number 
+                    {isOCRProcessing && <span className={styles.ocrStatus}> (Detecting...)</span>}
+                  </label>
                   <input
                     type="text"
                     name="referenceNumber"

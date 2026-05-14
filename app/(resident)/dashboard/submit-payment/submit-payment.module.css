@@ -151,11 +151,137 @@
 }
 
 .label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #1B2A4A;
+  font-size: 0.9rem;
+}
+
+.ocrStatus {
+  color: #1976d2;
+  font-size: 0.8rem;
+  font-weight: normal;
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.methodGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.methodCard {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.methodCard:hover {
+  border-color: #007bff;
+  transform: translateY(-2px);
+  background: #f8fbff;
+}
+
+.activeCard {
+  border-color: #007bff;
+  background: #f0f7ff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.methodIcon {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.methodName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1B2A4A;
+}
+
+.activeCard .methodName {
+  color: #007bff;
+}
+
+.appRedirectBtn {
+  margin-top: 0.75rem;
+  width: 100%;
+  padding: 0.8rem;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+}
+
+.appRedirectBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
+  filter: brightness(1.1);
+}
+
+.appRedirectBtn:active {
+  transform: translateY(0);
+}
+
+.label {
   font-weight: 700;
   color: #1B2A4A;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.externalLinkBox {
+  margin-top: 0.5rem;
+}
+
+.externalLink {
+  display: inline-block;
+  color: #1976d2;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed #1976d2;
+  transition: all 0.2s;
+}
+
+.externalLink:hover {
+  color: #1565c0;
+  border-bottom-style: solid;
+}
+
+.bankTip {
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+  margin: 0;
 }
 
 .input,

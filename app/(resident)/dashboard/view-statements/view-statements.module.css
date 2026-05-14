@@ -300,136 +300,119 @@
   font-style: italic;
 }
 
-/* Summary Dashboard */
-.summaryDashboard {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+/* PRINT ONLY STYLES - HIDDEN BY DEFAULT */
+.printOnlyHeader, .printOnlyFooter {
+  display: none;
 }
 
-.summaryBox {
-  background: white;
-  padding: 1.75rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(27, 42, 74, 0.04);
-  border: 1px solid rgba(27, 42, 74, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.summaryBox:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(27, 42, 74, 0.08);
-}
-
-.summaryBox h4 {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-}
-
-.summaryValue {
-  font-size: 1.75rem;
-  font-weight: 800;
-  margin: 0;
-  color: #1B2A4A;
-}
-
-.billedValue {
-  color: #1B2A4A;
-}
-
-.paidValue {
-  color: #10b981;
-}
-
-.netBalance {
-  color: #ef4444;
-}
-
-/* Responsive Styles */
-@media (max-width: 1024px) {
-  .heroSection {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.5rem;
+@media print {
+  @page {
+    margin: 2cm;
   }
-  
-  .pageTitle {
-    font-size: 2rem;
-  }
-  
-  .reportControls {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-  }
-}
 
-@media (max-width: 768px) {
+  /* Hide UI Elements */
+  .header, .heroSection, .actionButtons, .backBtn, .logoutBtn, .reportControls {
+    display: none !important;
+  }
+
   .main {
-    padding: 1.5rem 1rem;
-  }
-  
-  .summaryDashboard {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .summaryBox {
-    padding: 1.25rem;
-  }
-  
-  .summaryValue {
-    font-size: 1.5rem;
+    padding: 0;
   }
 
-  .auditTable th, .auditTable td {
-    padding: 0.75rem 1rem;
-    font-size: 0.85rem;
+  .container {
+    background: white !important;
+  }
+
+  /* Show Print Sections */
+  .printOnlyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #1B2A4A;
+    padding-bottom: 1rem;
+  }
+
+  .printBrand h1 {
+    margin: 0;
+    color: #1B2A4A;
+    font-size: 24pt;
+  }
+
+  .printBrand p {
+    margin: 5pt 0 0 0;
+    color: #666;
+    font-size: 10pt;
+  }
+
+  .printTitle {
+    text-align: right;
+  }
+
+  .printTitle h2 {
+    margin: 0;
+    font-size: 14pt;
+    color: #334155;
+  }
+
+  .printTitle p {
+    margin: 2pt 0 0 0;
+    font-size: 9pt;
+    color: #94a3b8;
+  }
+
+  /* Optimize Table for Print */
+  .tableCard {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0;
+  }
+
+  .auditTable th {
+    background: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .typeBadge.bill {
+    background: #fee2e2 !important;
+    color: #ef4444 !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .typeBadge.payment {
+    background: #dcfce7 !important;
+    color: #22c55e !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Summary Table */
+  .summaryTableCard {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0;
+    max-width: 100%;
+    margin-top: 3rem;
+  }
+
+  .totalRow {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .printOnlyFooter {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+    font-size: 8pt;
+    color: #94a3b8;
   }
 }
 
+/* Responsive fixes */
 @media (max-width: 640px) {
-  .header {
-    padding: 1rem;
-  }
-  
-  .headerContent {
+  .actionButtons {
     flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-  
-  .reportControls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .controlGroup select, .downloadReportBtn {
-    width: 100%;
-  }
-  
-  .pageTitle {
-    font-size: 1.75rem;
-  }
-  
-  .pageSubtitle {
-    font-size: 0.95rem;
-  }
-  
-  .typeBadge {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.65rem;
-  }
-  
-  .amountCell {
-    font-size: 0.9rem;
   }
 }

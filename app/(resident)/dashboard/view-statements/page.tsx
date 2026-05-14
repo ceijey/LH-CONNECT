@@ -121,10 +121,24 @@ export default function ViewStatementsPage() {
 
   const filteredEvents = useMemo(() => {
     return auditEvents.filter(event => {
-      const eventYear = new Date(event.date).getFullYear();
+      // 'audit' (Full Audit Log) shows EVERYTHING from the beginning
+      if (reportType === 'audit') return true;
+
+      const eventDate = new Date(event.date);
+      const eventYear = eventDate.getFullYear();
+      
+      // Type-specific filters
+      if (reportType === 'daily') {
+        const today = new Date();
+        return eventDate.getDate() === today.getDate() &&
+               eventDate.getMonth() === today.getMonth() &&
+               eventDate.getFullYear() === today.getFullYear();
+      }
+
+      // For monthly/annual, we still respect the year filter
       return eventYear === filterYear;
     });
-  }, [auditEvents, filterYear]);
+  }, [auditEvents, filterYear, reportType]);
 
   const handleDownloadReport = async (format: 'pdf' | 'csv' = 'csv') => {
     try {
@@ -207,7 +221,7 @@ export default function ViewStatementsPage() {
             <div className={styles.controlGroup}>
               <label>Report Type</label>
               <select value={reportType} onChange={(e) => setReportType(e.target.value as ReportType)}>
-                <option value="audit">Full Audit Log</option>
+                <option value="audit">Full Activity History</option>
                 <option value="daily">Daily Activity</option>
                 <option value="monthly">Monthly Summary</option>
                 <option value="annual">Annual Statement</option>
@@ -283,29 +297,22 @@ export default function ViewStatementsPage() {
           </div>
         </section>
 
-        <section className={styles.summaryDashboard}>
-          <div className={styles.summaryBox}>
-            <h4>Total Billed</h4>
-            <p className={`${styles.summaryValue} ${styles.billedValue}`}>
-              ₱{filteredEvents.filter(e => e.type === 'BILL').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
-            </p>
+        {/* PRINT ONLY SECTION */}
+        <div className={styles.printOnlyHeader}>
+          <div className={styles.printBrand}>
+            <h1>LH-Connect</h1>
+            <p>San Pablo Dinalupihan Bataan • TIN: 480-266-103-000</p>
           </div>
-          <div className={styles.summaryBox}>
-            <h4>Total Paid</h4>
-            <p className={`${styles.summaryValue} ${styles.paidValue}`}>
-              ₱{filteredEvents.filter(e => e.type === 'PAYMENT' && e.status === 'Confirmed').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
-            </p>
+          <div className={styles.printTitle}>
+            <h2>{reportType.toUpperCase()} REPORT - {filterYear}</h2>
+            <p>Generated on: {new Date().toLocaleString()}</p>
           </div>
-          <div className={styles.summaryBox}>
-            <h4>Net Balance ({filterYear})</h4>
-            <p className={`${styles.summaryValue} ${styles.netBalance}`}>
-              ₱{(
-                filteredEvents.filter(e => e.type === 'BILL').reduce((sum, e) => sum + e.amount, 0) -
-                filteredEvents.filter(e => e.type === 'PAYMENT' && e.status === 'Confirmed').reduce((sum, e) => sum + e.amount, 0)
-              ).toLocaleString()}
-            </p>
-          </div>
-        </section>
+        </div>
+
+        <div className={styles.printOnlyFooter}>
+          <p>LH-Connect Community Management • All Rights Reserved</p>
+          <p>This is an official transaction log generated via LH-Connect Portal.</p>
+        </div>
       </main>
     </div>
   );

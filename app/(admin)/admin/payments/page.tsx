@@ -331,9 +331,9 @@ export default function AdminPayments() {
                 {filteredPayments.length > 0 ? (
                   filteredPayments.map((payment) => {
                     const proofKind = detectProofKind(payment);
-                    const proofSrc = payment.fileUrl || payment.filePath
+                    const proofSrc = payment.fileUrl || (payment.filePath
                       ? `/api/payment-submissions/${payment.id}/proof?name=${encodeURIComponent(payment.fileName || '')}`
-                      : '';
+                      : '');
 
                     // Extract block/lot/phase from string "Phase X Blk Y Lot Z" if possible
                     const addressParts = payment.blockLot.split(' ');
@@ -355,19 +355,32 @@ export default function AdminPayments() {
                         <td className={styles.amount}>₱{payment.paymentAmount.toLocaleString()}</td>
                         <td>
                           {proofSrc ? (
-                            <div 
-                              className={styles.thumbnailWrapper}
-                              onClick={() => setProofModal({
-                                isOpen: true,
-                                url: proofSrc,
-                                title: `Payment Proof - ${payment.residentName}`,
-                                proofKind
-                              })}
-                            >
-                              {proofKind === 'pdf' ? (
-                                <span className={styles.noProof}>PDF</span>
-                              ) : (
-                                <img src={proofSrc} alt="Proof" className={styles.thumbnail} />
+                            <div className={styles.proofActions}>
+                              <div 
+                                className={styles.thumbnailWrapper}
+                                onClick={() => setProofModal({
+                                  isOpen: true,
+                                  url: proofSrc,
+                                  title: `Payment Proof - ${payment.residentName}`,
+                                  proofKind
+                                })}
+                              >
+                                {proofKind === 'pdf' ? (
+                                  <span className={styles.noProof}>PDF</span>
+                                ) : (
+                                  <img src={proofSrc} alt="Proof" className={styles.thumbnail} />
+                                )}
+                              </div>
+                              {payment.fileUrl && (
+                                <a 
+                                  href={payment.fileUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={styles.urlLink}
+                                  title="Open Direct URL"
+                                >
+                                  🔗 URL
+                                </a>
                               )}
                             </div>
                           ) : (

@@ -52,27 +52,41 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (filePath) {
       const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
       const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
+      console.log(`[ProofProxy] Checking for file in bucket: ${bucket.name}`);
       const storageFile = bucket.file(filePath);
-      const [exists] = await storageFile.exists();
+      
+      try {
+        const [exists] = await storageFile.exists();
 
-      if (!exists) {
-        return createErrorResponse('Proof file not found', 404);
+        if (exists) {
+          const [metadata] = await storageFile.getMetadata();
+          const [buffer] = await storageFile.download();
+          const contentType = metadata?.contentType || inferContentType(fileName);
+
+          return new NextResponse(buffer, {
+            status: 200,
+            headers: {
+              'Content-Type': contentType,
+              'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
+              'Cache-Control': 'private, max-age=300',
+            },
+          });
+        } else {
+          console.error(`[ProofProxy] File does not exist in storage: ${filePath} (Bucket: ${bucket.name})`);
+        }
+      } catch (err: any) {
+        console.error(`[ProofProxy] Storage check failed: ${err.message}`);
       }
-
-      const [metadata] = await storageFile.getMetadata();
-      const [buffer] = await storageFile.download();
-      const contentType = metadata?.contentType || inferContentType(fileName);
-
-      return new NextResponse(buffer, {
-        status: 200,
-        headers: {
-          'Content-Type': contentType,
-          'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
-          'Cache-Control': 'private, max-age=300',
-        },
-      });
+    } else {
+      console.error(`[ProofProxy] No filePath found for submission: ${id}`);
     }
 
+    // Fallback: If filePath doesn't work but fileUrl exists, redirect to it
+    if (fileUrl) {
+      return NextResponse.redirect(fileUrl);
+    }
+
+    console.error(`[ProofProxy] No proof available for submission ${id}. Fields present: ${Object.keys(submission).join(', ')}`);
     return createErrorResponse('No proof file available', 404);
   } catch (error: any) {
     console.error('Error serving proof file:', error?.message ?? error);

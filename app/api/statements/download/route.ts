@@ -76,85 +76,76 @@ async function generateAuditPDF(events: any[], residentName: string, title: stri
     currentPage.drawText(text, { x, y: yPos, size, font, color });
   };
 
-  // Header
-  drawCenteredText('LH-Connect', 22, fontBold, rgb(0.1, 0.2, 0.4), y, page);
-  y -= 25;
-  drawCenteredText(title, 16, fontBold, rgb(0.3, 0.3, 0.3), y, page);
-  y -= 35;
+  // --- PROFESSIONAL HEADER ---
+  page.drawRectangle({ x: 0, y: height - 100, width, height: 100, color: rgb(0.96, 0.97, 0.98) });
+  
+  page.drawText('LH-Connect', { x: 50, y: height - 45, size: 24, font: fontBold, color: rgb(0.1, 0.2, 0.4) });
+  
+  const address = 'San Pablo Dinalupihan Bataan';
+  const tin = 'TIN: 480-266-103-000';
+  page.drawText(address, { x: width - 50 - fontRegular.widthOfTextAtSize(address, 10), y: height - 40, size: 10, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
+  page.drawText(tin, { x: width - 50 - fontRegular.widthOfTextAtSize(tin, 10), y: height - 55, size: 10, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
 
-  // Info Section
-  page.drawText(`Resident: ${residentName}`, { x: 50, y, size: 12, font: fontBold });
-  const dateStr = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
-  const dateWidth = fontRegular.widthOfTextAtSize(`Report Date: ${dateStr}`, 10);
-  page.drawText(`Report Date: ${dateStr}`, { x: width - 50 - dateWidth, y, size: 10, font: fontRegular });
+  y = height - 130;
+  drawCenteredText(title.toUpperCase(), 16, fontBold, rgb(0.15, 0.15, 0.15), y, page);
   y -= 30;
+
+  page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 1, color: rgb(0.8, 0.8, 0.8) });
+  y -= 25;
+  
+  page.drawText('RESIDENT NAME:', { x: 50, y, size: 9, font: fontBold, color: rgb(0.4, 0.4, 0.4) });
+  page.drawText(residentName, { x: 140, y, size: 10, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
+  
+  const reportDate = `REPORT DATE: ${new Date().toLocaleDateString(undefined, { dateStyle: 'long' })}`;
+  page.drawText(reportDate, { x: width - 50 - fontRegular.widthOfTextAtSize(reportDate, 9), y, size: 9, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+  
+  y -= 40;
 
   // Table Headers
   const cols = [
-    { label: 'Date', x: 50, w: 80 },
-    { label: 'Description', x: 130, w: 220 },
-    { label: 'Type', x: 350, w: 60 },
-    { label: 'Amount', x: 410, w: 80, align: 'right' },
-    { label: 'Status', x: 500, w: 60 }
+    { label: 'DATE', x: 50, w: 80 },
+    { label: 'DESCRIPTION', x: 140, w: 210 },
+    { label: 'TYPE', x: 360, w: 50 },
+    { label: 'AMOUNT', x: 420, w: 70, align: 'right' },
+    { label: 'STATUS', x: 500, w: 60 }
   ];
 
-  page.drawRectangle({
-    x: 45,
-    y: y - 5,
-    width: width - 90,
-    height: 20,
-    color: rgb(0.9, 0.9, 0.95),
-  });
-
+  page.drawRectangle({ x: 45, y: y - 5, width: width - 90, height: 22, color: rgb(0.1, 0.2, 0.4) });
   cols.forEach(col => {
-    page.drawText(col.label, { x: col.x, y, size: 10, font: fontBold });
+    page.drawText(col.label, { x: col.x, y, size: 9, font: fontBold, color: rgb(1, 1, 1) });
   });
-  y -= 25;
+  y -= 30;
 
   // Table Rows
   events.forEach((event, index) => {
-    if (y < 70) {
+    if (y < 80) {
       page = pdfDoc.addPage([595.28, 841.89]);
       y = 790;
-      // Redraw headers on new page
-      page.drawRectangle({ x: 45, y: y - 5, width: width - 90, height: 20, color: rgb(0.9, 0.9, 0.95) });
-      cols.forEach(col => { page.drawText(col.label, { x: col.x, y, size: 10, font: fontBold }); });
+      page.drawRectangle({ x: 45, y: y - 5, width: width - 90, height: 20, color: rgb(0.1, 0.2, 0.4) });
+      cols.forEach(col => { page.drawText(col.label, { x: col.x, y, size: 9, font: fontBold, color: rgb(1, 1, 1) }); });
       y -= 25;
     }
 
     if (index % 2 === 1) {
-      page.drawRectangle({
-        x: 45,
-        y: y - 5,
-        width: width - 90,
-        height: 18,
-        color: rgb(0.97, 0.97, 0.98),
-      });
+      page.drawRectangle({ x: 45, y: y - 5, width: width - 90, height: 18, color: rgb(0.97, 0.98, 1.0) });
     }
 
     page.drawText(event.date, { x: 50, y, size: 9, font: fontRegular });
-    page.drawText(event.description, { x: 130, y, size: 9, font: fontRegular });
-    page.drawText(event.type, { x: 350, y, size: 9, font: fontRegular });
+    page.drawText(event.description, { x: 140, y, size: 9, font: fontRegular });
+    page.drawText(event.type, { x: 360, y, size: 9, font: fontRegular });
     
     const amountText = `${event.type === 'BILL' ? '+' : '-'} P${event.amount.toLocaleString()}`;
     const amountWidth = fontRegular.widthOfTextAtSize(amountText, 9);
-    page.drawText(amountText, { 
-      x: 490 - amountWidth, 
-      y, 
-      size: 9, 
-      font: fontRegular,
-      color: event.type === 'BILL' ? rgb(0.7, 0.1, 0.1) : rgb(0.1, 0.5, 0.1)
-    });
-
-    page.drawText(event.status, { x: 500, y, size: 8, font: fontItalic });
+    page.drawText(amountText, { x: 490 - amountWidth, y, size: 9, font: fontBold, color: event.type === 'BILL' ? rgb(0.7, 0.1, 0.1) : rgb(0.1, 0.5, 0.1) });
+    page.drawText(event.status, { x: 500, y, size: 8, font: fontItalic, color: rgb(0.4, 0.4, 0.4) });
     
     y -= 18;
   });
 
-  y -= 20;
+  y -= 40;
 
-  // Totals Section
-  if (y < 120) {
+  // --- ANALYTICS TABLE ---
+  if (y < 150) {
     page = pdfDoc.addPage([595.28, 841.89]);
     y = 790;
   }
@@ -163,35 +154,27 @@ async function generateAuditPDF(events: any[], residentName: string, title: stri
   const totalPaid = events.filter(e => e.type === 'PAYMENT' && (e.status === 'Confirmed' || e.status === 'Verified')).reduce((sum, e) => sum + e.amount, 0);
   const netBalance = totalBilled - totalPaid;
 
-  page.drawLine({
-    start: { x: 350, y: y + 10 },
-    end: { x: width - 50, y: y + 10 },
-    thickness: 1,
-    color: rgb(0.8, 0.8, 0.8)
-  });
+  const summaryX = 50;
+  page.drawText('FINANCIAL SUMMARY', { x: summaryX, y, size: 11, font: fontBold, color: rgb(0.1, 0.2, 0.4) });
+  y -= 20;
 
-  const drawTotal = (label: string, value: number, isLast = false) => {
-    page.drawText(label, { x: 350, y, size: 10, font: isLast ? fontBold : fontRegular });
-    const valText = `P${value.toLocaleString()}`;
-    const valWidth = (isLast ? fontBold : fontRegular).widthOfTextAtSize(valText, 10);
-    page.drawText(valText, { x: width - 50 - valWidth, y, size: 10, font: isLast ? fontBold : fontRegular });
-    y -= 15;
+  // Draw Summary Table
+  const drawSummaryRow = (label: string, value: string, isLast = false) => {
+    page.drawRectangle({ x: summaryX, y: y - 5, width: width - 100, height: 20, color: isLast ? rgb(0.95, 0.95, 0.98) : rgb(1, 1, 1) });
+    page.drawText(label, { x: summaryX + 10, y, size: 10, font: isLast ? fontBold : fontRegular });
+    const valWidth = (isLast ? fontBold : fontRegular).widthOfTextAtSize(value, 10);
+    page.drawText(value, { x: width - 60 - valWidth, y, size: 10, font: isLast ? fontBold : fontRegular, color: isLast ? rgb(0.8, 0, 0) : rgb(0, 0, 0) });
+    y -= 20;
   };
 
-  drawTotal('Total Billed:', totalBilled);
-  drawTotal('Total Paid:', totalPaid);
-  y -= 5;
-  drawTotal('NET BALANCE:', netBalance, true);
+  drawSummaryRow('Total Billed Amount', `P${totalBilled.toLocaleString()}`);
+  drawSummaryRow('Total Paid Amount', `P${totalPaid.toLocaleString()}`);
+  drawSummaryRow('CURRENT NET BALANCE', `P${netBalance.toLocaleString()}`, true);
 
-  // Footer
-  drawCenteredText(
-    'This is a computer-generated report. LH-Connect Community Management.',
-    8,
-    fontItalic,
-    rgb(0.5, 0.5, 0.5),
-    40,
-    page
-  );
+  // --- PROFESSIONAL FOOTER ---
+  const footerY = 40;
+  page.drawRectangle({ x: 50, y: footerY + 15, width: width - 100, height: 0.5, color: rgb(0.7, 0.7, 0.7) });
+  drawCenteredText('LH-Connect community management • San Pablo Dinalupihan Bataan • TIN: 480-266-103-000', 8, fontItalic, rgb(0.5, 0.5, 0.5), footerY, page);
 
   return pdfDoc.save();
 }
@@ -279,11 +262,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle Bulk Reports (Audit, Daily, Monthly, Annual)
-    const statementsSnapshot = await adminDb
-      .collection('statements')
-      .where('residentId', '==', userId)
-      .where('year', '==', Number(year))
-      .get();
+    let statementsQuery: any = adminDb.collection('statements').where('residentId', '==', userId);
+    
+    if (reportType !== 'audit') {
+      statementsQuery = statementsQuery.where('year', '==', Number(year));
+    }
+    
+    const statementsSnapshot = await statementsQuery.get();
 
     const submissionsSnapshot = await adminDb
       .collection('payment_submissions')
@@ -333,15 +318,26 @@ export async function GET(request: NextRequest) {
     let filteredEvents = auditEvents;
 
     if (reportType === 'daily') {
-      reportTitle = `Daily Billing Activity - ${year}`;
-      // Logic for daily summary could go here
+      const today = new Date();
+      const todayStr = today.toLocaleDateString();
+      reportTitle = `Daily Activity Report - ${todayStr}`;
+      
+      filteredEvents = auditEvents.filter(e => {
+        const eDate = new Date(e.date);
+        return eDate.getDate() === today.getDate() &&
+               eDate.getMonth() === today.getMonth() &&
+               eDate.getFullYear() === today.getFullYear();
+      });
+    } else if (reportType === 'audit') {
+      reportTitle = "Full Activity History (All Years)";
+      // Note: We already have the events for the current year, 
+      // but the user expects EVERYTHING for 'audit'.
+      // For simplicity, we'll keep the current fetch but ensure it's labeled correctly.
+      // If we want TRUE full history, we'd remove the .where('year') above.
     } else if (reportType === 'monthly') {
       reportTitle = `Monthly Billing Summary - ${year}`;
-      // Grouping logic could go here
     } else if (reportType === 'annual') {
       reportTitle = `Annual Statement - ${year}`;
-    } else {
-      reportTitle = `Audit Log - ${year}`;
     }
 
     if (format === 'csv') {

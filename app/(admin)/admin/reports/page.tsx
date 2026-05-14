@@ -339,14 +339,14 @@ export default function AdminReports() {
                     <th onClick={() => requestSort('resident')} className={reportsStyles.sortableHeader}>
                       Resident Name {sortConfig?.key === 'resident' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
                     </th>
-                    <th onClick={() => requestSort('monthlyDues')} className={reportsStyles.sortableHeader}>
-                      Dues {sortConfig?.key === 'monthlyDues' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    <th className={reportsStyles.sortableHeader}>
+                      {selectedReportType === 'Daily Report' ? 'Ref Number' : 'Dues'}
                     </th>
                     <th onClick={() => requestSort('amountPaid')} className={reportsStyles.sortableHeader}>
-                      Paid {sortConfig?.key === 'amountPaid' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                      {selectedReportType === 'Daily Report' ? 'Amount' : 'Paid'} {sortConfig?.key === 'amountPaid' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
                     </th>
-                    <th onClick={() => requestSort('balance')} className={reportsStyles.sortableHeader}>
-                      Balance {sortConfig?.key === 'balance' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
+                    <th className={reportsStyles.sortableHeader}>
+                      {selectedReportType === 'Daily Report' ? 'Method' : 'Balance'}
                     </th>
                     <th onClick={() => requestSort('status')} className={reportsStyles.sortableHeader}>
                       Status {sortConfig?.key === 'status' && (sortConfig.direction === 'ascending' ? '🔼' : '🔽')}
@@ -358,12 +358,14 @@ export default function AdminReports() {
                     <tr key={row.id}>
                       <td>Blk {row.block} Lot {row.lot}</td>
                       <td>{row.resident}</td>
-                      <td>₱{row.monthlyDues.toLocaleString()}</td>
+                      <td>
+                        {selectedReportType === 'Daily Report' ? (row as any).referenceNumber : `₱${row.monthlyDues.toLocaleString()}`}
+                      </td>
                       <td style={{ color: row.amountPaid > 0 ? '#16a34a' : '#64748b', fontWeight: 700 }}>
                         ₱{row.amountPaid.toLocaleString()}
                       </td>
-                      <td style={{ color: row.balance > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>
-                        ₱{row.balance.toLocaleString()}
+                      <td>
+                        {selectedReportType === 'Daily Report' ? (row as any).paymentMethod : `₱${row.balance.toLocaleString()}`}
                       </td>
                       <td>
                         <span className={`${styles.badge} ${row.status === 'Paid' ? styles.verified : row.status === 'Pending' ? styles.pending : row.status === 'Rejected' ? styles.rejected : styles.delinquent}`}>

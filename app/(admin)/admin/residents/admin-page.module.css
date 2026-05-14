@@ -632,6 +632,29 @@
   height: 100%;
   object-fit: cover;
 }
+  
+.proofActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.urlLink {
+  font-size: 0.7rem;
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  background: #e3f2fd;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.urlLink:hover {
+  background: #bbdefb;
+  color: #0d47a1;
+}
 
 .noProof {
   font-size: 0.75rem;

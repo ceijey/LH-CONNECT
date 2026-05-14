@@ -54,7 +54,28 @@ export default function ImageModal({ isOpen, imageUrl, title, proofKind = 'none'
                 </a>
               </div>
             ) : (
-              <img src={imageUrl} alt={title} className={styles.image} />
+              <div className={styles.imageWrapper}>
+                <img 
+                  src={imageUrl} 
+                  alt={title} 
+                  className={styles.image}
+                  onError={(e) => {
+                    console.error('Image failed to load:', imageUrl);
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/placeholder-image.png'; // Fallback if you have one
+                  }}
+                />
+                <div className={styles.imageActions}>
+                  <a
+                    href={imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.openLink}
+                  >
+                    Open Image in new tab
+                  </a>
+                </div>
+              </div>
             )
           ) : (
             <div className={styles.noImage}>No proof file available for this payment.</div>
