@@ -147,6 +147,41 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
+.analyticsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.analyticsTable th {
+  text-align: left;
+  padding: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.analyticsTable td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1B2A4A;
+}
+
+.analyticsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.statusIndicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
 .analyticsTitle {
   font-size: 1rem;
   font-weight: 800;
@@ -311,6 +346,18 @@
   .analyticsGrid {
     grid-template-columns: 1fr 1fr;
     gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .analyticsCard {
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    padding: 15px !important;
+  }
+
+  .analyticsTable th {
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
   }
 
   .methodBar {
@@ -320,25 +367,47 @@
   .printHeader {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     border-bottom: 2px solid #1B2A4A;
-    padding-bottom: 20px;
+    padding-bottom: 15px;
     margin-bottom: 30px;
   }
 
   .printLogo {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 4px;
   }
 
-  .printLogoIcon {
-    font-size: 32px;
+  .printLogoBrand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .printLogoImg {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
   }
 
   .printLogoText {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 800;
+    color: #1B2A4A;
+    letter-spacing: -0.02em;
+  }
+
+  .printAddressInfo {
+    font-size: 0.8rem;
+    color: #475569;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  .printTIN {
+    font-weight: 700;
     color: #1B2A4A;
   }
 
@@ -363,12 +432,28 @@
     bottom: 0;
     left: 0;
     right: 0;
-    text-align: center;
-    padding: 20px;
-    border-top: 1px solid #e0e0e0;
-    font-size: 0.8rem;
-    color: #999;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 15px 0;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    color: #64748b;
     background: white;
+    width: 100%;
+  }
+
+  .printFooterText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+  }
+
+  .pageNumber::after {
+    content: "Page " counter(page);
+    font-weight: 600;
+    color: #1B2A4A;
   }
 
   .reportContent {

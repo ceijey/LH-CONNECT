@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       monthlyDues: number;
       amountPaid: number;
       balance: number;
-      status: 'Paid' | 'Pending' | 'Delinquent';
+      status: 'Paid' | 'Pending' | 'Delinquent' | 'Rejected';
       paymentMethod: string;
     }
 
@@ -71,16 +71,22 @@ export async function GET(request: NextRequest) {
         .reduce((sum: number, s: any) => sum + (Number(s.paymentAmount) || 0), 0);
 
       const hasPending = residentSubmissions.some((s: any) => s.status === 'Pending');
+      const hasRejected = residentSubmissions.some((s: any) => s.status === 'Rejected');
+      const hasVerified = residentSubmissions.some((s: any) => s.status === 'Verified');
       
-      let status: 'Paid' | 'Pending' | 'Delinquent' = 'Delinquent';
-      if (amountPaid >= monthlyDues) {
+      let status: 'Paid' | 'Pending' | 'Delinquent' | 'Rejected' = 'Delinquent';
+      
+      if (amountPaid >= monthlyDues || (amountPaid > 0 && Number(resident.balance || 0) <= 0)) {
         status = 'Paid';
       } else if (hasPending) {
         status = 'Pending';
+      } else if (hasRejected && amountPaid === 0) {
+        status = 'Rejected';
       } else if (Number(resident.balance || 0) > 0) {
         status = 'Delinquent';
-      } else if (amountPaid > 0) {
-        status = 'Paid'; 
+      } else if (Number(resident.balance || 0) <= 0) {
+        // If they have no balance and no pending/rejected, they are effectively Paid
+        status = 'Paid';
       }
 
       return {
@@ -96,27 +102,49 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Filter Delinquency Report if requested
-    const finalData = type === 'Delinquency Report' 
-      ? financialData.filter((d: FinancialRecord) => d.status === 'Delinquent') 
-      : financialData;
+    // 4. Filter and Calculate Summary & Analytics
+    let finalData = financialData;
+    
+    if (type === 'Daily Report') {
+      // For Daily Report, only show residents who had activity (submissions) today
+      finalData = financialData.filter(d => 
+        submissions.some((s: any) => s.residentId === d.id)
+      );
+    }
 
-    // 4. Calculate Summary & Analytics
-    const totalDues = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.monthlyDues, 0);
-    const totalCollected = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.amountPaid, 0);
-    const outstandingBalance = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.balance, 0);
+    // Summary logic
+    let totalDues, totalCollected, outstandingBalance;
+
+    if (type === 'Daily Report') {
+      // For daily, summary reflects the day's submission volume
+      totalDues = submissions.reduce((sum: number, s: any) => sum + (Number(s.paymentAmount) || 0), 0);
+      totalCollected = submissions
+        .filter((s: any) => s.status === 'Verified')
+        .reduce((sum: number, s: any) => sum + (Number(s.paymentAmount) || 0), 0);
+      outstandingBalance = totalDues - totalCollected;
+    } else {
+      // For monthly/annual, summary reflects overall resident balances
+      totalDues = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.monthlyDues, 0);
+      totalCollected = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.amountPaid, 0);
+      outstandingBalance = finalData.reduce((sum: number, d: FinancialRecord) => sum + d.balance, 0);
+    }
+
     const collectionRate = totalDues > 0 ? ((totalCollected / totalDues) * 100).toFixed(1) : '0';
 
-    // Analytics: Payment Method Breakdown
+    // Analytics: Payment Method Breakdown (including all statuses for total distribution)
     const methodCounts: Record<string, number> = {};
-    submissions.filter((s: any) => s.status === 'Verified').forEach((s: any) => {
+    submissions.forEach((s: any) => {
       const method = s.paymentMethod || 'Other';
       methodCounts[method] = (methodCounts[method] || 0) + 1;
     });
 
     const analytics = {
+      totalCount: submissions.length,
       verifiedCount: submissions.filter((s: any) => s.status === 'Verified').length,
       pendingCount: submissions.filter((s: any) => s.status === 'Pending').length,
+      rejectedCount: submissions.filter((s: any) => s.status === 'Rejected').length,
+      paidCount: financialData.filter(d => d.status === 'Paid').length,
+      delinquentCount: financialData.filter(d => d.status === 'Delinquent').length,
       methods: Object.entries(methodCounts).map(([name, value]) => ({ name, value }))
     };
 

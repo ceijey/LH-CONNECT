@@ -16,13 +16,17 @@ interface ReportData {
   monthlyDues: number;
   amountPaid: number;
   balance: number;
-  status: 'Paid' | 'Pending' | 'Delinquent';
+  status: 'Paid' | 'Pending' | 'Delinquent' | 'Rejected';
   paymentMethod?: string;
 }
 
 interface AnalyticsData {
+  totalCount: number;
   verifiedCount: number;
   pendingCount: number;
+  rejectedCount: number;
+  paidCount: number;
+  delinquentCount: number;
   methods: { name: string; value: number }[];
 }
 
@@ -173,8 +177,14 @@ export default function AdminReports() {
           <div className={reportsStyles.printOnly}>
             <div className={reportsStyles.printHeader}>
               <div className={reportsStyles.printLogo}>
-                <span className={reportsStyles.printLogoIcon}>🏠</span>
-                <span className={reportsStyles.printLogoText}>LH-Connect</span>
+                <div className={reportsStyles.printLogoBrand}>
+                  <img src="/lhhoa-logo.png" alt="LH Logo" className={reportsStyles.printLogoImg} />
+                  <span className={reportsStyles.printLogoText}>LH-Connect</span>
+                </div>
+                <div className={reportsStyles.printAddressInfo}>
+                  <div>San Pablo Dinalupihan Bataan</div>
+                  <div>TIN: <span className={reportsStyles.printTIN}>480-266-103-000</span></div>
+                </div>
               </div>
               <div className={reportsStyles.printReportDetails}>
                 <h1 className={reportsStyles.printReportTitle}>{selectedReportType}</h1>
@@ -194,7 +204,6 @@ export default function AdminReports() {
               >
                 <option>Monthly Report</option>
                 <option>Daily Report</option>
-                <option>Delinquency Report</option>
                 <option>Annual Report</option>
               </select>
 
@@ -223,19 +232,27 @@ export default function AdminReports() {
 
           <div className={reportsStyles.statsGrid}>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>Total Receivables</span>
+              <span className={reportsStyles.statLabel}>
+                {selectedReportType === 'Daily Report' ? 'Total Submissions' : 'Total Receivables'}
+              </span>
               <span className={reportsStyles.statValue}>₱{summary.totalDues.toLocaleString()}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>Total Collected</span>
+              <span className={reportsStyles.statLabel}>
+                {selectedReportType === 'Daily Report' ? 'Collected Today' : 'Total Collected'}
+              </span>
               <span className={reportsStyles.statValue} style={{ color: '#16a34a' }}>₱{summary.totalCollected.toLocaleString()}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>Outstanding</span>
+              <span className={reportsStyles.statLabel}>
+                {selectedReportType === 'Daily Report' ? 'Pending/Rejected' : 'Outstanding'}
+              </span>
               <span className={reportsStyles.statValue} style={{ color: '#dc2626' }}>₱{summary.outstandingBalance.toLocaleString()}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>Collection Rate</span>
+              <span className={reportsStyles.statLabel}>
+                {selectedReportType === 'Daily Report' ? 'Realization Rate' : 'Collection Rate'}
+              </span>
               <span className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary.collectionRate}%</span>
             </div>
           </div>
@@ -244,38 +261,67 @@ export default function AdminReports() {
           <div className={reportsStyles.analyticsGrid}>
             <div className={reportsStyles.analyticsCard}>
               <h3 className={reportsStyles.analyticsTitle}>📊 Payment Methods Breakdown</h3>
-              <div className={reportsStyles.methodList}>
-                {analytics?.methods.map(m => (
-                  <div key={m.name} className={reportsStyles.methodItem}>
-                    <span className={reportsStyles.methodName}>{m.name}</span>
-                    <div className={reportsStyles.methodBarContainer}>
-                      <div 
-                        className={reportsStyles.methodBar} 
-                        style={{ width: `${(m.value / (analytics.verifiedCount || 1)) * 100}%` }}
-                      ></div>
-                    </div>
-                    <span className={reportsStyles.methodValue}>{m.value}</span>
-                  </div>
-                ))}
-                {(!analytics?.methods || analytics.methods.length === 0) && (
-                  <div style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'center', padding: '10px' }}>
-                    No payment data for this period.
-                  </div>
-                )}
-              </div>
+              <table className={reportsStyles.analyticsTable}>
+                <thead>
+                  <tr>
+                    <th>Method Name</th>
+                    <th>Transactions</th>
+                    <th className="no-print">Distribution</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics?.methods.map(m => (
+                    <tr key={m.name}>
+                      <td style={{ fontWeight: 600 }}>{m.name}</td>
+                      <td>{m.value}</td>
+                      <td className="no-print">
+                        <div className={reportsStyles.methodBarContainer}>
+                          <div 
+                            className={reportsStyles.methodBar} 
+                            style={{ width: `${(m.value / (analytics.totalCount || 1)) * 100}%` }}
+                          ></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!analytics?.methods || analytics.methods.length === 0) && (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+                        No payment data for this period.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
             <div className={reportsStyles.analyticsCard}>
-              <h3 className={reportsStyles.analyticsTitle}>📈 Efficiency</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <div>
-                  <div className={reportsStyles.statLabel}>Verified Transactions</div>
-                  <div className={reportsStyles.statValue} style={{ fontSize: '1.25rem' }}>{analytics?.verifiedCount || 0}</div>
-                </div>
-                <div>
-                  <div className={reportsStyles.statLabel}>Pending Verification</div>
-                  <div className={reportsStyles.statValue} style={{ fontSize: '1.25rem', color: '#f59e0b' }}>{analytics?.pendingCount || 0}</div>
-                </div>
-              </div>
+              <h3 className={reportsStyles.analyticsTitle}>📈 Efficiency Summary</h3>
+              <table className={reportsStyles.analyticsTable}>
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span className={reportsStyles.statusIndicator} style={{ background: '#16a34a' }}></span> Verified / Paid</td>
+                    <td style={{ fontWeight: 700 }}>{analytics?.verifiedCount || 0}</td>
+                  </tr>
+                  <tr>
+                    <td><span className={reportsStyles.statusIndicator} style={{ background: '#f59e0b' }}></span> Pending Verification</td>
+                    <td style={{ fontWeight: 700, color: '#f59e0b' }}>{analytics?.pendingCount || 0}</td>
+                  </tr>
+                  <tr>
+                    <td><span className={reportsStyles.statusIndicator} style={{ background: '#dc2626' }}></span> Rejected Payments</td>
+                    <td style={{ fontWeight: 700, color: '#dc2626' }}>{analytics?.rejectedCount || 0}</td>
+                  </tr>
+                  <tr style={{ borderTop: '2px solid #e2e8f0' }}>
+                    <td style={{ fontWeight: 700 }}>Resident Collection Rate</td>
+                    <td style={{ fontWeight: 800, color: '#1B2A4A' }}>{summary.collectionRate}%</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -320,7 +366,7 @@ export default function AdminReports() {
                         ₱{row.balance.toLocaleString()}
                       </td>
                       <td>
-                        <span className={`${styles.badge} ${row.status === 'Paid' ? styles.verified : row.status === 'Pending' ? styles.pending : styles.rejected}`}>
+                        <span className={`${styles.badge} ${row.status === 'Paid' ? styles.verified : row.status === 'Pending' ? styles.pending : row.status === 'Rejected' ? styles.rejected : styles.delinquent}`}>
                           {row.status}
                         </span>
                       </td>
@@ -339,16 +385,38 @@ export default function AdminReports() {
           </div>
 
           <div className={`${reportsStyles.printOnly} ${reportsStyles.printFooter}`}>
-            <div>LH-Connect Financial Analytics System — Property of LH Homeowners Association</div>
-            <div>Report generated on {new Date().toLocaleString()} by System Administrator</div>
+            <div className={reportsStyles.printFooterText}>
+              <div>LH-Connect Financial Analytics System — Property of LH Homeowners Association</div>
+              <div>Report generated on {new Date().toLocaleString()} by System Administrator</div>
+            </div>
+            <div className={reportsStyles.pageNumber}></div>
           </div>
       </div>
 
       <style jsx global>{`
         @media print {
           .no-print { display: none !important; }
-          body { background: white !important; padding: 0 !important; }
-          .content { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
+          body { 
+            background: white !important; 
+            padding: 0 !important; 
+            margin: 0 !important;
+            -webkit-print-color-adjust: exact;
+          }
+          .content { 
+            box-shadow: none !important; 
+            padding: 0 !important; 
+            margin: 0 !important;
+            max-width: 100% !important; 
+            border: none !important;
+            background: transparent !important;
+            overflow: visible !important;
+          }
+          * {
+            scrollbar-width: none !important;
+          }
+          *::-webkit-scrollbar {
+            display: none !important;
+          }
         }
       `}</style>
     </>

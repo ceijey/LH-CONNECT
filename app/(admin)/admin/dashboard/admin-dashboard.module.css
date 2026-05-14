@@ -38,7 +38,7 @@
 }
 
 .statTitle {
-  color: #9E9E9E;
+  color: #1B2A4A;
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -92,11 +92,11 @@
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 1rem;
   }
-  
+
   .chartCard {
     padding: 1rem;
   }
-  
+
   .statValue {
     font-size: 1.5rem;
   }
@@ -107,21 +107,28 @@
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
-  
+
   .chartsGrid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .statCard {
     padding: 1.25rem;
   }
-  
+
   .statTitle {
     font-size: 0.8rem;
   }
-  
+
   .statValue {
     font-size: 1.25rem;
   }
+}
+
+.chartTitle {
+  color: #1B2A4A;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
 }

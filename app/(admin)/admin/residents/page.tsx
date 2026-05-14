@@ -7,6 +7,7 @@ import Skeleton from '@/app/components/Skeleton';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import ResidentDetailModal from '@/app/components/ResidentDetailModal';
 import ResidentEditModal from '@/app/components/ResidentEditModal';
+import PaymentHistoryModal from '@/app/components/PaymentHistoryModal';
 import styles from './admin-page.module.css';
 
 interface Resident {
@@ -38,6 +39,7 @@ export default function AdminResidents() {
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const totalResidents = allResidents.length;
   const activeCount = allResidents.filter((resident) => resident.status === 'Active').length;
@@ -190,6 +192,12 @@ export default function AdminResidents() {
 
   const handleEditModalSuccess = () => {
     loadResidents();
+  };
+
+  const handleViewHistory = (resident: Resident) => {
+    setSelectedResident(resident);
+    setSelectedResidentId(resident.id);
+    setHistoryModalOpen(true);
   };
 
   if (isLoading) {
@@ -406,6 +414,13 @@ export default function AdminResidents() {
                       >
                         ✏️
                       </button>
+                      <button 
+                        className={styles.iconBtn} 
+                        title="Payment History"
+                        onClick={() => handleViewHistory(resident)}
+                      >
+                        📈
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -463,6 +478,17 @@ export default function AdminResidents() {
           setSelectedResident(null);
         }}
         onSuccess={handleEditModalSuccess}
+      />
+
+      <PaymentHistoryModal
+        isOpen={historyModalOpen}
+        residentId={selectedResidentId}
+        residentName={selectedResident?.name || null}
+        onClose={() => {
+          setHistoryModalOpen(false);
+          setSelectedResidentId(null);
+          setSelectedResident(null);
+        }}
       />
     </>
   );
