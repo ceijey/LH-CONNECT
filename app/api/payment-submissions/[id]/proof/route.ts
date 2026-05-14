@@ -48,66 +48,64 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const fileName = submission.fileName as string | undefined;
     const fileUrl = submission.fileUrl as string | undefined;
 
-    // Serve file from Firebase Storage if filePath exists
-    if (filePath) {
-      const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-      const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
-      console.log(`[ProofProxy] Checking for file in bucket: ${bucket.name}`);
-      const storageFile = bucket.file(filePath);
-      
+    // 1. PRIORITIZE BASE64 (This is our most reliable method on Vercel)
+    if (fileUrl && fileUrl.startsWith('data:')) {
       try {
-        const [exists] = await storageFile.exists();
+        console.log(`[ProofProxy] Serving Base64 data for submission: ${id}`);
+        const [mimePart, base64Data] = fileUrl.split(';base64,');
+        const contentType = mimePart.split(':')[1] || 'image/jpeg';
+        const buffer = Buffer.from(base64Data, 'base64');
 
-        if (exists) {
-          const [metadata] = await storageFile.getMetadata();
-          const [buffer] = await storageFile.download();
-          const contentType = metadata?.contentType || inferContentType(fileName);
-
-          return new NextResponse(buffer, {
-            status: 200,
-            headers: {
-              'Content-Type': contentType,
-              'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
-              'Cache-Control': 'private, max-age=300',
-            },
-          });
-        } else {
-          console.error(`[ProofProxy] File does not exist in storage: ${filePath} (Bucket: ${bucket.name})`);
-        }
-      } catch (err: any) {
-        console.error(`[ProofProxy] Storage check failed: ${err.message}`);
+        return new NextResponse(buffer, {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
+            'Cache-Control': 'private, max-age=3600',
+          },
+        });
+      } catch (e) {
+        console.error(`[ProofProxy] Failed to decode Base64 for submission ${id}`);
       }
-    } else {
-      console.error(`[ProofProxy] No filePath found for submission: ${id}`);
     }
 
-    // Fallback: If filePath doesn't work but fileUrl exists, handle it
-    if (fileUrl) {
-      // If it's a Base64 string, decode and serve it as binary
-      if (fileUrl.startsWith('data:')) {
-        try {
-          const [mimePart, base64Data] = fileUrl.split(';base64,');
-          const contentType = mimePart.split(':')[1] || 'image/jpeg';
-          const buffer = Buffer.from(base64Data, 'base64');
+    // 2. FALLBACK TO FIREBASE STORAGE
+    if (filePath) {
+      try {
+        const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+        if (!envBucket) {
+          console.warn(`[ProofProxy] No bucket configured, skipping storage check for: ${filePath}`);
+        } else {
+          const bucket = adminStorage.bucket(envBucket);
+          const storageFile = bucket.file(filePath);
+          const [exists] = await storageFile.exists();
 
-          return new NextResponse(buffer, {
-            status: 200,
-            headers: {
-              'Content-Type': contentType,
-              'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
-              'Cache-Control': 'private, max-age=3600',
-            },
-          });
-        } catch (e) {
-          console.error(`[ProofProxy] Failed to decode Base64 for submission ${id}`);
+          if (exists) {
+            const [metadata] = await storageFile.getMetadata();
+            const [buffer] = await storageFile.download();
+            const contentType = metadata?.contentType || inferContentType(fileName);
+
+            return new NextResponse(buffer, {
+              status: 200,
+              headers: {
+                'Content-Type': contentType,
+                'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
+                'Cache-Control': 'private, max-age=3600',
+              },
+            });
+          }
         }
+      } catch (err: any) {
+        console.error(`[ProofProxy] Storage operation failed for ${filePath}: ${err.message}`);
       }
-      
-      // If it's a standard URL, redirect to it
+    }
+
+    // 3. LAST RESORT: STANDARD REDIRECT
+    if (fileUrl && !fileUrl.startsWith('data:')) {
       return NextResponse.redirect(fileUrl);
     }
 
-    console.error(`[ProofProxy] No proof available for submission ${id}. Fields present: ${Object.keys(submission).join(', ')}`);
+    console.error(`[ProofProxy] No proof available for submission ${id}`);
     return createErrorResponse('No proof file available', 404);
   } catch (error: any) {
     console.error('Error serving proof file:', error?.message ?? error);
