@@ -54,6 +54,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.5px;
+  white-space: nowrap;
 }
 
 .navLinks {
@@ -410,11 +411,13 @@
   .navLinks { display: none; }
   .heroButtons { flex-direction: column; }
   .ctaTitle { font-size: 2.5rem; }
+  .heroSection { padding: 6rem 1rem 1rem; }
 }
 
 @media (max-width: 480px) {
-  .heroTitle { font-size: 2.2rem; }
-  .sectionTitle { font-size: 2.2rem; }
+  .heroTitle { font-size: 2rem; }
+  .sectionTitle { font-size: 2rem; }
   .ctaWrapper { padding: 3rem 1.5rem; border-radius: 20px; }
-  .ctaTitle { font-size: 2rem; }
+  .ctaTitle { font-size: 1.8rem; }
+  .heroSubtitle { font-size: 1rem; }
 }

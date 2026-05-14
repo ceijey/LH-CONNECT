@@ -325,7 +325,7 @@
   }
   .mobileLogoContainer {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
   }
   .mobileLogo {
     width: 60px;
@@ -336,9 +336,17 @@
 }
 
 @media (max-width: 640px) {
+  .formSection {
+    padding: 1rem;
+  }
+  
   .loginBox {
-    padding: 2rem;
+    padding: 1.5rem;
     border-radius: 20px;
+  }
+
+  .header {
+    text-align: center;
   }
 
   .optionsRow {
