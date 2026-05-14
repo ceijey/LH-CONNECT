@@ -322,7 +322,7 @@ export async function GET(request: NextRequest) {
       const todayStr = today.toLocaleDateString();
       reportTitle = `Daily Activity Report - ${todayStr}`;
       
-      filteredEvents = auditEvents.filter(e => {
+      filteredEvents = auditEvents.filter((e: any) => {
         const eDate = new Date(e.date);
         return eDate.getDate() === today.getDate() &&
                eDate.getMonth() === today.getMonth() &&

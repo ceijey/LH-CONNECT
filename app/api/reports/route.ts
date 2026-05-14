@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     if (type === 'Daily Report') {
       // For Daily Report, show individual transactions (submissions) for that day
       finalData = submissions.map((s: any) => {
-        const resident = residents.find(r => r.id === s.residentId) || {};
+        const resident = residents.find((r: any) => r.id === s.residentId) || {};
         return {
           id: s.id,
           block: resident.block || s.blockLot?.split(' ')[1] || '-',
@@ -156,8 +156,8 @@ export async function GET(request: NextRequest) {
       verifiedCount: submissions.filter((s: any) => s.status === 'Verified').length,
       pendingCount: submissions.filter((s: any) => s.status === 'Pending').length,
       rejectedCount: submissions.filter((s: any) => s.status === 'Rejected').length,
-      paidCount: financialData.filter(d => d.status === 'Paid').length,
-      delinquentCount: financialData.filter(d => d.status === 'Delinquent').length,
+      paidCount: financialData.filter((d: FinancialRecord) => d.status === 'Paid').length,
+      delinquentCount: financialData.filter((d: FinancialRecord) => d.status === 'Delinquent').length,
       methods: Object.entries(methodCounts).map(([name, value]) => ({ name, value }))
     };
 

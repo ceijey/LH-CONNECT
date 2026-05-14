@@ -61,11 +61,11 @@ export async function GET(request: NextRequest) {
       }));
 
       // Attach matching submissions to statements
-      statements = statements.map(stmt => {
+      statements = statements.map((stmt: any) => {
         const stmtMonth = stmt.month;
         const stmtYear = Number(stmt.year);
         
-        const matchingSubmissions = submissions.filter(sub => {
+        const matchingSubmissions = submissions.filter((sub: any) => {
           // submissions collection has a 'month' field like "May 2026"
           // We need to match it with statement's month and year
           if (!sub.month) return false;

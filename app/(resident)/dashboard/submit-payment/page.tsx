@@ -142,7 +142,7 @@ export default function SubmitPaymentPage() {
             return {
               ...submission,
               month: month || 'Unknown Date',
-              amount: Number(submission.paymentAmount ?? 0),
+              paymentAmount: Number(submission.paymentAmount ?? 0),
               status: submission.status === 'Verified' ? 'Verified' : 'Pending',
               submittedDate: submission.submittedDate || new Date().toLocaleString(),
             };
@@ -763,7 +763,7 @@ export default function SubmitPaymentPage() {
                           <div className={styles.detailsHeader}>
                             <div className={styles.detailsLeft}>
                               <h4 className={styles.submissionMonth}>{submission.month}</h4>
-                              <p className={styles.submissionAmount}>₱{submission.amount?.toLocaleString()}</p>
+                              <p className={styles.submissionAmount}>₱{submission.paymentAmount?.toLocaleString()}</p>
                             </div>
                             <div className={styles.detailsRight}>
                               <span className={`${styles.statusBadge} ${styles[(submission.status || 'pending').toLowerCase()]}`}>
