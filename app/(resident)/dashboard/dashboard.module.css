@@ -518,6 +518,13 @@
   text-align: center;
 }
 
+.pending { background: #fffbeb; color: #d97706; border: 1px solid #fef3c7; }
+.verified { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
+.paid { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
+.partiallypaid { background: #fdf4ff; color: #c026d3; border: 1px solid #fae8ff; }
+.rejected { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+
+
 .viewAllBtn {
   width: 100%;
   padding: 1rem;
