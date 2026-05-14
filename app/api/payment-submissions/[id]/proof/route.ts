@@ -81,8 +81,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       console.error(`[ProofProxy] No filePath found for submission: ${id}`);
     }
 
-    // Fallback: If filePath doesn't work but fileUrl exists, redirect to it
+    // Fallback: If filePath doesn't work but fileUrl exists, handle it
     if (fileUrl) {
+      // If it's a Base64 string, decode and serve it as binary
+      if (fileUrl.startsWith('data:')) {
+        try {
+          const [mimePart, base64Data] = fileUrl.split(';base64,');
+          const contentType = mimePart.split(':')[1] || 'image/jpeg';
+          const buffer = Buffer.from(base64Data, 'base64');
+
+          return new NextResponse(buffer, {
+            status: 200,
+            headers: {
+              'Content-Type': contentType,
+              'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
+              'Cache-Control': 'private, max-age=3600',
+            },
+          });
+        } catch (e) {
+          console.error(`[ProofProxy] Failed to decode Base64 for submission ${id}`);
+        }
+      }
+      
+      // If it's a standard URL, redirect to it
       return NextResponse.redirect(fileUrl);
     }
 

@@ -331,9 +331,8 @@ export default function AdminPayments() {
                 {filteredPayments.length > 0 ? (
                   filteredPayments.map((payment) => {
                     const proofKind = detectProofKind(payment);
-                    const proofSrc = payment.fileUrl || (payment.filePath
-                      ? `/api/payment-submissions/${payment.id}/proof?name=${encodeURIComponent(payment.fileName || '')}`
-                      : '');
+                    // Use the proxy endpoint for all images to avoid Vercel payload limits
+                    const proofSrc = `/api/payment-submissions/${payment.id}/proof?v=${Date.now()}`;
 
                     // Extract block/lot/phase from string "Phase X Blk Y Lot Z" if possible
                     const addressParts = payment.blockLot.split(' ');

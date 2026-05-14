@@ -22,6 +22,11 @@ type PaymentSubmission = {
 };
 
 async function resolveFileUrl(data: any): Promise<string | undefined> {
+  // If it's a Base64 string, don't return it in the list to avoid payload size limits on Vercel
+  if (data.fileUrl && data.fileUrl.startsWith('data:')) {
+    return undefined;
+  }
+
   if (data.fileUrl) {
     return data.fileUrl;
   }
