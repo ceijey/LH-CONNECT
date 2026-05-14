@@ -91,6 +91,20 @@ export default function DashboardPage() {
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
   }, [statements]);
 
+  const pendingAmount = useMemo(() => {
+    let total = 0;
+    statements.forEach(stmt => {
+      if (stmt.relatedSubmissions) {
+        stmt.relatedSubmissions.forEach((sub: any) => {
+          if (sub.status === 'Pending') {
+            total += Number(sub.paymentAmount || 0);
+          }
+        });
+      }
+    });
+    return total;
+  }, [statements]);
+
   const loadNotifications = async () => {
     try {
       const payload = await apiCall('/api/notifications');
@@ -322,6 +336,11 @@ export default function DashboardPage() {
               <div className={`${styles.amount} ${currentBalance > 0 ? styles.unpaidAmount : ''}`}>
                 ₱{currentBalance.toLocaleString()}
               </div>
+              {pendingAmount > 0 && (
+                <div className={styles.pendingIndicator}>
+                  (₱{pendingAmount.toLocaleString()} pending verification)
+                </div>
+              )}
               {currentBalance > 0 ? (
                 <div className={styles.cardActions}>
                   <p className={styles.cardSubtext}>Action required to settle dues.</p>
