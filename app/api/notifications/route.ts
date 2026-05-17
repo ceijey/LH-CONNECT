@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { verifyCsrf } from '@/lib/csrf';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest) {
@@ -10,6 +11,9 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = tokenVerification.decoded!.uid;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const notificationsSnapshot = await adminDb

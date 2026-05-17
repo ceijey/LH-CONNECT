@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { verifyCsrf } from '@/lib/csrf';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { sendDueBillEmail } from '@/lib/mailer';
 import { sendDueBillSMS } from '@/lib/sms';
@@ -13,6 +14,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const userId = tokenVerification.decoded!.uid;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const adminDoc = await adminDb.collection('users').doc(userId).get();

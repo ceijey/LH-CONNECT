@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
+import { verifyCsrf } from '@/lib/csrf';
 import { groupMessagesIntoThreads } from '@/lib/message-threads';
 import { notifyUserOfMessageUpdate } from '@/app/api/messages/subscribe/route';
 
@@ -100,7 +101,9 @@ export async function POST(request: NextRequest) {
   }
 
   const decoded = tokenVerification.decoded!;
-
+  // CSRF protection
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
   try {
     const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
     const userData = userDoc.data();

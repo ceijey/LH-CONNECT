@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
+import { verifyCsrf } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
@@ -12,6 +13,9 @@ export async function POST(request: NextRequest) {
 
   const decoded = tokenVerification.decoded!;
   const adminId = decoded.uid;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const adminDoc = await adminDb.collection('users').doc(adminId).get();

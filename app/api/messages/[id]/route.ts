@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
+import { verifyCsrf } from '@/lib/csrf';
 
 const isUnreadMessage = (message: any) => {
   const status = String(message?.status ?? '').trim().toLowerCase();
@@ -25,6 +26,9 @@ export async function PATCH(
 
   const decoded = tokenVerification.decoded!;
   const { id } = await params;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const userDoc = await adminDb.collection('users').doc(decoded.uid).get();

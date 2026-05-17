@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createErrorResponse, verifyToken } from '@/lib/auth-middleware';
+import { verifyCsrf } from '@/lib/csrf';
 import { adminDb } from '@/lib/firebase-admin';
 
 interface ProfilePayload {
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest) {
   }
 
   const { uid } = tokenVerification.decoded;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const body = (await request.json()) as ProfilePayload;

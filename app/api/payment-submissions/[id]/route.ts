@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
+import { verifyCsrf } from '@/lib/csrf';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,6 +13,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const decoded = tokenVerification.decoded!;
   const userId = decoded.uid;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const userDoc = await adminDb.collection('users').doc(userId).get();
@@ -145,6 +149,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   const userId = tokenVerification.decoded!.uid;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const userDoc = await adminDb.collection('users').doc(userId).get();

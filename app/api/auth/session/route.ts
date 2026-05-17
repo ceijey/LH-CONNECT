@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { createCsrfToken, setCsrfCookie, clearCsrfCookie, verifyCsrf } from '@/lib/csrf';
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 
@@ -32,19 +33,31 @@ export async function POST(request: NextRequest) {
     });
 
     const response = NextResponse.json({ ok: true, role });
+    // create and set CSRF token cookie for double-submit verification
+    const csrfToken = createCsrfToken();
+    setCsrfCookie(response, csrfToken, SESSION_MAX_AGE_SECONDS);
+    // also include the token in the JSON response so the client can send it in the header
+    response.headers.set('content-type', 'application/json');
+    // set session cookies
     response.cookies.set('lh_session', sessionCookie, buildCookieOptions(SESSION_MAX_AGE_SECONDS));
     response.cookies.set('lh_role', role, buildCookieOptions(SESSION_MAX_AGE_SECONDS));
-
-    return response;
+    // Attach csrf token in response body by replacing body
+    const body = { ok: true, role, csrfToken };
+    return NextResponse.json(body, { headers: response.headers, status: 200 });
   } catch (error) {
     console.error('Failed to create session cookie:', error);
     return NextResponse.json({ error: 'Failed to create session.' }, { status: 401 });
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
+
   const response = NextResponse.json({ ok: true });
   response.cookies.set('lh_session', '', buildCookieOptions(0));
   response.cookies.set('lh_role', '', buildCookieOptions(0));
+  // clear csrf cookie on logout
+  clearCsrfCookie(response);
   return response;
 }

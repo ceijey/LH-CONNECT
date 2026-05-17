@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import { verifyCsrf } from '@/lib/csrf';
 
 type PaymentSubmission = {
   id: string;
@@ -114,6 +115,9 @@ export async function GET(request: NextRequest) {
 
   const decoded = tokenVerification.decoded!;
   const userId = decoded.uid;
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   try {
     const userDoc = await adminDb.collection('users').doc(userId).get();
