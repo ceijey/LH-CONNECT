@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
 
       const updatedThread = {
         ...existingThread,
-        senderId: existingThread.senderId ?? decoded.uid,
-        senderName: existingThread.senderName ?? senderName,
+        senderId: decoded.uid,
+        senderName,
         recipientId: recipientId || existingThread.recipientId || 'admin',
         recipientRole: String(body.recipientRole ?? existingThread.recipientRole ?? (recipientId === 'admin' ? 'admin' : 'resident')).toLowerCase(),
         from: senderName,
