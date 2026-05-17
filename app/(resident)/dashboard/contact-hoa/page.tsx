@@ -152,6 +152,8 @@ export default function ContactHOAPage() {
   }, [fetchMessages]);
 
   const pollRef = useRef<number | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
   useEffect(() => {
     const handleUpdate = () => {
       void fetchMessages();
@@ -159,7 +161,48 @@ export default function ContactHOAPage() {
 
     window.addEventListener('lh-messages-updated', handleUpdate);
 
-    let ws: WebSocket | null = null;
+    const startSSEConnection = () => {
+      if (eventSourceRef.current) {
+        try {
+          eventSourceRef.current.close();
+        } catch {}
+      }
+
+      try {
+        const eventSource = new EventSource('/api/messages/subscribe');
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data || '{}');
+            if (data && data.type === 'message_update') {
+              void fetchMessages();
+            }
+          } catch (e) {
+            void fetchMessages();
+          }
+        };
+
+        eventSource.onerror = () => {
+          if (eventSource.readyState === EventSource.CLOSED) {
+            eventSource.close();
+            // Fall back to polling if SSE fails
+            startPolling();
+          }
+        };
+
+        eventSourceRef.current = eventSource;
+
+        // Clear polling if SSE connection succeeds
+        if (pollRef.current) {
+          clearInterval(pollRef.current as number);
+          pollRef.current = null;
+        }
+      } catch (err) {
+        // If SSE connection fails, use polling
+        startPolling();
+      }
+    };
+
     const startPolling = () => {
       if (pollRef.current == null) {
         pollRef.current = window.setInterval(() => {
@@ -168,84 +211,46 @@ export default function ContactHOAPage() {
       }
     };
 
-    startPolling();
+    startSSEConnection();
 
-    try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/api/messages/ws`;
-      ws = new WebSocket(wsUrl);
+    // Real-time Firestore listeners (Messenger-like behavior)
+    const uid = localStorage.getItem('userId');
+    let unsubscribers: Array<() => void> = [];
 
-      ws.onmessage = (ev) => {
-        try {
-          const data = JSON.parse(ev.data || '{}');
-          if (data && (data.message || data.messages)) {
-            void fetchMessages();
-          }
-        } catch (e) {
-          void fetchMessages();
-        }
-      };
+    if (db && uid) {
+      const colRef = collection(db, 'messages');
+      const qSent = query(colRef, where('senderId', '==', uid));
+      const qReceived = query(colRef, where('recipientId', '==', uid));
 
-      ws.onopen = () => {
-        if (pollRef.current) {
-          clearInterval(pollRef.current as number);
-          pollRef.current = null;
-        }
-      };
+      try {
+        const u1 = onSnapshot(qSent, () => { void fetchMessages(); }, () => {});
+        unsubscribers.push(u1);
+      } catch (e) {
+        // ignore
+      }
 
-      ws.onerror = () => {
-        if (ws) {
-          try { ws.close(); } catch {}
-        }
-        startPolling();
-      };
-
-      ws.onclose = () => {
-        startPolling();
-      };
-    } catch (err) {
-      startPolling();
+      try {
+        const u2 = onSnapshot(qReceived, () => { void fetchMessages(); }, () => {});
+        unsubscribers.push(u2);
+      } catch (e) {
+        // ignore
+      }
     }
 
     return () => {
       window.removeEventListener('lh-messages-updated', handleUpdate);
-      if (ws) {
-        try { ws.close(); } catch {}
+      if (eventSourceRef.current) {
+        try {
+          eventSourceRef.current.close();
+        } catch {}
       }
       if (pollRef.current) {
         clearInterval(pollRef.current as number);
         pollRef.current = null;
       }
-    };
-  }, [fetchMessages]);
-
-  // Real-time Firestore listeners (Messenger-like behavior)
-  useEffect(() => {
-    const uid = localStorage.getItem('userId');
-    if (!db || !uid) return;
-
-    const colRef = collection(db, 'messages');
-    const qSent = query(colRef, where('senderId', '==', uid));
-    const qReceived = query(colRef, where('recipientId', '==', uid));
-
-    const unsubscribers: Array<() => void> = [];
-
-    try {
-      const u1 = onSnapshot(qSent, () => { void fetchMessages(); }, () => {});
-      unsubscribers.push(u1);
-    } catch (e) {
-      // ignore
-    }
-
-    try {
-      const u2 = onSnapshot(qReceived, () => { void fetchMessages(); }, () => {});
-      unsubscribers.push(u2);
-    } catch (e) {
-      // ignore
-    }
-
-    return () => {
-      unsubscribers.forEach((u) => { try { u(); } catch {} });
+      unsubscribers.forEach((u) => {
+        try { u(); } catch {}
+      });
     };
   }, [fetchMessages]);
 

@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
-import UnreadMessagesBadge from './UnreadMessagesBadge';
 import ConfirmationModal from './ConfirmationModal';
 import AdminNotifications from './AdminNotifications';
 import styles from './AdminLayout.module.css';
@@ -70,7 +69,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     { href: '/admin/residents', icon: '👥', label: 'Residents', id: 'residents' },
     { href: '/admin/payments', icon: '💳', label: 'Payments', id: 'payments' },
     { href: '/admin/qr-scanner', icon: '📱', label: 'QR Scanner', id: 'qr-scanner' },
-    { href: '/admin/messages', icon: '💬', label: 'Messages', id: 'messages', showBadge: true },
+    { href: '/admin/messages', icon: '💬', label: 'Messages', id: 'messages' },
     { href: '/admin/reports', icon: '📑', label: 'Reports', id: 'reports' },
     { href: '/admin/payments/manual', icon: '💵', label: 'Manual Payment', id: 'manual-payment' },
   ];
@@ -111,7 +110,6 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             >
               <span className={styles.icon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
-              {item.showBadge && <UnreadMessagesBadge />}
             </Link>
           ))}
         </nav>
