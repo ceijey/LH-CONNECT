@@ -9,8 +9,6 @@ interface ProfilePayload {
   block: string;
   lot: string;
   phone: string;
-  role?: 'admin' | 'resident';
-  approvalStatus?: 'Pending' | 'Approved' | 'Rejected';
 }
 
 export async function GET(request: NextRequest) {
@@ -68,6 +66,16 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Missing required profile fields', 400);
     }
 
+    const existingDoc = await adminDb.collection('users').doc(uid).get();
+    const existingData = existingDoc.data() ?? {};
+
+    // Never trust client-supplied role values.
+    // Preserve role/approval from trusted server data when present.
+    const trustedRole = existingData.role === 'admin' ? 'admin' : 'resident';
+    const trustedApprovalStatus = trustedRole === 'admin'
+      ? 'Approved'
+      : (existingData.approvalStatus ?? 'Pending');
+
     const userProfile = {
       fullName: body.fullName,
       email: body.email,
@@ -75,17 +83,11 @@ export async function POST(request: NextRequest) {
       block: body.block,
       lot: body.lot,
       phone: body.phone,
-      role: body.role === 'admin' ? 'admin' : 'resident',
-      approvalStatus: body.role === 'admin' ? 'Approved' : 'Pending',
+      role: trustedRole,
+      approvalStatus: trustedApprovalStatus,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-
-    const existingDoc = await adminDb.collection('users').doc(uid).get();
-    if (existingDoc.exists) {
-      const existingData = existingDoc.data();
-      userProfile.approvalStatus = existingData?.approvalStatus ?? userProfile.approvalStatus;
-    }
 
     await adminDb.collection('users').doc(uid).set(userProfile, { merge: true });
 
