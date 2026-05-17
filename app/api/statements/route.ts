@@ -197,12 +197,14 @@ export async function GET(request: NextRequest) {
                   });
                 }
               }
-            } catch (innerErr) {
-              console.error('[Reminder] Failed to evaluate/create reminder for statement:', innerErr?.message || innerErr);
+            } catch (innerErr: unknown) {
+              const innerMessage = innerErr instanceof Error ? innerErr.message : String(innerErr);
+              console.error('[Reminder] Failed to evaluate/create reminder for statement:', innerMessage);
             }
           }
         } catch (remErr) {
-          console.error('[Reminder] Reminder generation failed:', remErr?.message || remErr);
+          const reminderMessage = remErr instanceof Error ? remErr.message : String(remErr);
+          console.error('[Reminder] Reminder generation failed:', reminderMessage);
         }
       console.log('[API] Firestore queries successful, found', statements.length, 'statements');
     } catch (firestoreError: any) {
