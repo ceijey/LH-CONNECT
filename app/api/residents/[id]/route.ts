@@ -18,9 +18,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const csrfErr = verifyCsrf(request);
   if (csrfErr) return csrfErr;
 
-  const csrfErr = verifyCsrf(request);
-  if (csrfErr) return csrfErr;
-
   try {
     const adminDoc = await adminDb.collection('users').doc(userId).get();
     if (!adminDoc.exists || adminDoc.data()?.role !== 'admin') {
