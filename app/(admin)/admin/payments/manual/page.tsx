@@ -438,100 +438,104 @@ export default function ManualPaymentPage() {
       </div>
 
       <section className={styles.printArea}>
-        <div className={`${styles.invoicePaper} ${styles.printInvoice}`}>
-          <div className={styles.invoiceHeader}>
-            <div className={styles.invoiceBrand}>
-              <h2 className={styles.invoiceTitle}>LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION INC.</h2>
-              <p className={styles.invoiceText}>NON-VAT REG. TIN: 480-266-103-00000</p>
-              <p className={styles.invoiceText}>Purok 3 Lincoln Heights Subdivision, San Pablo, Bataan, Philippines 2110</p>
-            </div>
-            <div className={styles.invoiceLabel}>
-              <span className={styles.invoiceLabelTag}>SERVICE</span>
-              <h3 className={styles.invoiceLabelTitle}>INVOICE</h3>
-            </div>
-          </div>
-
-          <div className={styles.invoiceMetaRow}>
-            <div className={styles.printCheckboxGroup}>
-              <span className={styles.printCheckbox}>{cashSaleChecked ? '☑' : '☐'} CASH SALES</span>
-              <span className={styles.printCheckbox}>{chargeSaleChecked ? '☑' : '☐'} CHARGE SALES</span>
-            </div>
-            <div className={styles.invoiceFieldRow}>
-              <span className={styles.invoiceFieldLabel}>Invoice No.</span>
-              <div className={styles.printValue}>{invoiceNumber || '_____________________'}</div>
-            </div>
-            <div className={styles.invoiceFieldRow}>
-              <span className={styles.invoiceFieldLabel}>Date</span>
-              <div className={styles.printValue}>{formattedPrintDate || '____/__/____'}</div>
-            </div>
-          </div>
-
-          <div className={styles.soldToSection}>
-            <div className={styles.soldToLabel}>SOLD TO:</div>
-            <div className={styles.soldToGrid}>
-              <div className={styles.printSoldRow}>
-                <span className={styles.soldToRowLabel}>Registered Name:</span>
-                <div className={styles.printValue}>{registeredName || '_________________________________________'}</div>
+        <div className={styles.printGrid}>
+          {Array.from({ length: 6 }).map((_, copyIndex) => (
+            <div key={copyIndex} className={`${styles.invoicePaper} ${styles.printInvoice}`}>
+              <div className={styles.invoiceHeader}>
+                <div className={styles.invoiceBrand}>
+                  <h2 className={styles.invoiceTitle}>LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION INC.</h2>
+                  <p className={styles.invoiceText}>NON-VAT REG. TIN: 480-266-103-00000</p>
+                  <p className={styles.invoiceText}>Purok 3 Lincoln Heights Subdivision, San Pablo, Bataan, Philippines 2110</p>
+                </div>
+                <div className={styles.invoiceLabel}>
+                  <span className={styles.invoiceLabelTag}>SERVICE</span>
+                  <h3 className={styles.invoiceLabelTitle}>INVOICE</h3>
+                </div>
               </div>
-              <div className={styles.printSoldRow}>
-                <span className={styles.soldToRowLabel}>TIN:</span>
-                <div className={styles.printValue}>{tin || '_____________________'}</div>
-              </div>
-              <div className={styles.printSoldRowFull}>
-                <span className={styles.soldToRowLabel}>Business Address:</span>
-                <div className={styles.printValue}>{businessAddress || '_________________________________________'}</div>
-              </div>
-            </div>
-          </div>
 
-          <div className={styles.invoiceTableWrapper}>
-            <table className={styles.invoiceTable}>
-              <thead>
-                <tr>
-                  <th>Nature of Service</th>
-                  <th>Quantity</th>
-                  <th>Unit Price</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map((item, rowIndex) => {
-                  const itemAmount = Number(item.quantity || 0) * Number(item.unitPrice || 0);
-                  return (
-                    <tr key={`print-item-${rowIndex}`}>
-                      <td className={styles.printTableCell}>{item.natureOfService || ''}</td>
-                      <td className={styles.printTableCell}>{item.quantity || ''}</td>
-                      <td className={styles.printTableCell}>{item.unitPrice ? `₱${Number(item.unitPrice).toLocaleString()}` : ''}</td>
-                      <td className={styles.printTableCell}>{itemAmount ? `₱${itemAmount.toLocaleString()}` : ''}</td>
+              <div className={styles.invoiceMetaRow}>
+                <div className={styles.printCheckboxGroup}>
+                  <span className={styles.printCheckbox}>{cashSaleChecked ? '☑' : '☐'} CASH SALES</span>
+                  <span className={styles.printCheckbox}>{chargeSaleChecked ? '☑' : '☐'} CHARGE SALES</span>
+                </div>
+                <div className={styles.invoiceFieldRow}>
+                  <span className={styles.invoiceFieldLabel}>Invoice No.</span>
+                  <div className={styles.printValue}>{invoiceNumber || '_____________________'}</div>
+                </div>
+                <div className={styles.invoiceFieldRow}>
+                  <span className={styles.invoiceFieldLabel}>Date</span>
+                  <div className={styles.printValue}>{formattedPrintDate || '____/__/____'}</div>
+                </div>
+              </div>
+
+              <div className={styles.soldToSection}>
+                <div className={styles.soldToLabel}>SOLD TO:</div>
+                <div className={styles.soldToGrid}>
+                  <div className={styles.printSoldRow}>
+                    <span className={styles.soldToRowLabel}>Registered Name:</span>
+                    <div className={styles.printValue}>{registeredName || '_________________________________'}</div>
+                  </div>
+                  <div className={styles.printSoldRow}>
+                    <span className={styles.soldToRowLabel}>TIN:</span>
+                    <div className={styles.printValue}>{tin || '_____________________'}</div>
+                  </div>
+                  <div className={styles.printSoldRowFull}>
+                    <span className={styles.soldToRowLabel}>Business Address:</span>
+                    <div className={styles.printValue}>{businessAddress || '_________________________________'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.invoiceTableWrapper}>
+                <table className={styles.invoiceTable}>
+                  <thead>
+                    <tr>
+                      <th>Nature of Service</th>
+                      <th>Qty</th>
+                      <th>Unit Price</th>
+                      <th>Amount</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {lineItems.map((item, rowIndex) => {
+                      const itemAmount = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+                      return (
+                        <tr key={`print-item-${copyIndex}-${rowIndex}`}>
+                          <td className={styles.printTableCell}>{item.natureOfService || ''}</td>
+                          <td className={styles.printTableCell}>{item.quantity || ''}</td>
+                          <td className={styles.printTableCell}>{item.unitPrice ? `₱${Number(item.unitPrice).toLocaleString()}` : ''}</td>
+                          <td className={styles.printTableCell}>{itemAmount ? `₱${itemAmount.toLocaleString()}` : ''}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-          <div className={styles.summaryGrid}>
-            <div className={styles.printSummaryRow}>
-              <span>Total Sale</span>
-              <span>₱{saleAmount.toLocaleString()}</span>
-            </div>
-            <div className={styles.printSummaryRow}>
-              <span>Discount for PWD</span>
-              <span>₱{Number(discountPwd).toLocaleString()}</span>
-            </div>
-            <div className={styles.printSummaryRow}>
-              <span>Less Withholding Tax</span>
-              <span>₱{Number(withholdingTax).toLocaleString()}</span>
-            </div>
-            <div className={styles.printSummaryRowTotal}>
-              <span>Total Amount Due</span>
-              <span>₱{totalAmount.toLocaleString()}</span>
-            </div>
-          </div>
+              <div className={styles.summaryGrid}>
+                <div className={styles.printSummaryRow}>
+                  <span>Total Sale</span>
+                  <span>₱{saleAmount.toLocaleString()}</span>
+                </div>
+                <div className={styles.printSummaryRow}>
+                  <span>Discount for PWD</span>
+                  <span>₱{Number(discountPwd).toLocaleString()}</span>
+                </div>
+                <div className={styles.printSummaryRow}>
+                  <span>Less Withholding Tax</span>
+                  <span>₱{Number(withholdingTax).toLocaleString()}</span>
+                </div>
+                <div className={styles.printSummaryRowTotal}>
+                  <span>Total Amount Due</span>
+                  <span>₱{totalAmount.toLocaleString()}</span>
+                </div>
+              </div>
 
-          <div className={styles.printFooter}>
-            <p className={styles.printNote}>THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX.</p>
-          </div>
+              <div className={styles.printFooter}>
+                <p className={styles.printNote}>THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX.</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>
