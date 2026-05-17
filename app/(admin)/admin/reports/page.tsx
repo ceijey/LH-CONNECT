@@ -182,8 +182,8 @@ export default function AdminReports() {
                   <span className={reportsStyles.printLogoText}>LH-Connect</span>
                 </div>
                 <div className={reportsStyles.printAddressInfo}>
-                  <div>San Pablo Dinalupihan Bataan</div>
-                  <div>TIN: <span className={reportsStyles.printTIN}>480-266-103-000</span></div>
+                  <div>Sta Rosa Delosguzon Suban</div>
+                  <div>TIN: <span className={reportsStyles.printTIN}>420-968-199-000</span></div>
                 </div>
               </div>
               <div className={reportsStyles.printReportDetails}>
@@ -232,27 +232,39 @@ export default function AdminReports() {
 
           <div className={reportsStyles.statsGrid}>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>
-                {selectedReportType === 'Daily Report' ? 'Total Submissions' : 'Total Receivables'}
-              </span>
+              <div className={reportsStyles.statHeader}>
+                <span className={reportsStyles.statIcon}>👜</span>
+                <span className={reportsStyles.statLabel}>
+                  {selectedReportType === 'Daily Report' ? 'Total Submissions' : 'Total Receivables'}
+                </span>
+              </div>
               <span className={reportsStyles.statValue}>₱{summary?.totalDues?.toLocaleString() || 0}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>
-                {selectedReportType === 'Daily Report' ? 'Collected Today' : 'Total Collected'}
-              </span>
+              <div className={reportsStyles.statHeader}>
+                <span className={reportsStyles.statIcon}>✅</span>
+                <span className={reportsStyles.statLabel}>
+                  {selectedReportType === 'Daily Report' ? 'Collected Today' : 'Total Collected'}
+                </span>
+              </div>
               <span className={reportsStyles.statValue} style={{ color: '#16a34a' }}>₱{summary?.totalCollected?.toLocaleString() || 0}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>
-                {selectedReportType === 'Daily Report' ? 'Pending/Rejected' : 'Outstanding'}
-              </span>
+              <div className={reportsStyles.statHeader}>
+                <span className={reportsStyles.statIcon}>⚠️</span>
+                <span className={reportsStyles.statLabel}>
+                  {selectedReportType === 'Daily Report' ? 'Pending/Rejected' : 'Outstanding'}
+                </span>
+              </div>
               <span className={reportsStyles.statValue} style={{ color: '#dc2626' }}>₱{summary?.outstandingBalance?.toLocaleString() || 0}</span>
             </div>
             <div className={reportsStyles.statCard}>
-              <span className={reportsStyles.statLabel}>
-                {selectedReportType === 'Daily Report' ? 'Realization Rate' : 'Collection Rate'}
-              </span>
+              <div className={reportsStyles.statHeader}>
+                <span className={reportsStyles.statIcon}>📈</span>
+                <span className={reportsStyles.statLabel}>
+                  {selectedReportType === 'Daily Report' ? 'Realization Rate' : 'Collection Rate'}
+                </span>
+              </div>
               <span className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary?.collectionRate || 0}%</span>
             </div>
           </div>
