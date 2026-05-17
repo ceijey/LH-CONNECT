@@ -3,11 +3,12 @@ import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware'
 
 // Store active SSE connections: key is userId, value is set of controller objects
 interface ControllerWithCleanup {
-  controller: ReadableStreamController<any>;
+  controller: ReadableStreamController<Uint8Array>;
   interval: NodeJS.Timeout;
 }
 
 const activeConnections: Map<string, Set<ControllerWithCleanup>> = new Map();
+const encoder = new TextEncoder();
 
 export async function GET(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
@@ -19,12 +20,12 @@ export async function GET(request: NextRequest) {
   const userId = tokenVerification.decoded!.uid;
 
   // Create SSE response
-  const stream = new ReadableStream({
+  const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       // Create keep-alive interval
       const interval = setInterval(() => {
         try {
-          controller.enqueue(': keep-alive\n\n');
+          controller.enqueue(encoder.encode(': keep-alive\n\n'));
         } catch (e) {
           // Connection is closed, cleanup will happen in cancel()
         }
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 
       // Send initial connection message
       try {
-        controller.enqueue(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
       } catch (e) {
         clearInterval(interval);
       }
@@ -78,7 +79,7 @@ export function notifyUserOfMessageUpdate(userId: string) {
     
     connections.forEach((item) => {
       try {
-        item.controller.enqueue(`data: ${JSON.stringify({ type: 'message_update' })}\n\n`);
+        item.controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'message_update' })}\n\n`));
       } catch (e) {
         // Connection is broken, mark for removal
         clearInterval(item.interval);
@@ -105,7 +106,7 @@ export function notifyAllUsers(message: any) {
     
     connections.forEach((item) => {
       try {
-        item.controller.enqueue(`data: ${JSON.stringify(message)}\n\n`);
+        item.controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`));
       } catch (e) {
         clearInterval(item.interval);
         toRemove.push(item);
