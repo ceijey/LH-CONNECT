@@ -16,8 +16,8 @@ function buildCookieOptions(maxAge: number) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { idToken?: string };
-    const idToken = body.idToken;
+    const requestBody = (await request.json()) as { idToken?: string };
+    const idToken = requestBody.idToken;
 
     if (!idToken) {
       return NextResponse.json({ error: 'Missing idToken.' }, { status: 400 });
@@ -32,18 +32,16 @@ export async function POST(request: NextRequest) {
       expiresIn: SESSION_MAX_AGE_SECONDS * 1000,
     });
 
-    const response = NextResponse.json({ ok: true, role });
-    // create and set CSRF token cookie for double-submit verification
+    // create CSRF token for double-submit verification
     const csrfToken = createCsrfToken();
+    const responseBody = { ok: true, role, csrfToken };
+    const response = NextResponse.json(responseBody, { status: 200 });
+    // set cookies (csrf + session)
     setCsrfCookie(response, csrfToken, SESSION_MAX_AGE_SECONDS);
-    // also include the token in the JSON response so the client can send it in the header
-    response.headers.set('content-type', 'application/json');
-    // set session cookies
     response.cookies.set('lh_session', sessionCookie, buildCookieOptions(SESSION_MAX_AGE_SECONDS));
     response.cookies.set('lh_role', role, buildCookieOptions(SESSION_MAX_AGE_SECONDS));
-    // Attach csrf token in response body by replacing body
-    const body = { ok: true, role, csrfToken };
-    return NextResponse.json(body, { headers: response.headers, status: 200 });
+
+    return response;
   } catch (error) {
     console.error('Failed to create session cookie:', error);
     return NextResponse.json({ error: 'Failed to create session.' }, { status: 401 });

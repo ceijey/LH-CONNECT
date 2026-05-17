@@ -129,7 +129,7 @@ export default function DashboardPage() {
         setUserName(userProfile.fullName ?? localStorage.getItem('userName') ?? 'Resident');
         
         // Also load notifications once profile is loaded
-        loadNotifications();
+        await loadNotifications();
       } catch {
         setUserName(localStorage.getItem('userName') ?? 'Resident');
       } finally {
