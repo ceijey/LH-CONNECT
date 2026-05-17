@@ -81,7 +81,7 @@ export default function ContactHOAPage() {
       id: message.id,
       title: message.subject || 'New HOA message',
       meta: message.senderName ? `From ${message.senderName}` : 'Direct HOA conversation',
-      preview: message.preview || message.message,
+      preview: message.message,
       timestamp: formatCombinedTimestamp(message.date, message.time),
       status: message.status,
       unread: message.status === 'Unread',
