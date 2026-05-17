@@ -1,258 +1,100 @@
-"use client";
+﻿'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { apiCall } from '@/lib/api-client';
-import { db } from '@/lib/firebase-client';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import Image from 'next/image';
+import { apiCall } from '@/lib/api-client';
+import { useMessages, type MessageThread } from '@/lib/useMessages';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import ChatBox, { type ChatConversationItem, type ChatThreadItem } from '@/app/components/ChatBox';
 import Toast from '@/app/components/Toast';
-import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './contact-hoa.module.css';
 
-interface Message {
-  id: string;
-  title: string;
-  date: string;
-  status: 'Replied' | 'New';
-  preview: string;
-  senderId?: string;
-  senderName?: string;
-  threadId?: string;
-  replies?: Conversation[];
-}
+const formatCombinedTimestamp = (date?: string, time?: string) => {
+  const trimmedDate = String(date ?? '').trim();
+  const trimmedTime = String(time ?? '').trim();
 
-interface Conversation {
-  id: string;
-  sender: 'You' | 'HOA Admin';
-  content: string;
-  timestamp: string;
-}
+  if (!trimmedDate && !trimmedTime) {
+    return '';
+  }
+
+  return [trimmedDate, trimmedTime].filter(Boolean).join(' ');
+};
+
+const normalizeConversation = (message: MessageThread): ChatConversationItem[] => {
+  const replies = Array.isArray(message.replies) && message.replies.length > 0 ? message.replies : [
+    {
+      id: message.id,
+      senderName: message.from,
+      senderRole: 'resident',
+      message: message.message,
+      date: message.date,
+      time: message.time,
+    },
+  ];
+
+  return replies.map((reply: any, index) => {
+    const senderRole = String(reply.senderRole ?? '').toLowerCase();
+
+    return {
+      id: String(reply.id ?? `${message.id}-${index}`),
+      sender: senderRole === 'admin' ? String(reply.senderName ?? 'HOA Admin') : String(reply.senderName ?? 'You'),
+      content: String(reply.message ?? ''),
+      timestamp: formatCombinedTimestamp(reply.date, reply.time),
+      align: senderRole === 'admin' ? 'right' : 'left',
+    };
+  });
+};
 
 export default function ContactHOAPage() {
   const router = useRouter();
   useAuthPageshow('resident');
-  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<{ [key: string]: Conversation[] }>({});
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
 
-  const currentConversation: Conversation[] = (selectedMessage !== null && conversations[selectedMessage]) ? conversations[selectedMessage] : [];
-  const currentMessage = selectedMessage === null
-    ? null
-    : messages.find((m) => m.id === selectedMessage) ?? null;
-
-  const getThreadKey = (message: Message | null | undefined) => String(message?.threadId ?? message?.id ?? '');
-
-  const initialLoadRef = useRef(true);
-  const messagesRef = useRef<Message[]>([]);
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
-
-  const formatTimestamp = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      return date.toLocaleString([], { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch {
-      return isoString;
-    }
-  };
-
-  const mapRepliesToConversation = (replies: any[] = []): Conversation[] => {
-    const toMillis = (value: unknown) => {
-      if (!value) return 0;
-      if (typeof value === 'number') return value;
-      const parsed = new Date(String(value)).getTime();
-      return Number.isFinite(parsed) ? parsed : 0;
-    };
-
-    return replies
-      .map((reply, index) => {
-        const createdAt = reply.createdAt || `${reply.date ?? ''} ${reply.time ?? ''}`.trim() || new Date().toISOString();
-        const sortStamp = toMillis(createdAt);
-        const displayTime = formatTimestamp(createdAt);
-
-        return {
-          conversation: {
-            id: String(reply.id ?? `${index}-${Date.now()}`),
-            sender: String(reply.senderRole ?? '').toLowerCase() === 'admin' ? 'HOA Admin' : 'You',
-            content: String(reply.message ?? ''),
-            timestamp: displayTime,
-          } as Conversation,
-          sortStamp,
-          index,
-        };
-      })
-      .sort((a, b) => (a.sortStamp === b.sortStamp ? a.index - b.index : a.sortStamp - b.sortStamp))
-      .map((entry) => entry.conversation);
-  };
-
-  const fetchMessages = useCallback(async () => {
-    try {
-      if (initialLoadRef.current) setIsLoading(true);
-      const res = await apiCall('/api/messages');
-      if (res && res.messages) {
-        const threadMessages = (res.messages as any[]).map((message) => ({
-          id: String(message.id),
-          title: String(message.subject ?? message.title ?? 'New HOA Message'),
-          date: String(message.date ?? new Date().toLocaleDateString()),
-          status: String(message.status ?? '').toLowerCase() === 'unread' ? 'New' : 'Replied',
-          preview: String(message.preview ?? message.message ?? '').slice(0, 120),
-          senderId: message.senderId,
-          senderName: message.senderName,
-          threadId: message.threadId ?? message.id,
-          replies: Array.isArray(message.replies) ? mapRepliesToConversation(message.replies) : undefined,
-        })) as Message[];
-
-        const oldKey = messagesRef.current.map((m) => `${m.id}@${m.threadId ?? m.id}`).join('|');
-        const newKey = threadMessages.map((m) => `${m.id}@${m.threadId ?? m.id}`).join('|');
-        if (oldKey !== newKey) {
-          setMessages(threadMessages);
-
-          const threadMap = threadMessages.reduce<{ [key: string]: Conversation[] }>((acc, message) => {
-            const threadKey = getThreadKey(message);
-
-            acc[threadKey] = message.replies && message.replies.length > 0
-              ? message.replies
-              : [{
-                  id: `${threadKey}-starter`,
-                  sender: 'You',
-                  content: message.preview,
-                  timestamp: message.date,
-                }];
-            return acc;
-          }, {});
-
-          setConversations(threadMap);
-        }
-        if (initialLoadRef.current && threadMessages.length > 0) {
-          setSelectedMessage(getThreadKey(threadMessages[0]));
-        }
-
-        initialLoadRef.current = false;
-      }
-    } catch (err: any) {
-      // Use console.warn to avoid triggering the Next.js dev error overlay on network hiccups
-      console.warn('Polling notice - failed to fetch messages:', err?.message || err);
-    } finally {
-      if (initialLoadRef.current === false) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
+  const residentId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+  const { messages, isLoading, error } = useMessages(residentId, 'resident');
 
   useEffect(() => {
-    void fetchMessages();
-  }, [fetchMessages]);
-
-  const pollRef = useRef<number | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      void fetchMessages();
-    };
-
-    window.addEventListener('lh-messages-updated', handleUpdate);
-
-    const startSSEConnection = () => {
-      if (eventSourceRef.current) {
-        try {
-          eventSourceRef.current.close();
-        } catch {}
-      }
-
-      try {
-        const eventSource = new EventSource('/api/messages/subscribe');
-
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data || '{}');
-            if (data && data.type === 'message_update') {
-              void fetchMessages();
-            }
-          } catch (e) {
-            void fetchMessages();
-          }
-        };
-
-        eventSource.onerror = () => {
-          if (eventSource.readyState === EventSource.CLOSED) {
-            eventSource.close();
-            // Fall back to polling if SSE fails
-            startPolling();
-          }
-        };
-
-        eventSourceRef.current = eventSource;
-
-        // Clear polling if SSE connection succeeds
-        if (pollRef.current) {
-          clearInterval(pollRef.current as number);
-          pollRef.current = null;
-        }
-      } catch (err) {
-        // If SSE connection fails, use polling
-        startPolling();
-      }
-    };
-
-    const startPolling = () => {
-      if (pollRef.current == null) {
-        pollRef.current = window.setInterval(() => {
-          void fetchMessages();
-        }, 5000) as unknown as number;
-      }
-    };
-
-    startSSEConnection();
-
-    // Real-time Firestore listeners (Messenger-like behavior)
-    const uid = localStorage.getItem('userId');
-    let unsubscribers: Array<() => void> = [];
-
-    if (db && uid) {
-      const colRef = collection(db, 'messages');
-      const qSent = query(colRef, where('senderId', '==', uid));
-      const qReceived = query(colRef, where('recipientId', '==', uid));
-
-      try {
-        const u1 = onSnapshot(qSent, () => { void fetchMessages(); }, () => {});
-        unsubscribers.push(u1);
-      } catch (e) {
-        // ignore
-      }
-
-      try {
-        const u2 = onSnapshot(qReceived, () => { void fetchMessages(); }, () => {});
-        unsubscribers.push(u2);
-      } catch (e) {
-        // ignore
-      }
+    if (!selectedThreadId && messages.length > 0) {
+      setSelectedThreadId(messages[0].id);
+      return;
     }
 
-    return () => {
-      window.removeEventListener('lh-messages-updated', handleUpdate);
-      if (eventSourceRef.current) {
-        try {
-          eventSourceRef.current.close();
-        } catch {}
-      }
-      if (pollRef.current) {
-        clearInterval(pollRef.current as number);
-        pollRef.current = null;
-      }
-      unsubscribers.forEach((u) => {
-        try { u(); } catch {}
-      });
-    };
-  }, [fetchMessages]);
+    if (selectedThreadId && !messages.some((message) => message.id === selectedThreadId) && messages.length > 0) {
+      setSelectedThreadId(messages[0].id);
+    }
+  }, [messages, selectedThreadId]);
+
+  const selectedThread = useMemo(
+    () => messages.find((message) => message.id === selectedThreadId) ?? null,
+    [messages, selectedThreadId],
+  );
+
+  const threads: ChatThreadItem[] = useMemo(() => {
+    return messages.map((message) => ({
+      id: message.id,
+      title: message.subject || 'New HOA message',
+      meta: message.senderName ? `From ${message.senderName}` : 'Direct HOA conversation',
+      preview: message.preview || message.message,
+      timestamp: formatCombinedTimestamp(message.date, message.time),
+      status: message.status,
+      unread: message.status === 'Unread',
+    }));
+  }, [messages]);
+
+  const conversation: ChatConversationItem[] = useMemo(() => {
+    if (!selectedThread) {
+      return [];
+    }
+
+    return normalizeConversation(selectedThread);
+  }, [selectedThread]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage(message);
@@ -269,8 +111,8 @@ export default function ContactHOAPage() {
     }
 
     try {
-      const subject = currentMessage?.title ?? 'New HOA Message';
-      const response = await apiCall('/api/messages', {
+      const subject = selectedThread?.subject ?? 'New HOA Message';
+      await apiCall('/api/messages', {
         method: 'POST',
         body: JSON.stringify({
           subject,
@@ -279,74 +121,17 @@ export default function ContactHOAPage() {
           recipientRole: 'admin',
           to: 'HOA Admin',
           priority: 'Normal',
-          threadId: currentMessage?.id,
+          threadId: selectedThread?.id,
         }),
       });
 
-      const createdMessage = response?.message;
-
-      if (createdMessage) {
-        const nextThreadKey = String(createdMessage.threadId ?? createdMessage.id ?? currentMessage?.id ?? Date.now());
-        const nextMessage: Message = {
-          id: String(createdMessage.id ?? currentMessage?.id ?? Date.now()),
-          title: String(createdMessage.subject ?? subject),
-          date: String(createdMessage.date ?? new Date().toLocaleDateString()),
-          status: 'New',
-          preview: String(createdMessage.preview ?? trimmedReply.slice(0, 60)),
-          senderId: createdMessage.senderId,
-          senderName: createdMessage.senderName,
-          threadId: createdMessage.threadId ?? createdMessage.id,
-          replies: Array.isArray(createdMessage.replies) ? mapRepliesToConversation(createdMessage.replies) : undefined,
-        };
-
-        setMessages((current) => {
-          const existingIndex = current.findIndex((message) => message.id === nextMessage.id);
-
-          if (existingIndex >= 0) {
-            return current.map((message) => (message.id === nextMessage.id ? nextMessage : message));
-          }
-
-          return [nextMessage, ...current];
-        });
-
-        setConversations((current) => ({
-          ...current,
-          [nextThreadKey]: nextMessage.replies && nextMessage.replies.length > 0
-            ? nextMessage.replies
-            : [
-                ...(current[getThreadKey(currentMessage)] ?? current[nextThreadKey] ?? []),
-                {
-                  id: `${Date.now()}`,
-                  sender: 'You',
-                  content: trimmedReply,
-                  timestamp: createdMessage.time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                },
-              ],
-        }));
-
-        setSelectedMessage(nextThreadKey);
-      }
-
       setReplyText('');
       showToast('Your message has been sent.', 'success');
-      window.dispatchEvent(new Event('lh-messages-updated'));
-
-      // Ensure the UI reflects the new message immediately by re-fetching
-      // messages; this avoids relying on fragile local merges.
-      try {
-        await fetchMessages();
-      } catch (e) {
-        // ignore fetch errors here; polling will pick up changes
-      }
     } catch (error) {
       console.error('Failed to send reply:', error);
       showToast('Failed to send message. Please try again.', 'error');
     }
   };
-
-  if (isLoading) {
-    return <LoadingScreen message="Loading conversation history..." />;
-  }
 
   return (
     <div className={styles.container}>
@@ -356,7 +141,7 @@ export default function ContactHOAPage() {
         isVisible={isToastVisible}
         onClose={() => setIsToastVisible(false)}
       />
-      {/* Header */}
+
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerLefty}>
@@ -389,100 +174,31 @@ export default function ContactHOAPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className={styles.main}>
-        <div className={styles.contentWrapper}>
-          {/* Left Column - Messages List */}
-          <aside className={styles.sidebar}>
-            <div className={styles.messagesHeader}>
-              <h2 className={styles.messagesTitle}>Your Messages</h2>
-            </div>
+        <ChatBox
+          title="Your Messages"
+          subtitle="Message the HOA and see responses instantly"
+          threads={threads}
+          selectedThreadId={selectedThreadId}
+          onSelectThread={setSelectedThreadId}
+          conversation={conversation}
+          replyValue={replyText}
+          onReplyChange={setReplyText}
+          onSendReply={handleSendReply}
+          sendLabel="Send Message"
+          isLoading={isLoading}
+          error={error}
+          emptyMessage="No messages yet. Use the form to send a message to the HOA."
+          composerPlaceholder="Type your message to the HOA..."
+        />
 
-            <div className={styles.messagesList}>
-              {isLoading ? (
-                <div className={styles.emptyState}>Loading messages…</div>
-              ) : messages.length === 0 ? (
-                <div className={styles.emptyState}>No messages yet. Use the form to send a message to the HOA.</div>
-              ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`${styles.messageItem} ${
-                      selectedMessage === message.id ? styles.active : ''
-                    }`}
-                    onClick={() => setSelectedMessage(message.id)}
-                  >
-                    <div className={styles.messageContent}>
-                      <h3 className={styles.messageTitle}>{message.title}</h3>
-                      <p className={styles.messageDate}>{message.date}</p>
-                    </div>
-                    <span className={`${styles.badge} ${styles[message.status.toLowerCase()]}`}>
-                      {message.status}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </aside>
-
-          {/* Right Column - Conversation */}
-          <section className={styles.conversationSection}>
-            {/* Conversation Header */}
-            <div className={styles.conversationHeader}>
-              <h2 className={styles.conversationTitle}>{currentMessage?.title}</h2>
-              <p className={styles.conversationDate}>{currentMessage?.date}</p>
-            </div>
-
-            {/* Messages Thread */}
-            <div className={styles.messagesThread}>
-              {isLoading ? (
-                <div className={styles.emptyState}>Loading conversation…</div>
-              ) : currentConversation.length === 0 ? (
-                <div className={styles.emptyState}>No conversation selected.</div>
-              ) : (
-                currentConversation.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`${styles.messageThread} ${
-                      msg.sender === 'You' ? styles.userMessage : styles.adminMessage
-                    }`}
-                  >
-                    <div className={styles.senderInfo}>
-                      <strong className={styles.senderName}>{msg.sender}</strong>
-                      <span className={styles.timestamp}>{msg.timestamp}</span>
-                    </div>
-                    <div className={styles.messageBody}>{msg.content}</div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Reply Section */}
-            <div className={styles.replySection}>
-              <h3 className={styles.replyTitle}>Reply to HOA</h3>
-              <textarea
-                className={styles.replyInput}
-                placeholder="Type your reply here..."
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                rows={4}
-              />
-              <button className={styles.sendBtn} onClick={handleSendReply}>
-                ✉ Send Reply
-              </button>
-            </div>
-          </section>
-        </div>
-
-        {/* Information Box */}
         <div className={styles.infoBox}>
           <div className={styles.infoIcon}>💬</div>
           <div className={styles.infoContent}>
             <h3 className={styles.infoTitle}>Direct Communication with HOA</h3>
             <p className={styles.infoText}>
-              Use this messenger to ask questions about your monthly dues, payment status, community
-              announcements, or any concerns. Our HOA officers typically respond within 24 hours during
-              business days.
+              Use this messenger to ask questions about your monthly dues, payment status, community announcements,
+              or any concerns. Our HOA officers typically respond within 24 hours during business days.
             </p>
           </div>
         </div>
