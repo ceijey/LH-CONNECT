@@ -9,11 +9,17 @@ export async function apiCall(
     ...options.headers,
   };
 
-  const response = await fetch(endpoint, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  } catch (networkError: any) {
+    console.error(`[API Fetch Failed] ${endpoint}`, networkError);
+    throw new Error(`Network error while calling ${endpoint}: ${networkError.message || 'Failed to fetch'}`);
+  }
 
   console.log(`[API] ${endpoint}: status=${response.status}, ok=${response.ok}`);
 

@@ -41,8 +41,9 @@ export default function AdminNotifications() {
       setIsLoading(true);
       const payload = await apiCall('/api/admin/notifications');
       setNotifications(payload.notifications ?? []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch admin notifications:', error);
+      showToast(error.message || 'Failed to fetch notifications', 'error');
     } finally {
       setIsLoading(false);
     }
