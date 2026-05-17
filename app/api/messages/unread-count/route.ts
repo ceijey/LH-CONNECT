@@ -21,12 +21,29 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = String(userData.role ?? '').toLowerCase();
-    const snapshot =
-      userRole === 'admin'
-        ? await adminDb.collection('messages').get()
-        : await adminDb.collection('messages').where('recipientId', '==', decoded.uid).get();
 
-    const unreadCount = countUnreadThreads((snapshot.docs || []).map((doc: any) => ({ id: doc.id, ...doc.data() })));
+    // For admins, count across all messages. For residents, include threads
+    // where they are either the sender or the recipient (de-duplicated).
+    let docs: any[] = [];
+
+    if (userRole === 'admin') {
+      const snapshot = await adminDb.collection('messages').get();
+      docs = snapshot.docs;
+    } else {
+      const [sentSnap, receivedSnap] = await Promise.all([
+        adminDb.collection('messages').where('senderId', '==', decoded.uid).get(),
+        adminDb.collection('messages').where('recipientId', '==', decoded.uid).get(),
+      ]);
+
+      const map = new Map<string, any>();
+      for (const d of [...(sentSnap.docs || []), ...(receivedSnap.docs || [])]) {
+        map.set(d.id, d);
+      }
+
+      docs = Array.from(map.values());
+    }
+
+    const unreadCount = countUnreadThreads((docs || []).map((doc: any) => ({ id: doc.id, ...doc.data() })));
 
     return NextResponse.json({ unreadCount, user: decoded });
   } catch (error: any) {
