@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { groupMessagesIntoThreads } from '@/lib/message-threads';
+import { notifyUserOfMessageUpdate } from '@/app/api/messages/subscribe/route';
 
 const formatTimestamp = (date: Date) => {
   const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -167,6 +168,15 @@ export async function POST(request: NextRequest) {
 
       await threadRef.set(updatedThread, { merge: true });
 
+      // Notify recipient of message update
+      if (recipientId && recipientId !== 'admin') {
+        notifyUserOfMessageUpdate(recipientId);
+      }
+      // Notify sender if message went to admin
+      if (updatedThread.recipientId === 'admin' && decoded.uid) {
+        notifyUserOfMessageUpdate(decoded.uid);
+      }
+
       // Create admin notification if message is for admin
       if (updatedThread.recipientId === 'admin') {
         try {
@@ -220,6 +230,15 @@ export async function POST(request: NextRequest) {
       ...messagePayload,
       threadId: ref.id,
     });
+
+    // Notify recipient of new message
+    if (recipientId && recipientId !== 'admin') {
+      notifyUserOfMessageUpdate(recipientId);
+    }
+    // Notify sender if message went to admin
+    if (messagePayload.recipientId === 'admin' && decoded.uid) {
+      notifyUserOfMessageUpdate(decoded.uid);
+    }
 
     // Create admin notification if message is for admin
     if (messagePayload.recipientId === 'admin') {
