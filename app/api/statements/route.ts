@@ -62,11 +62,17 @@ export async function GET(request: NextRequest) {
 
       if (!currentStatement) {
         const createdAt = now.toISOString();
+        // compute due date as 15th of current month/year
+        const monthIndex = new Date(`${currentMonthName} 1, ${currentYear}`).getMonth();
+        const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
+        const dueIso = due.toISOString();
+
         await statementsRef.add({
           residentId: userId,
           month: currentMonthName,
           year: currentYear,
           date: createdAt,
+          dueDate: dueIso,
           totalDues: MONTHLY_DUES,
           amountPaid: 0,
           balance: MONTHLY_DUES,
@@ -79,13 +85,20 @@ export async function GET(request: NextRequest) {
         const normalizedBalance = Math.max(0, MONTHLY_DUES - amountPaid);
         const normalizedStatus = normalizedBalance === 0 ? 'Paid' : (amountPaid > 0 ? 'Partially Paid' : 'Pending');
 
-        if (Number(currentStatement.totalDues ?? 0) !== MONTHLY_DUES || Number(currentStatement.balance ?? 0) !== normalizedBalance || String(currentStatement.status ?? '') !== normalizedStatus) {
-          await statementsRef.doc(currentStatement.id).update({
-            totalDues: MONTHLY_DUES,
-            balance: normalizedBalance,
-            status: normalizedStatus,
-            updatedAt: now.toISOString(),
-          });
+        const updates: any = {};
+        if (Number(currentStatement.totalDues ?? 0) !== MONTHLY_DUES) updates.totalDues = MONTHLY_DUES;
+        if (Number(currentStatement.balance ?? 0) !== normalizedBalance) updates.balance = normalizedBalance;
+        if (String(currentStatement.status ?? '') !== normalizedStatus) updates.status = normalizedStatus;
+        // ensure dueDate exists and is set to 15th
+        if (!currentStatement.dueDate) {
+          const monthIndex = new Date(`${currentStatement.month} 1, ${currentStatement.year}`).getMonth();
+          const due = new Date(Number(currentStatement.year), monthIndex, 15, 23, 59, 59);
+          updates.dueDate = due.toISOString();
+        }
+
+        if (Object.keys(updates).length > 0) {
+          updates.updatedAt = now.toISOString();
+          await statementsRef.doc(currentStatement.id).update(updates);
         }
       }
 
@@ -93,11 +106,20 @@ export async function GET(request: NextRequest) {
         .where('residentId', '==', userId)
         .get();
 
-      statements = normalizedStatementsSnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-        totalDues: MONTHLY_DUES,
-      }));
+      statements = normalizedStatementsSnapshot.docs.map((doc: any) => {
+        const data = { id: doc.id, ...doc.data(), totalDues: MONTHLY_DUES } as any;
+        // ensure dueDate exists on returned statements
+        if (!data.dueDate) {
+          try {
+            const monthIndex = new Date(`${data.month} 1, ${data.year}`).getMonth();
+            const due = new Date(Number(data.year), monthIndex, 15, 23, 59, 59);
+            data.dueDate = due.toISOString();
+          } catch (e) {
+            data.dueDate = data.date || new Date().toISOString();
+          }
+        }
+        return data;
+      });
       
       // Fetch submissions
       const submissionsSnapshot = await adminDb
@@ -137,7 +159,51 @@ export async function GET(request: NextRequest) {
       });
 
       statements.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
+        // Create in-app reminders for upcoming due dates if not already created
+        try {
+          const REMINDER_DAYS = Number(process.env.DUE_REMINDER_DAYS ?? 3);
+          const nowMs = Date.now();
+
+          for (const stmt of statements) {
+            try {
+              const status = (stmt.status || '').toString().toLowerCase();
+              if (status === 'paid') continue;
+              const dueIso = stmt.dueDate || stmt.date;
+              if (!dueIso) continue;
+
+              const dueMs = new Date(dueIso).getTime();
+              const daysUntil = Math.ceil((dueMs - nowMs) / (1000 * 60 * 60 * 24));
+
+              if (daysUntil > 0 && daysUntil <= REMINDER_DAYS) {
+                // check for existing reminder for this month/year
+                const dueMonthStr = `${stmt.month} ${stmt.year}`;
+                const existing = await adminDb.collection('notifications')
+                  .where('userId', '==', userId)
+                  .where('type', '==', 'due-reminder')
+                  .where('dueMonth', '==', dueMonthStr)
+                  .limit(1)
+                  .get();
+
+                if (existing.empty) {
+                  await adminDb.collection('notifications').add({
+                    userId,
+                    type: 'due-reminder',
+                    title: 'Upcoming Due Date',
+                    message: `Your bill of ₱${Number(stmt.totalDues || 0).toFixed(2)} is due on ${new Date(dueIso).toLocaleDateString()} (${daysUntil} day${daysUntil === 1 ? '' : 's'}). Please settle your payment.`,
+                    dueAmount: Number(stmt.totalDues || 0),
+                    dueMonth: dueMonthStr,
+                    read: false,
+                    createdAt: new Date(),
+                  });
+                }
+              }
+            } catch (innerErr) {
+              console.error('[Reminder] Failed to evaluate/create reminder for statement:', innerErr?.message || innerErr);
+            }
+          }
+        } catch (remErr) {
+          console.error('[Reminder] Reminder generation failed:', remErr?.message || remErr);
+        }
       console.log('[API] Firestore queries successful, found', statements.length, 'statements');
     } catch (firestoreError: any) {
       console.warn('Firestore query error:', firestoreError.message);

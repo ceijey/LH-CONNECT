@@ -141,11 +141,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
         if (existingStmtQuery.empty) {
           console.log(`[Automation] Creating new statement for ${id} - ${currentMonth}`);
+          // compute dueDate as 15th of the month
+          const monthIndex = new Date(`${currentMonthName} 1, ${currentYear}`).getMonth();
+          const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
           await statementsRef.add({
             residentId: id,
             month: currentMonthName,
             year: currentYear,
             date: now.toISOString().split('T')[0],
+            dueDate: due.toISOString(),
             totalDues: updatePayload.balance,
             amountPaid: 0,
             balance: updatePayload.balance,
@@ -156,11 +160,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         } else {
           console.log(`[Automation] Updating existing statement for ${id} - ${currentMonth}`);
           const stmtDoc = existingStmtQuery.docs[0];
-          await statementsRef.doc(stmtDoc.id).update({
+          const updates: any = {
             totalDues: updatePayload.balance,
             balance: updatePayload.balance,
             updatedAt: now.toISOString()
-          });
+          };
+          if (!stmtDoc.data()?.dueDate) {
+            const monthIndex = new Date(`${currentMonthName} 1, ${currentYear}`).getMonth();
+            const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
+            updates.dueDate = due.toISOString();
+          }
+          await statementsRef.doc(stmtDoc.id).update(updates);
         }
       } catch (stmtErr: any) {
         console.error('[Automation] Failed to sync statement:', stmtErr.message);

@@ -190,7 +190,7 @@ export default function DashboardPage() {
           setNextDueDateStr('All caught up');
         } else {
           const withDates = unpaid
-            .map((s) => ({ stmt: s, time: s.date ? new Date(s.date).getTime() : 0 }))
+            .map((s) => ({ stmt: s, time: s.dueDate ? new Date(s.dueDate).getTime() : (s.date ? new Date(s.date).getTime() : 0) }))
             .sort((a, b) => a.time - b.time);
 
           const next = withDates.find((w) => w.time >= now) || withDates[0];
