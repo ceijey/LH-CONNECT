@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
+import { db } from '@/lib/firebase-client';
+import { collection, onSnapshot } from 'firebase/firestore';
 import Toast from '@/app/components/Toast';
 import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from '../residents/admin-page.module.css';
@@ -135,24 +137,47 @@ export default function AdminMessages() {
     }
   };
 
-  // Fetch messages from API on mount
+  // Fetch messages helper (reusable) and listen for updates so admin view
+  // refreshes immediately when new messages arrive.
+  const fetchMessages = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await apiCall('/api/messages');
+      const payload = res?.messages ?? [];
+      setMessages(payload);
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        setIsLoading(true);
-        const res = await apiCall('/api/messages');
-        // Expecting { messages: Message[] }
-        const payload = res?.messages ?? [];
-        setMessages(payload);
-      } catch (err) {
-        console.error('Failed to load messages:', err);
-      } finally {
-        setIsLoading(false);
-      }
+    // initial load
+    void fetchMessages();
+
+    const handleUpdate = () => {
+      void fetchMessages();
     };
 
-    fetchMessages();
-  }, []);
+    window.addEventListener('lh-messages-updated', handleUpdate);
+
+    // Firestore real-time listener for admin view
+    let unsub: (() => void) | null = null;
+    try {
+      if (db) {
+        const colRef = collection(db, 'messages');
+        unsub = onSnapshot(colRef, () => { void fetchMessages(); }, () => {});
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return () => {
+      window.removeEventListener('lh-messages-updated', handleUpdate);
+      if (unsub) try { unsub(); } catch {}
+    };
+  }, [fetchMessages]);
 
   const unreadCount = messages.filter(m => m.status === 'Unread').length;
 

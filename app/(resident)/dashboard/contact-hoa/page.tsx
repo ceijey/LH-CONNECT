@@ -1,9 +1,11 @@
-'use client';
+"use client";
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { apiCall } from '@/lib/api-client';
+import { db } from '@/lib/firebase-client';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
@@ -217,6 +219,36 @@ export default function ContactHOAPage() {
     };
   }, [fetchMessages]);
 
+  // Real-time Firestore listeners (Messenger-like behavior)
+  useEffect(() => {
+    const uid = localStorage.getItem('userId');
+    if (!db || !uid) return;
+
+    const colRef = collection(db, 'messages');
+    const qSent = query(colRef, where('senderId', '==', uid));
+    const qReceived = query(colRef, where('recipientId', '==', uid));
+
+    const unsubscribers: Array<() => void> = [];
+
+    try {
+      const u1 = onSnapshot(qSent, () => { void fetchMessages(); }, () => {});
+      unsubscribers.push(u1);
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      const u2 = onSnapshot(qReceived, () => { void fetchMessages(); }, () => {});
+      unsubscribers.push(u2);
+    } catch (e) {
+      // ignore
+    }
+
+    return () => {
+      unsubscribers.forEach((u) => { try { u(); } catch {} });
+    };
+  }, [fetchMessages]);
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToastMessage(message);
     setToastType(type);
@@ -293,6 +325,14 @@ export default function ContactHOAPage() {
       setReplyText('');
       showToast('Your message has been sent.', 'success');
       window.dispatchEvent(new Event('lh-messages-updated'));
+
+      // Ensure the UI reflects the new message immediately by re-fetching
+      // messages; this avoids relying on fragile local merges.
+      try {
+        await fetchMessages();
+      } catch (e) {
+        // ignore fetch errors here; polling will pick up changes
+      }
     } catch (error) {
       console.error('Failed to send reply:', error);
       showToast('Failed to send message. Please try again.', 'error');
