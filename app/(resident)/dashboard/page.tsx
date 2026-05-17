@@ -46,7 +46,6 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const currentBalance = profile.balance ?? 0;
   const [nextDueDateStr, setNextDueDateStr] = useState<string>('');
   const nextDueDate = nextDueDateStr;
   const monthlyDues = 400;
@@ -56,6 +55,11 @@ export default function DashboardPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [statements, setStatements] = useState<any[]>([]);
   const [statementsLoading, setStatementsLoading] = useState(true);
+
+  const currentBalance = useMemo(
+    () => statements.reduce((sum, stmt) => sum + Number(stmt.balance ?? 0), 0),
+    [statements]
+  );
 
   // Unified activity log calculation
   const recentActivity = useMemo(() => {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
+const MONTHLY_DUES = 400;
+
 export async function GET(request: NextRequest) {
   console.log('[API] /api/statements called');
   // Verify token
@@ -33,20 +35,68 @@ export async function GET(request: NextRequest) {
 
     console.log('[API] User is a resident, fetching statements and submissions...');
 
+    const now = new Date();
+    const currentMonthName = now.toLocaleString(undefined, { month: 'long' });
+    const currentYear = now.getFullYear();
+
     // Fetch resident's statements and submissions from Firestore
     let statements: any[] = [];
     let submissions: any[] = [];
     
     try {
       // Fetch statements
-      const statementsSnapshot = await adminDb
-        .collection('statements')
+      const statementsRef = adminDb.collection('statements');
+      const statementsSnapshot = await statementsRef
         .where('residentId', '==', userId)
         .get();
 
-      statements = statementsSnapshot.docs.map((doc: any) => ({
+      const existingStatements = statementsSnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
+      }));
+
+      const currentStatement = existingStatements.find((stmt: any) => (
+        String(stmt.month ?? '').toLowerCase() === currentMonthName.toLowerCase() &&
+        Number(stmt.year ?? 0) === currentYear
+      ));
+
+      if (!currentStatement) {
+        const createdAt = now.toISOString();
+        await statementsRef.add({
+          residentId: userId,
+          month: currentMonthName,
+          year: currentYear,
+          date: createdAt,
+          totalDues: MONTHLY_DUES,
+          amountPaid: 0,
+          balance: MONTHLY_DUES,
+          status: 'Pending',
+          createdAt,
+          updatedAt: createdAt,
+        });
+      } else {
+        const amountPaid = Number(currentStatement.amountPaid ?? 0);
+        const normalizedBalance = Math.max(0, MONTHLY_DUES - amountPaid);
+        const normalizedStatus = normalizedBalance === 0 ? 'Paid' : (amountPaid > 0 ? 'Partially Paid' : 'Pending');
+
+        if (Number(currentStatement.totalDues ?? 0) !== MONTHLY_DUES || Number(currentStatement.balance ?? 0) !== normalizedBalance || String(currentStatement.status ?? '') !== normalizedStatus) {
+          await statementsRef.doc(currentStatement.id).update({
+            totalDues: MONTHLY_DUES,
+            balance: normalizedBalance,
+            status: normalizedStatus,
+            updatedAt: now.toISOString(),
+          });
+        }
+      }
+
+      const normalizedStatementsSnapshot = await statementsRef
+        .where('residentId', '==', userId)
+        .get();
+
+      statements = normalizedStatementsSnapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data(),
+        totalDues: MONTHLY_DUES,
       }));
       
       // Fetch submissions
@@ -77,6 +127,11 @@ export async function GET(request: NextRequest) {
         
         return {
           ...stmt,
+          totalDues: MONTHLY_DUES,
+          balance: Math.max(0, MONTHLY_DUES - Number(stmt.amountPaid ?? 0)),
+          status: Math.max(0, MONTHLY_DUES - Number(stmt.amountPaid ?? 0)) === 0
+            ? 'Paid'
+            : (Number(stmt.amountPaid ?? 0) > 0 ? 'Partially Paid' : 'Pending'),
           relatedSubmissions: matchingSubmissions
         };
       });
