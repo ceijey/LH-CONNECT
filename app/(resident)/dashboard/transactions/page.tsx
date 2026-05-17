@@ -15,6 +15,7 @@ export default function TransactionsPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'All' | 'Paid' | 'Pending' | 'Rejected'>('All');
   const [statements, setStatements] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -23,6 +24,14 @@ export default function TransactionsPage() {
         setLoadError('');
         const payload = await apiCall('/api/statements');
         setStatements(payload.statements || []);
+
+        try {
+          const profilePayload = await apiCall('/api/auth/profile');
+          setProfile(profilePayload.user || null);
+        } catch (profileError) {
+          console.warn('Failed to load profile', profileError);
+          setProfile(null);
+        }
       } catch (error: any) {
         setStatements([]);
         setLoadError(error?.message || 'Failed to load transaction history');
@@ -127,6 +136,32 @@ export default function TransactionsPage() {
       </header>
 
       <main className={styles.main}>
+        <div className={styles.printHeader}>
+          <div className={styles.printHeaderCard}>
+            <div className={styles.printBrand}>
+              <img src="/lhhoa-logo.png" alt="LHconnect logo" className={styles.printLogo} />
+              <div>
+                <div className={styles.printBrandName}>LHconnect</div>
+                <div className={styles.printSubtitle}>Transaction Audit Log</div>
+              </div>
+            </div>
+            <div className={styles.printHeaderFields}>
+              <div className={styles.printField}>
+                <span className={styles.printFieldLabel}>Resident</span>
+                <span className={styles.printFieldValue}>{profile?.fullName || 'N/A'}</span>
+              </div>
+              <div className={styles.printField}>
+                <span className={styles.printFieldLabel}>Unit</span>
+                <span className={styles.printFieldValue}>{profile?.phase ? `${profile.phase} - Block ${profile.block}, Lot ${profile.lot}` : 'N/A'}</span>
+              </div>
+              <div className={styles.printField}>
+                <span className={styles.printFieldLabel}>Contact</span>
+                <span className={styles.printFieldValue}>{profile?.phone || profile?.email || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <section className={styles.filterSection}>
           <h2 className={styles.filterTitle}>Filter by Status</h2>
           <div className={styles.filterButtons}>
@@ -184,9 +219,12 @@ export default function TransactionsPage() {
                     <tr key={t.id} className={styles.tableRow}>
                       <td className={styles.dateCell}>{new Date(t.date).toLocaleDateString()}</td>
                       <td className={styles.typeCell}>
-                        <span className={`${styles.typeBadge} ${styles[t.type.toLowerCase()]}`}>
-                          {t.type}
-                        </span>
+                        <div className={styles.typeBadgeGroup}>
+                          <span className={`${styles.typeBadge} ${styles[t.type.toLowerCase()]}`}>
+                            {t.type}
+                          </span>
+                          <span className={styles.typeTag}>T</span>
+                        </div>
                       </td>
                       <td className={styles.descCell}>
                         <div>{t.description}</div>
@@ -201,6 +239,9 @@ export default function TransactionsPage() {
                       </td>
                       <td className={styles.statusCell}>
                         <span className={`${styles.statusBadge} ${styles[t.status.toLowerCase().replace(/\s/g, '')]}`}>
+                          <span className={styles.statusIcon}>
+                            {t.status === 'Paid' ? '✔' : t.status === 'Pending' ? '⏳' : '•'}
+                          </span>
                           {t.status}
                         </span>
                       </td>
@@ -211,6 +252,10 @@ export default function TransactionsPage() {
             </div>
           )}
         </section>
+
+        <div className={styles.printFooter}>
+          <span>LHconnect • Transaction Audit Log</span>
+        </div>
 
         <section className={styles.downloadSection}>
           <button className={styles.downloadBtn} onClick={handleDownloadCSV} disabled={isDownloading || filteredTransactions.length === 0}>

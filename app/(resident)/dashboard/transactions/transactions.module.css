@@ -259,6 +259,184 @@
   font-size: 0.9rem;
 }
 
+@media print {
+  .printHeader {
+    display: block;
+  }
+
+  .printFooter {
+    display: block;
+  }
+
+  .header,
+  .filterSection,
+  .summarySection,
+  .downloadSection,
+  .backBtn,
+  .filterButtons,
+  .downloadBtn,
+  .printBtn {
+    display: none !important;
+  }
+
+  .container {
+    background: transparent !important;
+    min-height: auto;
+    box-shadow: none;
+  }
+
+  .main {
+    margin-top: 160px;
+    margin-bottom: 60px;
+    padding: 0 1.5rem 0;
+  }
+
+  .printHeader {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem 1.5rem 1rem;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 1000;
+  }
+
+  .printHeaderCard {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 2rem;
+    padding: 1rem;
+    border-radius: 18px;
+    background: #f9fbff;
+    border: 1px solid rgba(15, 44, 103, 0.08);
+  }
+
+  .printHeaderFields {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .printField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 180px;
+  }
+
+  .printHeader .printBrandName {
+    font-size: 1rem;
+  }
+
+  .printHeader .printSubtitle {
+    font-size: 0.86rem;
+  }
+
+  .printFieldLabel {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #1f365f;
+  }
+
+  .printFieldValue {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0f2c67;
+  }
+
+  .transactionsSection,
+  .tableWrapper,
+  .transactionsTable {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .transactionsTable {
+    border-collapse: separate;
+    border-spacing: 0 0.85rem;
+    min-width: 100%;
+  }
+
+  .transactionsTable thead {
+    background: #0f2c67;
+  }
+
+  .transactionsTable th {
+    color: #ffffff;
+    background: #0f2c67;
+    border-bottom: none;
+    padding: 1rem 1rem;
+  }
+
+  .transactionsTable tbody tr {
+    background: #ffffff;
+    border: none;
+    box-shadow: none;
+  }
+
+  .transactionsTable tbody tr:hover {
+    background: #ffffff;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .transactionsTable td {
+    background: #ffffff;
+    padding: 1rem 1rem;
+    color: #1f365f;
+  }
+
+  .transactionsTable td:first-child {
+    padding-left: 1.25rem;
+  }
+
+  .transactionsTable td:last-child {
+    padding-right: 1.25rem;
+  }
+
+  .transactionsTable tbody tr td:first-child {
+    border-radius: 0;
+  }
+
+  .transactionsTable tbody tr td:last-child {
+    border-radius: 0;
+  }
+
+  .typeTag {
+    display: inline-flex;
+  }
+
+  .typeBadgeGroup {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .typeBadge {
+    padding: 0.55rem 0.95rem;
+  }
+
+  .printFooter {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #4a5568;
+    border-top: 1px solid #e2e8f0;
+  }
+}
+
 .idCell {
   font-weight: 600;
   color: #0d47a1;
@@ -290,22 +468,46 @@
   line-height: 1.4;
 }
 
+.typeBadgeGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .typeBadge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .typeBadge.bill {
-  background: #fee2e2;
-  color: #ef4444;
+  background: #fef2f2;
+  color: #c62828;
 }
 
 .typeBadge.payment {
-  background: #dcfce7;
-  color: #22c55e;
+  background: #ddf7e8;
+  color: #167d3f;
+}
+
+.typeTag {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 44, 103, 0.1);
+  background: #ffffff;
+  color: #0f2c67;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .amountCell.billAmount {
@@ -324,6 +526,16 @@
 .statusBadge.pending, .statusBadge.pendingverification {
   background: #fff8e1;
   color: #f57c00;
+}
+
+.statusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 0.4rem;
+  font-size: 0.8rem;
 }
 
 .statusBadge.partiallypaid {
@@ -609,6 +821,201 @@
     padding: 0.6rem 0.8rem;
     font-size: 0.8rem;
     border-radius: 4px;
+  }
+}
+
+.printHeader {
+  display: none;
+}
+
+.printFooter {
+  display: none;
+}
+
+.printBrand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .printLogo {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid rgba(27, 42, 74, 0.15);
+    background: white;
+    padding: 6px;
+  }
+
+  .printBrandName {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1B2A4A;
+    letter-spacing: -0.02em;
+  }
+
+  .printSubtitle {
+    font-size: 0.86rem;
+    color: #4a5568;
+    margin-top: 0.15rem;
+  }
+
+  .printHeader {
+    margin-bottom: 1.5rem;
+  }
+
+  .printHeaderCard {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 1.5rem;
+    border-radius: 18px;
+    border: 1px solid rgba(27, 42, 74, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 10px 30px rgba(27, 42, 74, 0.06);
+  }
+
+  .printHeaderContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .printHeaderFields {
+    display: grid;
+    grid-auto-flow: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .printField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 120px;
+  }
+
+  .printFieldLabel {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #1B2A4A;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .printFieldValue {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #152238;
+  }
+
+  .printHeaderMeta {
+    display: grid;
+    grid-auto-flow: column;
+    gap: 1.25rem;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .printMetaItem {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    gap: 0.65rem;
+    align-items: center;
+    color: #4a5568;
+    font-size: 0.92rem;
+  }
+
+  .printMetaLabel {
+    font-weight: 700;
+    color: #1B2A4A;
+  }
+
+  .printMetaValue {
+    color: #1B2A4A;
+    font-weight: 500;
+  }
+@media print {
+  :global(html),
+  :global(body) {
+    background: white !important;
+    color: #1B2A4A !important;
+  }
+
+  :global(body) {
+    margin: 0;
+    padding: 0;
+  }
+
+  .container {
+    background: transparent !important;
+    min-height: auto;
+    box-shadow: none;
+  }
+
+  .header,
+  .filterSection,
+  .summarySection,
+  .downloadSection,
+  .backBtn,
+  .filterButtons,
+  .downloadBtn,
+  .printBtn {
+    display: none !important;
+  }
+
+  .printHeader {
+    display: block;
+    position: fixed;
+    top: 0.75rem;
+    left: 0;
+    right: 0;
+    padding: 0.85rem 1.5rem 0.75rem;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 1000;
+  }
+
+  .printFooter {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.65rem 1.5rem;
+    background: white;
+    text-align: center;
+    font-size: 0.88rem;
+    color: #4a5568;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .main {
+    margin-top: 114px;
+    margin-bottom: 52px;
+    padding: 0 1.5rem 0;
+  }
+
+  .transactionsSection,
+  .tableWrapper,
+  .transactionsTable {
+    border: none;
+    box-shadow: none;
+  }
+
+  .transactionsTable th,
+  .transactionsTable td {
+    padding: 0.85rem 0.75rem;
+  }
+
+  .transactionsTable thead {
+    background: #f7fafc;
   }
 }
 
