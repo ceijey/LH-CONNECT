@@ -5,8 +5,8 @@ import { auth } from '@/lib/firebase-client';
 import { CSRF_COOKIE_NAME, CSRF_HEADER } from '@/lib/csrf';
 
 type RouterLike = {
-  push: (path: string) => void;
-  replace: (path: string) => void;
+  push: CallableFunction;
+  replace: CallableFunction;
 };
 
 const AUTH_STORAGE_KEYS = [
@@ -32,14 +32,47 @@ export function clearAuthSession() {
   AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
 }
 
+async function ensureCsrfToken() {
+  let csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+  if (csrfToken) {
+    return csrfToken;
+  }
+
+  try {
+    const response = await fetch('/api/auth/session', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      return '';
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    csrfToken = String(payload?.csrfToken ?? '').trim();
+
+    if (csrfToken) {
+      return csrfToken;
+    }
+
+    return getCookieValue(CSRF_COOKIE_NAME);
+  } catch {
+    return '';
+  }
+}
+
 export async function destroyServerSession() {
   try {
-    const csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+    const csrfToken = await ensureCsrfToken();
+
+    if (!csrfToken) {
+      return;
+    }
 
     await fetch('/api/auth/session', {
       method: 'DELETE',
       credentials: 'include',
-      headers: csrfToken ? { [CSRF_HEADER]: csrfToken } : undefined,
+      headers: { [CSRF_HEADER]: csrfToken },
     });
   } catch {
     // Ignore network issues and still clear local client session.

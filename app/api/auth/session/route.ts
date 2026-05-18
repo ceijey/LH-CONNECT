@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { createCsrfToken, setCsrfCookie, clearCsrfCookie, verifyCsrf } from '@/lib/csrf';
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
@@ -12,6 +13,19 @@ function buildCookieOptions(maxAge: number) {
     path: '/',
     maxAge,
   };
+}
+
+export async function GET(request: NextRequest) {
+  const tokenVerification = await verifyToken(request);
+
+  if (tokenVerification.error) {
+    return createErrorResponse(tokenVerification.error, tokenVerification.status);
+  }
+
+  const csrfToken = createCsrfToken();
+  const response = NextResponse.json({ ok: true, csrfToken }, { status: 200 });
+  setCsrfCookie(response, csrfToken, SESSION_MAX_AGE_SECONDS);
+  return response;
 }
 
 export async function POST(request: NextRequest) {

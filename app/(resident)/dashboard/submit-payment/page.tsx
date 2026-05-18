@@ -6,11 +6,22 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
+import { CSRF_COOKIE_NAME, CSRF_HEADER } from '@/lib/csrf';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
 import LoadingScreen from '@/app/components/LoadingScreen';
 import ReceiptModal from '@/app/components/ReceiptModal';
 import styles from './submit-payment.module.css';
+
+function getCookieValue(name: string) {
+  if (typeof document === 'undefined') {
+    return '';
+  }
+
+  const cookieParts = document.cookie.split(';').map((part) => part.trim());
+  const match = cookieParts.find((part) => part.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : '';
+}
 
 // Type definition for Tesseract
 declare global {
@@ -356,6 +367,10 @@ export default function SubmitPaymentPage() {
         method: 'POST',
         body: payload,
         credentials: 'include',
+        headers: (() => {
+          const csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+          return csrfToken ? { [CSRF_HEADER]: csrfToken } : undefined;
+        })(),
       });
 
       console.log('Submission Response Status:', response.status);
