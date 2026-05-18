@@ -3,6 +3,8 @@ import { createErrorResponse, verifyToken } from '@/lib/auth-middleware';
 import { verifyCsrf } from '@/lib/csrf';
 import { adminDb } from '@/lib/firebase-admin';
 
+export const runtime = 'nodejs';
+
 interface ProfilePayload {
   fullName: string;
   email: string;

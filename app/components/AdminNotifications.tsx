@@ -43,14 +43,19 @@ export default function AdminNotifications() {
       setNotifications(payload.notifications ?? []);
     } catch (error: any) {
       console.error('Failed to fetch admin notifications:', error);
-      showToast(error.message || 'Failed to fetch notifications', 'error');
+      // Don't show toast on initial load to avoid noise
+      if (notifications.length > 0) {
+        showToast(error.message || 'Failed to fetch notifications', 'error');
+      }
+      // Keep existing notifications on error
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
+    // Fetch on mount but don't block rendering
+    fetchNotifications().catch(err => console.error('Initial notification fetch failed:', err));
     
     // Refresh every 30 seconds for better responsiveness
     const interval = setInterval(fetchNotifications, 30000);

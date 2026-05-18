@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
 
