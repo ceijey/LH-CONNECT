@@ -62,8 +62,16 @@ export async function POST(request: NextRequest) {
 
   const { uid } = tokenVerification.decoded;
 
-  const csrfErr = verifyCsrf(request);
-  if (csrfErr) return csrfErr;
+  try {
+    const csrfErr = verifyCsrf(request);
+    if (csrfErr) return csrfErr;
+  } catch (error) {
+    console.error('CSRF verification warning:', error);
+    // Don't fail on CSRF in development, but log it
+    if (process.env.NODE_ENV === 'production') {
+      return createErrorResponse('Invalid CSRF token', 403);
+    }
+  }
 
   try {
     const body = (await request.json()) as ProfilePayload;

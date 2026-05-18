@@ -12,9 +12,6 @@ export async function GET(request: NextRequest) {
 
   const userId = tokenVerification.decoded!.uid;
 
-  const csrfErr = verifyCsrf(request);
-  if (csrfErr) return csrfErr;
-
   try {
     const notificationsSnapshot = await adminDb
       .collection('notifications')

@@ -116,9 +116,6 @@ export async function GET(request: NextRequest) {
   const decoded = tokenVerification.decoded!;
   const userId = decoded.uid;
 
-  const csrfErr = verifyCsrf(request);
-  if (csrfErr) return csrfErr;
-
   try {
     const userDoc = await adminDb.collection('users').doc(userId).get();
     const userData = userDoc.data();
@@ -163,6 +160,9 @@ export async function POST(request: NextRequest) {
   if (tokenVerification.error) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);
   }
+
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
 
   const decoded = tokenVerification.decoded!;
   const userId = decoded.uid;

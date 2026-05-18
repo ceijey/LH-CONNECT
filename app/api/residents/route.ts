@@ -3,6 +3,8 @@ import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { verifyCsrf } from '@/lib/csrf';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   // Verify token
   const tokenVerification = await verifyToken(request);
