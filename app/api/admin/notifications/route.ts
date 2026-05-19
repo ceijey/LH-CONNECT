@@ -102,6 +102,9 @@ export async function DELETE(request: NextRequest) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);
   }
 
+  const csrfErr = verifyCsrf(request);
+  if (csrfErr) return csrfErr;
+
   const userId = tokenVerification.decoded!.uid;
 
   try {

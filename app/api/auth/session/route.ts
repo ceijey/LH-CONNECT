@@ -49,9 +49,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const csrfErr = verifyCsrf(request);
-  if (csrfErr) return csrfErr;
-
   const response = NextResponse.json({ ok: true });
   response.cookies.set('lh_session', '', buildCookieOptions(0));
   response.cookies.set('lh_role', '', buildCookieOptions(0));

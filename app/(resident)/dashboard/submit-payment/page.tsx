@@ -248,19 +248,6 @@ export default function SubmitPaymentPage() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const method = e.target.value;
-    setPaymentMethod(method);
-    
-    if (method === 'gcash') {
-      window.open('https://www.gcash.com/', '_blank');
-    } else if (method === 'maya') {
-      window.open('https://www.maya.ph/', '_blank');
-    } else if (method === 'bank') {
-      window.open('https://www.bdo.com.ph/', '_blank');
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -352,10 +339,18 @@ export default function SubmitPaymentPage() {
         payload.append('file', formData.file);
       }
 
+      const getCookieValue = (name: string) => {
+        if (typeof document === 'undefined') return '';
+        const match = document.cookie.split('; ').find(row => row.startsWith(`${name}=`));
+        return match ? decodeURIComponent(match.split('=')[1]) : '';
+      };
+      const csrfToken = getCookieValue('lh_csrf');
+
       const response = await fetch('/api/payment-submissions', {
         method: 'POST',
         body: payload,
         credentials: 'include',
+        headers: csrfToken ? { 'x-csrf-token': csrfToken } : undefined,
       });
 
       console.log('Submission Response Status:', response.status);
@@ -547,18 +542,14 @@ export default function SubmitPaymentPage() {
                   </div>
                   
                   {['gcash', 'maya'].includes(paymentMethod) && (
-                    <button 
-                      type="button"
+                    <a
+                      href={paymentMethod === 'gcash' ? 'https://m.gcash.com/' : 'https://www.maya.ph/login'}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className={styles.appRedirectBtn}
-                      onClick={() => {
-                        const url = paymentMethod === 'gcash' 
-                          ? 'https://m.gcash.com/' 
-                          : 'https://www.maya.ph/login';
-                        window.open(url, '_blank');
-                      }}
                     >
-                      🚀 Launch {paymentMethod === 'gcash' ? 'GCash' : 'Maya'} App
-                    </button>
+                      🚀 Open {paymentMethod === 'gcash' ? 'GCash' : 'Maya'}
+                    </a>
                   )}
                 </div>
 

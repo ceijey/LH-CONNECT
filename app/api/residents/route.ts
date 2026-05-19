@@ -5,6 +5,57 @@ import { adminDb, adminAuth } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
+async function ensureMonthlyStatementsForResidents(residents: any[]) {
+  const now = new Date();
+  const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
+  const currentYear = now.getFullYear();
+  const MONTHLY_DUES = 400;
+
+  const monthIndex = new Date(`${currentMonthName} 1, ${currentYear}`).getMonth();
+  const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
+  const dueIso = due.toISOString();
+  const createdAt = now.toISOString();
+
+  const statementsRef = adminDb.collection('statements');
+
+  for (const resident of residents) {
+    try {
+      const stmtQuery = await statementsRef
+        .where('residentId', '==', resident.id)
+        .where('month', '==', currentMonthName)
+        .where('year', '==', currentYear)
+        .limit(1)
+        .get();
+
+      if (stmtQuery.empty) {
+        console.log(`[Automation] Automatically creating statement for resident ${resident.id} (${resident.fullName})`);
+        
+        await statementsRef.add({
+          residentId: resident.id,
+          month: currentMonthName,
+          year: currentYear,
+          date: createdAt.split('T')[0],
+          dueDate: dueIso,
+          totalDues: MONTHLY_DUES,
+          amountPaid: 0,
+          balance: MONTHLY_DUES,
+          status: 'Pending',
+          createdAt,
+          updatedAt: createdAt,
+        });
+
+        const currentBalance = Number(resident.balance ?? 0);
+        await adminDb.collection('users').doc(resident.id).update({
+          balance: currentBalance + MONTHLY_DUES,
+          updatedAt: createdAt,
+        });
+      }
+    } catch (err: any) {
+      console.error(`[Automation] Error generating statement for resident ${resident.id}:`, err.message);
+    }
+  }
+}
+
 export async function GET(request: NextRequest) {
   // Verify token
   const tokenVerification = await verifyToken(request);
@@ -34,7 +85,21 @@ export async function GET(request: NextRequest) {
         .where('role', '==', 'resident')
         .get();
 
-      const residents = residentsSnapshot.docs.map((doc: any) => ({
+      const initialResidents = residentsSnapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Automatically generate monthly statements & sync balances
+      await ensureMonthlyStatementsForResidents(initialResidents);
+
+      // Re-fetch updated residents
+      const updatedSnapshot = await adminDb
+        .collection('users')
+        .where('role', '==', 'resident')
+        .get();
+
+      const residents = updatedSnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       }));

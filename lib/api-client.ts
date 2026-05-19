@@ -1,11 +1,24 @@
 import { clearAuthSession, destroyServerSession } from '@/lib/auth-session';
 
+function getCookieValue(name: string) {
+  if (typeof document === 'undefined') {
+    return '';
+  }
+  const cookieParts = document.cookie.split(';').map((part) => part.trim());
+  const match = cookieParts.find((part) => part.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : '';
+}
+
 export async function apiCall(
   endpoint: string,
   options: RequestInit & { method?: string } = {}
 ) {
+  const method = (options.method || 'GET').toUpperCase();
+  const csrfToken = getCookieValue('lh_csrf');
+
   const headers = {
     'Content-Type': 'application/json',
+    ...(method !== 'GET' && csrfToken ? { 'x-csrf-token': csrfToken } : {}),
     ...options.headers,
   };
 
