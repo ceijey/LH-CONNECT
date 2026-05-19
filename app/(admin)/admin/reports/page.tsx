@@ -149,7 +149,136 @@ export default function AdminReports() {
   };
 
   const handleExportPDF = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print.');
+      return;
+    }
+
+    const dateStr = new Date().toLocaleDateString(undefined, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const rowsHtml = sortedData.map(row => {
+      const firstVal = `Blk ${row.block} Lot ${row.lot}`;
+      const secondVal = row.resident;
+      const typeText = selectedReportType === 'Daily Report' ? (row as any).referenceNumber || 'N/A' : `₱${row.monthlyDues.toLocaleString()}`;
+      const amountVal = `₱${row.amountPaid.toLocaleString()}`;
+      const thirdVal = selectedReportType === 'Daily Report' ? (row as any).paymentMethod || 'Cash' : `₱${row.balance.toLocaleString()}`;
+      const statusColor = row.status === 'Paid' ? '#059669' : row.status === 'Pending' ? '#b45309' : '#dc2626';
+
+      return `
+        <tr>
+          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 500;">${firstVal}</td>
+          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; font-weight: 700;">${secondVal}</td>
+          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 500;">${typeText}</td>
+          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 800; color: #1e293b; text-align: right;">${amountVal}</td>
+          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">${thirdVal}</td>
+          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: ${statusColor}; text-align: right;">${row.status}</td>
+        </tr>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${selectedReportType.toUpperCase()} - ${getFormattedPeriod()}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #1e293b; background: white; line-height: 1.5; }
+            .header { text-align: center; border-bottom: 3px double #1B2A4A; padding-bottom: 24px; margin-bottom: 30px; }
+            .logo-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
+            .logo-img { width: 44px; height: 44px; object-fit: contain; }
+            .logo-text { font-size: 28px; font-weight: 800; color: #1B2A4A; text-transform: uppercase; letter-spacing: -0.03em; }
+            .subtitle { font-size: 11px; color: #475569; margin: 0; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; font-weight: 600; }
+            .report-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 25px 0 12px 0; text-transform: uppercase; letter-spacing: -0.01em; text-align: center; }
+            .profile-info { font-size: 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; padding: 18px; border-radius: 12px; margin-bottom: 30px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; }
+            .info-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; }
+            .info-label { font-weight: 700; color: #475569; }
+            .info-value { color: #0f172a; font-weight: 600; }
+            table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+            th { text-align: left; padding: 14px 10px; background: transparent; color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 2px solid #e2e8f0; }
+            td { font-size: 13px; }
+            .footer { margin-top: 60px; font-size: 11px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo-section">
+              <img src="/lhhoa-logo.png" alt="LH Logo" class="logo-img" />
+              <span class="logo-text">LH-CONNECT</span>
+            </div>
+            <div class="subtitle">LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000</div>
+          </div>
+          
+          <div class="report-title">${selectedReportType.toUpperCase()} — ${getFormattedPeriod().toUpperCase()} STATEMENT</div>
+          
+          <div class="profile-info">
+            <div class="info-grid">
+              <div>
+                <div class="info-item">
+                  <span class="info-label">Report Period:</span>
+                  <span class="info-value">${getFormattedPeriod()}</span>
+                </div>
+                <div class="info-item" style="margin-top: 8px;">
+                  <span class="info-label">Total Receivables:</span>
+                  <span class="info-value">₱${summary?.totalDues?.toLocaleString() || 0}</span>
+                </div>
+              </div>
+              <div>
+                <div class="info-item">
+                  <span class="info-label">Total Collected:</span>
+                  <span class="info-value" style="color: #059669;">₱${summary?.totalCollected?.toLocaleString() || 0}</span>
+                </div>
+                <div class="info-item" style="margin-top: 8px;">
+                  <span class="info-label">Outstanding Balance:</span>
+                  <span class="info-value" style="color: #dc2626;">₱${summary?.outstandingBalance?.toLocaleString() || 0}</span>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 12px; font-size: 12px; color: #64748b; text-align: right;">
+              Collection Rate: <strong>${summary?.collectionRate || 0}%</strong> | Report Generated: <strong>${dateStr}</strong>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 15%;">BLK / LOT</th>
+                <th style="width: 30%;">RESIDENT NAME</th>
+                <th style="width: 20%;">${selectedReportType === 'Daily Report' ? 'REF NUMBER' : 'MONTHLY DUES'}</th>
+                <th style="width: 15%; text-align: right;">${selectedReportType === 'Daily Report' ? 'AMOUNT' : 'AMOUNT PAID'}</th>
+                <th style="width: 10%;">${selectedReportType === 'Daily Report' ? 'METHOD' : 'BALANCE'}</th>
+                <th style="width: 10%; text-align: right;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          
+          <div class="footer">
+            LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION © 2026. ALL RIGHTS RESERVED.
+          </div>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleExportExcel = () => {
