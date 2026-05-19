@@ -295,7 +295,7 @@ export default function ManualPaymentPage() {
               grid-template-rows: repeat(3, 1fr);
               gap: 4mm;
               width: 200mm;
-              height: 287mm;
+              height: 272mm;
               box-sizing: border-box;
               padding: 2mm;
             }
@@ -309,7 +309,7 @@ export default function ManualPaymentPage() {
               background: white;
               box-sizing: border-box;
               overflow: hidden;
-              height: 93mm;
+              height: 88mm;
             }
             .print-header {
               text-align: center;
