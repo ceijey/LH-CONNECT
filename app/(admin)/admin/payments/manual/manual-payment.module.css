@@ -981,17 +981,4 @@
     font-weight: 600 !important;
     margin-top: 1px !important;
   }
-
-  .printBtn,
-  .cancelBtn,
-  .submitBtn,
-  .resultsList,
-  .searchContainer,
-  .formGroup,
-  .textarea,
-  .input,
-  .select,
-  .noPrint {
-    display: none !important;
-  }
 }
