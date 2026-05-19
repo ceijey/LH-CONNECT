@@ -52,10 +52,15 @@ export default function ManualPaymentPage() {
     };
     fetchResidents();
 
-    // Default month to current (format: YYYY-MM for input type="month")
+    // Default month to current (format: YYYY-MM for input type="month") and date to today (format: YYYY-MM-DD)
     const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const year = now.getFullYear();
+    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(now.getDate()).padStart(2, '0');
+    const currentMonth = `${year}-${monthStr}`;
+    const today = `${year}-${monthStr}-${dayStr}`;
     setMonth(currentMonth);
+    setDateSoldTo(today);
   }, []);
 
   const filteredResidents = residents.filter(r => 
