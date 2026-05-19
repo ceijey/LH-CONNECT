@@ -73,6 +73,7 @@ export default function LoginPage() {
   const [loginError, setLoginError] = useState<string>('');
   const [signupMessage, setSignupMessage] = useState<string>('');
   const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
+  const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -341,16 +342,57 @@ export default function LoginPage() {
 
                 <div className={styles.inputGroup}>
                   <label htmlFor="password" className={styles.label}>Password</label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                    disabled={isLoading}
-                  />
+                  <div className={styles.passwordField}>
+                    <input
+                      type={showLoginPassword ? 'text' : 'password'}
+                      id="password"
+                      name="password"
+                      className={`${styles.input} ${styles.passwordInput} ${errors.password ? styles.inputError : ''}`}
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Enter your password"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      className={styles.passwordToggle}
+                      onClick={() => setShowLoginPassword(prev => !prev)}
+                      disabled={isLoading}
+                      aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showLoginPassword ? (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12c.73-2.06 2.01-3.85 3.66-5.2" />
+                          <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c5 0 9.27 3.11 11 8a11.05 11.05 0 0 1-4.29 5.14" />
+                          <path d="m1 1 22 22" />
+                          <path d="M9.53 9.53a3.5 3.5 0 0 0 4.95 4.95" />
+                        </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                   {errors.password && <p className={styles.errorMessage}>{errors.password}</p>}
                 </div>
 
