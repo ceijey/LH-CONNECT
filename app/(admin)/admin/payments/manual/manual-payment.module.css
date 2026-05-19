@@ -802,75 +802,184 @@
   .printArea {
     display: block !important;
     margin: 0;
+    padding: 0;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .printGrid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-    page-break-after: always;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-rows: repeat(3, 1fr) !important;
+    gap: 4mm !important;
+    width: 100% !important;
+    height: 280mm !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  .invoicePaper {
+  .printInvoice {
     box-shadow: none !important;
-    border: 1px solid #000;
-    padding: 0.65rem;
-    border-radius: 10px;
-    min-height: auto;
+    border: 1px dashed #475569 !important;
+    padding: 4mm !important;
+    border-radius: 8px !important;
+    background: white !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
+    height: 100% !important;
   }
 
-  .invoiceHeader {
-    gap: 0.4rem;
-    margin-bottom: 0.6rem;
+  .printHeader {
+    text-align: center !important;
+    margin-bottom: 2px !important;
   }
 
-  .invoiceTitle {
-    font-size: 0.85rem;
+  .printLogoSection {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
   }
 
-  .invoiceText {
-    font-size: 0.72rem;
+  .printLogoImg {
+    width: 16px !important;
+    height: 16px !important;
+    object-fit: contain !important;
   }
 
-  .invoiceLabelTitle {
-    font-size: 1.1rem;
+  .printLogoText {
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    color: #1B2A4A !important;
   }
 
-  .invoiceMetaRow,
-  .soldToGrid,
-  .summaryGrid {
-    gap: 0.35rem;
+  .printSubtitle {
+    font-size: 6.5px !important;
+    color: #475569 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em !important;
+    margin-top: 1px !important;
   }
 
-  .invoiceFieldRow,
-  .soldToRow,
-  .soldToRowFull,
-  .printSummaryRow,
+  .printDivider {
+    border-bottom: 1.5px solid #1B2A4A !important;
+    margin: 3px 0 5px !important;
+  }
+
+  .printInvoiceTitle {
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    margin: 2px 0 4px !important;
+    color: #0f172a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  .printProfileInfo {
+    font-size: 7.5px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 4px 6px !important;
+    background: #f8fafc !important;
+    margin-bottom: 4px !important;
+  }
+
+  .printInfoGrid {
+    display: grid !important;
+    grid-template-columns: 1fr 1.2fr !important;
+    gap: 2px 8px !important;
+  }
+
+  .printInfoItem {
+    display: flex !important;
+    justify-content: space-between !important;
+    border-bottom: 1px dashed #cbd5e1 !important;
+    padding-bottom: 1px !important;
+  }
+
+  .printInfoLabel {
+    font-weight: 700 !important;
+    color: #475569 !important;
+  }
+
+  .printInfoValue {
+    font-weight: 600 !important;
+    color: #0f172a !important;
+    text-align: right !important;
+  }
+
+  .printTableWrapper {
+    margin-bottom: 4px !important;
+    flex-grow: 1 !important;
+  }
+
+  .printTable {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 7.5px !important;
+  }
+
+  .printTable th {
+    text-align: left !important;
+    padding: 2px !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    font-size: 6.5px !important;
+    border-bottom: 1.5px solid #cbd5e1 !important;
+  }
+
+  .printTable td {
+    padding: 2px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+
+  .printSummaryGrid {
+    display: grid !important;
+    gap: 2px !important;
+    font-size: 7.5px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .printSummaryRow {
+    display: flex !important;
+    justify-content: space-between !important;
+    color: #475569 !important;
+  }
+
   .printSummaryRowTotal {
-    padding: 0.45rem 0.55rem;
+    display: flex !important;
+    justify-content: space-between !important;
+    font-weight: 800 !important;
+    color: #1e3a8a !important;
+    border-top: 1px solid #cbd5e1 !important;
+    padding-top: 2px !important;
   }
 
-  .invoiceTable th,
-  .invoiceTable td,
-  .printTableCell {
-    padding: 0.45rem 0.55rem;
+  .printInvoiceFooter {
+    text-align: center !important;
+    margin-top: auto !important;
   }
 
-  .invoiceTable th {
-    font-size: 0.65rem;
+  .printNotValid {
+    font-size: 5px !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
   }
 
-  .invoiceTable td {
-    font-size: 0.68rem;
-  }
-
-  .printValue {
-    font-size: 0.72rem;
-    padding: 0.25rem 0;
-  }
-
-  .printNote {
-    font-size: 0.7rem;
+  .printCopyright {
+    font-size: 5px !important;
+    color: #cbd5e1 !important;
+    text-transform: uppercase !important;
+    font-weight: 600 !important;
+    margin-top: 1px !important;
   }
 
   .printBtn,
@@ -884,14 +993,5 @@
   .select,
   .noPrint {
     display: none !important;
-  }
-
-  .invoicePaper {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .printGrid {
-    page-break-after: always;
   }
 }

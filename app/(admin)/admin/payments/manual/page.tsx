@@ -454,59 +454,58 @@ export default function ManualPaymentPage() {
         <div className={styles.printGrid}>
           {Array.from({ length: 6 }).map((_, copyIndex) => (
             <div key={copyIndex} className={`${styles.invoicePaper} ${styles.printInvoice}`}>
-              <div className={styles.invoiceHeader}>
-                <div className={styles.invoiceBrand}>
-                  <h2 className={styles.invoiceTitle}>LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION INC.</h2>
-                  <p className={styles.invoiceText}>NON-VAT REG. TIN: 420-968-199-000</p>
-                  <p className={styles.invoiceText}>Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan</p>
+              {/* Centered Brand Header */}
+              <div className={styles.printHeader}>
+                <div className={styles.printLogoSection}>
+                  <img src="/lhhoa-logo.png" alt="LH Logo" className={styles.printLogoImg} />
+                  <span className={styles.printLogoText}>LH-CONNECT</span>
                 </div>
-                <div className={styles.invoiceLabel}>
-                  <span className={styles.invoiceLabelTag}>SERVICE</span>
-                  <h3 className={styles.invoiceLabelTitle}>INVOICE</h3>
-                </div>
-              </div>
-
-              <div className={styles.invoiceMetaRow}>
-                <div className={styles.printCheckboxGroup}>
-                  <span className={styles.printCheckbox}>{cashSaleChecked ? '☑' : '☐'} CASH SALES</span>
-                  <span className={styles.printCheckbox}>{chargeSaleChecked ? '☑' : '☐'} CHARGE SALES</span>
-                </div>
-                <div className={styles.invoiceFieldRow}>
-                  <span className={styles.invoiceFieldLabel}>Invoice No.</span>
-                  <div className={styles.printValue}>{invoiceNumber || '_____________________'}</div>
-                </div>
-                <div className={styles.invoiceFieldRow}>
-                  <span className={styles.invoiceFieldLabel}>Date</span>
-                  <div className={styles.printValue}>{formattedPrintDate || '____/__/____'}</div>
+                <div className={styles.printSubtitle}>
+                  LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000
                 </div>
               </div>
+              
+              <div className={styles.printDivider} />
 
-              <div className={styles.soldToSection}>
-                <div className={styles.soldToLabel}>SOLD TO:</div>
-                <div className={styles.soldToGrid}>
-                  <div className={styles.printSoldRow}>
-                    <span className={styles.soldToRowLabel}>Registered Name:</span>
-                    <div className={styles.printValue}>{registeredName || '_________________________________'}</div>
+              <h2 className={styles.printInvoiceTitle}>
+                {cashSaleChecked ? 'CASH SALE INVOICE' : chargeSaleChecked ? 'CHARGE SALE INVOICE' : 'SERVICE INVOICE'}
+              </h2>
+
+              {/* Rounded profile info box (matching layout in reference image) */}
+              <div className={styles.printProfileInfo}>
+                <div className={styles.printInfoGrid}>
+                  <div>
+                    <div className={styles.printInfoItem}>
+                      <span className={styles.printInfoLabel}>Invoice No:</span>
+                      <span className={styles.printInfoValue}>{invoiceNumber || 'N/A'}</span>
+                    </div>
+                    <div className={styles.printInfoItem} style={{ marginTop: '2px' }}>
+                      <span className={styles.printInfoLabel}>Date:</span>
+                      <span className={styles.printInfoValue}>{formattedPrintDate || 'N/A'}</span>
+                    </div>
                   </div>
-                  <div className={styles.printSoldRow}>
-                    <span className={styles.soldToRowLabel}>TIN:</span>
-                    <div className={styles.printValue}>{tin || '_____________________'}</div>
-                  </div>
-                  <div className={styles.printSoldRowFull}>
-                    <span className={styles.soldToRowLabel}>Business Address:</span>
-                    <div className={styles.printValue}>{businessAddress || '_________________________________'}</div>
+                  <div>
+                    <div className={styles.printInfoItem}>
+                      <span className={styles.printInfoLabel}>Sold To:</span>
+                      <span className={styles.printInfoValue}>{registeredName || 'Resident'}</span>
+                    </div>
+                    <div className={styles.printInfoItem} style={{ marginTop: '2px' }}>
+                      <span className={styles.printInfoLabel}>Address:</span>
+                      <span className={styles.printInfoValue}>{businessAddress || 'N/A'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className={styles.invoiceTableWrapper}>
-                <table className={styles.invoiceTable}>
+              {/* Service Table styled nicely */}
+              <div className={styles.printTableWrapper}>
+                <table className={styles.printTable}>
                   <thead>
                     <tr>
-                      <th>Nature of Service</th>
-                      <th>Qty</th>
-                      <th>Unit Price</th>
-                      <th>Amount</th>
+                      <th style={{ width: '45%' }}>Nature of Service</th>
+                      <th style={{ width: '15%' }}>Qty</th>
+                      <th style={{ width: '20%' }}>Price</th>
+                      <th style={{ width: '20%', textAlign: 'right' }}>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -514,10 +513,10 @@ export default function ManualPaymentPage() {
                       const itemAmount = Number(item.quantity || 0) * Number(item.unitPrice || 0);
                       return (
                         <tr key={`print-item-${copyIndex}-${rowIndex}`}>
-                          <td className={styles.printTableCell}>{item.natureOfService || ''}</td>
-                          <td className={styles.printTableCell}>{item.quantity || ''}</td>
-                          <td className={styles.printTableCell}>{item.unitPrice ? `₱${Number(item.unitPrice).toLocaleString()}` : ''}</td>
-                          <td className={styles.printTableCell}>{itemAmount ? `₱${itemAmount.toLocaleString()}` : ''}</td>
+                          <td style={{ fontWeight: 700 }}>{item.natureOfService || 'Monthly Dues'}</td>
+                          <td>{item.quantity || '1'}</td>
+                          <td>₱{Number(item.unitPrice || 0).toLocaleString()}</td>
+                          <td style={{ fontWeight: 800, textAlign: 'right' }}>₱{itemAmount.toLocaleString()}</td>
                         </tr>
                       );
                     })}
@@ -525,27 +524,36 @@ export default function ManualPaymentPage() {
                 </table>
               </div>
 
-              <div className={styles.summaryGrid}>
+              {/* Total Summary */}
+              <div className={styles.printSummaryGrid}>
                 <div className={styles.printSummaryRow}>
                   <span>Total Sale</span>
                   <span>₱{saleAmount.toLocaleString()}</span>
                 </div>
-                <div className={styles.printSummaryRow}>
-                  <span>Discount for PWD</span>
-                  <span>₱{Number(discountPwd).toLocaleString()}</span>
-                </div>
-                <div className={styles.printSummaryRow}>
-                  <span>Less Withholding Tax</span>
-                  <span>₱{Number(withholdingTax).toLocaleString()}</span>
-                </div>
+                {Number(discountPwd) > 0 && (
+                  <div className={styles.printSummaryRow}>
+                    <span>PWD Discount</span>
+                    <span>-₱{Number(discountPwd).toLocaleString()}</span>
+                  </div>
+                )}
+                {Number(withholdingTax) > 0 && (
+                  <div className={styles.printSummaryRow}>
+                    <span>Withholding Tax</span>
+                    <span>-₱{Number(withholdingTax).toLocaleString()}</span>
+                  </div>
+                )}
                 <div className={styles.printSummaryRowTotal}>
                   <span>Total Amount Due</span>
                   <span>₱{totalAmount.toLocaleString()}</span>
                 </div>
               </div>
 
-              <div className={styles.printFooter}>
-                <p className={styles.printNote}>THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX.</p>
+              {/* Footer */}
+              <div className={styles.printInvoiceFooter}>
+                <div className={styles.printNotValid}>THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX.</div>
+                <div className={styles.printCopyright}>
+                  LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION © 2026. ALL RIGHTS RESERVED.
+                </div>
               </div>
             </div>
           ))}
