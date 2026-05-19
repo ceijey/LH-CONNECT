@@ -101,21 +101,21 @@ export default function ResidentAnnouncementsPage() {
               <p className={styles.emptyText}>There are no community announcements at the moment. Check back later for updates!</p>
             </div>
           ) : (
-            announcements.map((ann) => (
-              <div key={ann.id} className={styles.announcementCard}>
-                <div>
-                  <div className={styles.announcementHeader}>
-                    <h3 className={styles.announcementTitle}>{ann.title}</h3>
-                    <span className={`${styles.severityBadge} ${styles[`severity_${ann.severity}`]}`}>
-                      {getSeverityLabel(ann.severity)}
-                    </span>
-                  </div>
-                  <p className={styles.announcementContent}>{ann.content}</p>
+            <div className={styles.feedWrapper}>
+              {/* Featured Announcement (Latest) */}
+              <div className={styles.featuredCard}>
+                <div className={styles.featuredTag}>✨ LATEST ANNOUNCEMENT</div>
+                <div className={styles.featuredHeader}>
+                  <h3 className={styles.featuredTitle}>{announcements[0].title}</h3>
+                  <span className={`${styles.severityBadge} ${styles[`severity_${announcements[0].severity}`]}`}>
+                    {getSeverityLabel(announcements[0].severity)}
+                  </span>
                 </div>
-                <div className={styles.announcementFooter}>
-                  <span className={styles.author}>👤 HOA Admin ({ann.createdBy})</span>
+                <p className={styles.featuredContent}>{announcements[0].content}</p>
+                <div className={styles.featuredFooter}>
+                  <span className={styles.author}>👤 HOA Admin ({announcements[0].createdBy})</span>
                   <span>
-                    📅 {new Date(ann.createdAt).toLocaleDateString(undefined, {
+                    📅 {new Date(announcements[0].createdAt).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
@@ -123,7 +123,39 @@ export default function ResidentAnnouncementsPage() {
                   </span>
                 </div>
               </div>
-            ))
+
+              {/* Remaining Announcements Grid */}
+              {announcements.length > 1 && (
+                <div className={styles.gridSection}>
+                  <h3 className={styles.gridSectionTitle}>Previous Notices</h3>
+                  <div className={styles.recentGrid}>
+                    {announcements.slice(1).map((ann) => (
+                      <div key={ann.id} className={styles.announcementCard}>
+                        <div>
+                          <div className={styles.announcementHeader}>
+                            <h3 className={styles.announcementTitle}>{ann.title}</h3>
+                            <span className={`${styles.severityBadge} ${styles[`severity_${ann.severity}`]}`}>
+                              {getSeverityLabel(ann.severity)}
+                            </span>
+                          </div>
+                          <p className={styles.announcementContent}>{ann.content}</p>
+                        </div>
+                        <div className={styles.announcementFooter}>
+                          <span className={styles.author}>👤 HOA Admin ({ann.createdBy})</span>
+                          <span>
+                            📅 {new Date(ann.createdAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </section>
       </main>
