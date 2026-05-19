@@ -194,8 +194,8 @@ export default function ManualPaymentPage() {
                 <div className={styles.invoiceHeader}>
                   <div className={styles.invoiceBrand}>
                     <h2 className={styles.invoiceTitle}>LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION INC.</h2>
-                    <p className={styles.invoiceText}>NON-VAT REG. TIN: 480-266-103-00000</p>
-                    <p className={styles.invoiceText}>Purok 3 Lincoln Heights Subdivision, San Pablo, Dinalupihan, Bataan, Philippines 2110</p>
+                    <p className={styles.invoiceText}>NON-VAT REG. TIN: 420-968-199-000</p>
+                    <p className={styles.invoiceText}>Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan</p>
                   </div>
                   <div className={styles.invoiceLabel}>
                     <span className={styles.invoiceLabelTag}>SERVICE</span>
@@ -457,8 +457,8 @@ export default function ManualPaymentPage() {
               <div className={styles.invoiceHeader}>
                 <div className={styles.invoiceBrand}>
                   <h2 className={styles.invoiceTitle}>LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION INC.</h2>
-                  <p className={styles.invoiceText}>NON-VAT REG. TIN: 480-266-103-00000</p>
-                  <p className={styles.invoiceText}>Purok 3 Lincoln Heights Subdivision, San Pablo, Bataan, Philippines 2110</p>
+                  <p className={styles.invoiceText}>NON-VAT REG. TIN: 420-968-199-000</p>
+                  <p className={styles.invoiceText}>Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan</p>
                 </div>
                 <div className={styles.invoiceLabel}>
                   <span className={styles.invoiceLabelTag}>SERVICE</span>
