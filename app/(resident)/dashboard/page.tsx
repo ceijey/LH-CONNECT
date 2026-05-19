@@ -298,6 +298,9 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+            <Link href="/dashboard/announcements" className={styles.accountBtn}>
+              📢 Announcements
+            </Link>
             <Link href="/dashboard/account" className={styles.accountBtn}>
               👤 My Account
             </Link>
@@ -426,6 +429,12 @@ export default function DashboardPage() {
             <div className={styles.actionIcon}>📋</div>
             <h3 className={styles.actionTitle}>View Statements</h3>
             <p className={styles.actionDesc}>Download billing history</p>
+          </Link>
+
+          <Link href="/dashboard/announcements" className={styles.actionCard}>
+            <div className={styles.actionIcon}>📢</div>
+            <h3 className={styles.actionTitle}>Announcements</h3>
+            <p className={styles.actionDesc}>Community updates & news</p>
           </Link>
         </div>
 
