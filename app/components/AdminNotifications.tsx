@@ -28,6 +28,7 @@ interface AdminNotification {
 export default function AdminNotifications() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState({ isVisible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -36,18 +37,31 @@ export default function AdminNotifications() {
     setToast({ isVisible: true, message, type });
   };
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (before?: string) => {
     try {
       setIsLoading(true);
-      const payload = await apiCall('/api/admin/notifications');
-      setNotifications(payload.notifications ?? []);
+      const qs = before ? `?limit=50&before=${encodeURIComponent(before)}` : '?limit=50';
+      const payload = await apiCall(`/api/admin/notifications${qs}`);
+
+      if (before) {
+        // append older notifications
+        setNotifications(prev => {
+          const merged = [...prev, ...(payload.notifications ?? [])];
+          // dedupe by id
+          const map = new Map<string, AdminNotification>();
+          for (const n of merged) map.set(n.id, n);
+          return Array.from(map.values());
+        });
+      } else {
+        setNotifications(payload.notifications ?? []);
+      }
+
+      setNextCursor(payload.nextCursor ?? null);
     } catch (error: any) {
       console.error('Failed to fetch admin notifications:', error);
-      // Don't show toast on initial load to avoid noise
       if (notifications.length > 0) {
         showToast(error.message || 'Failed to fetch notifications', 'error');
       }
-      // Keep existing notifications on error
     } finally {
       setIsLoading(false);
     }
@@ -56,9 +70,9 @@ export default function AdminNotifications() {
   useEffect(() => {
     // Fetch on mount but don't block rendering
     fetchNotifications().catch(err => console.error('Initial notification fetch failed:', err));
-    
-    // Refresh every 30 seconds for better responsiveness
-    const interval = setInterval(fetchNotifications, 30000);
+
+    // Refresh the top page every 30 seconds for better responsiveness
+    const interval = setInterval(() => fetchNotifications().catch(() => {}), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -287,6 +301,17 @@ export default function AdminNotifications() {
                     </Link>
                   </div>
                 ))
+              )}
+              {nextCursor && (
+                <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => fetchNotifications(nextCursor)}
+                    style={{ cursor: 'pointer', background: 'transparent', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: 8 }}
+                  >
+                    Load more
+                  </button>
+                </div>
               )}
             </div>
           </div>

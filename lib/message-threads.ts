@@ -98,7 +98,9 @@ const extractReplies = (message: AnyRecord) => {
     id: String(message.id),
     senderId: message.senderId,
     senderName: message.senderName ?? message.from,
-    senderRole: message.senderRole ?? (normalizeText(message.recipientRole) === 'admin' ? 'admin' : 'resident'),
+    // If senderRole is missing, infer it from recipientRole: when recipient is admin,
+    // the sender is likely a resident, and vice versa. This avoids flipping roles.
+    senderRole: message.senderRole ?? (normalizeText(message.recipientRole) === 'admin' ? 'resident' : 'admin'),
     message: String(message.message ?? message.preview ?? ''),
     date: String(message.date ?? ''),
     time: String(message.time ?? ''),
