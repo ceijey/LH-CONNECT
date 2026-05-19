@@ -12,6 +12,7 @@ interface ProfilePayload {
   block: string;
   lot: string;
   phone: string;
+  profileImage?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -99,8 +100,9 @@ export async function POST(request: NextRequest) {
       phone: body.phone,
       role: trustedRole,
       approvalStatus: trustedApprovalStatus,
-      createdAt: new Date().toISOString(),
+      createdAt: existingData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      profileImage: body.profileImage || existingData.profileImage || null,
     };
 
     await adminDb.collection('users').doc(uid).set(userProfile, { merge: true });

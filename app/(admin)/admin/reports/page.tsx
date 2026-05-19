@@ -38,7 +38,12 @@ type SortConfig = {
 export default function AdminReports() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState('February 2026');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    return new Date().toLocaleString('en-US', { month: 'long' });
+  });
+  const [selectedYear, setSelectedYear] = useState(() => {
+    return new Date().getFullYear().toString();
+  });
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedReportType, setSelectedReportType] = useState('Monthly Report');
   const [financialData, setFinancialData] = useState<ReportData[]>([]);
@@ -56,16 +61,36 @@ export default function AdminReports() {
   const [isToastVisible, setIsToastVisible] = useState(false);
 
   const months = [
-    'January 2026', 'February 2026', 'March 2026', 'April 2026', 
-    'May 2026', 'June 2026', 'July 2026', 'August 2026', 
-    'September 2026', 'October 2026', 'November 2026', 'December 2026'
+    'January', 'February', 'March', 'April', 'May', 'June', 
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  const years = ['2024', '2025', '2026', '2027', '2028', '2029', '2030'];
+
+  const getFormattedPeriod = () => {
+    if (selectedReportType === 'Daily Report') {
+      if (!selectedDate) return '';
+      try {
+        const parts = selectedDate.split('-');
+        if (parts.length === 3) {
+          const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+      } catch (e) {}
+      return selectedDate;
+    }
+    if (selectedReportType === 'Annual Report') {
+      return selectedYear;
+    }
+    return selectedMonth;
+  };
 
   const fetchReport = async () => {
     setIsLoading(true);
     try {
       const query = new URLSearchParams({
         month: selectedMonth,
+        year: selectedYear,
         type: selectedReportType,
         date: selectedDate
       });
@@ -88,7 +113,7 @@ export default function AdminReports() {
 
   useEffect(() => {
     fetchReport();
-  }, [selectedMonth, selectedReportType, selectedDate]);
+  }, [selectedMonth, selectedYear, selectedReportType, selectedDate]);
 
   const sortedData = useMemo(() => {
     let sortableItems = [...financialData];
@@ -138,7 +163,8 @@ export default function AdminReports() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `LH-Connect_Report_${selectedMonth.replace(' ', '_')}.csv`);
+    const periodName = selectedReportType === 'Daily Report' ? selectedDate : selectedReportType === 'Annual Report' ? selectedYear : `${selectedMonth}_${selectedYear}`;
+    link.setAttribute("download", `LH-Connect_Report_${periodName}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -189,7 +215,7 @@ export default function AdminReports() {
               <div className={reportsStyles.printReportDetails}>
                 <h1 className={reportsStyles.printReportTitle}>{selectedReportType}</h1>
                 <div className={reportsStyles.printDate}>
-                  Period: {selectedReportType === 'Daily Report' ? selectedDate : selectedMonth} | Generated: {new Date().toLocaleDateString()}
+                  Period: {getFormattedPeriod()} | Generated: {new Date().toLocaleDateString()}
                 </div>
               </div>
             </div>
@@ -207,20 +233,32 @@ export default function AdminReports() {
                 <option>Annual Report</option>
               </select>
 
-              {selectedReportType === 'Daily Report' ? (
+              {selectedReportType === 'Daily Report' && (
                 <input 
                   type="date" 
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className={reportsStyles.select}
                 />
-              ) : (
+              )}
+
+              {selectedReportType === 'Monthly Report' && (
                 <select 
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className={reportsStyles.select}
                 >
                   {months.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              )}
+
+              {selectedReportType === 'Annual Report' && (
+                <select 
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className={reportsStyles.select}
+                >
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               )}
             </div>
@@ -325,7 +363,7 @@ export default function AdminReports() {
                     <td style={{ fontWeight: 700, color: '#f59e0b' }}>{analytics?.pendingCount || 0}</td>
                   </tr>
                   <tr>
-                    <td><span className={reportsStyles.statusIndicator} style={{ background: '#dc2626' }}></span> Rejected Payments</td>
+                    <td><span className={reportsStyles.statusIndicator} style={{ background: '#dc2626' }}></span> Declined Payments</td>
                     <td style={{ fontWeight: 700, color: '#dc2626' }}>{analytics?.rejectedCount || 0}</td>
                   </tr>
                   <tr style={{ borderTop: '2px solid #e2e8f0' }}>
@@ -339,7 +377,7 @@ export default function AdminReports() {
 
           <div className={reportsStyles.reportContent}>
             <h2 className={reportsStyles.reportTitle}>
-              {selectedReportType} — {selectedReportType === 'Daily Report' ? selectedDate : selectedMonth}
+              {selectedReportType} — {getFormattedPeriod()}
             </h2>
             <div className={styles.tableWrapper}>
               <table className={styles.table}>

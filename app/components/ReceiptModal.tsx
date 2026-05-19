@@ -7,19 +7,20 @@ import styles from './ReceiptModal.module.css';
 interface ReceiptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  payment: {
-    id: string;
-    residentName: string;
-    blockLot: string;
-    paymentAmount: number;
-    paymentMethod: string;
-    referenceNumber: string;
-    submittedDate: string;
-    verifiedDate?: string;
-    status: string;
-    notes?: string;
-    fileUrl?: string;
-  } | null;
+    payment: {
+      id: string;
+      residentName: string;
+      blockLot: string;
+      paymentAmount: number;
+      paymentMethod: string;
+      referenceNumber: string;
+      submittedDate: string;
+      verifiedDate?: string;
+      status: string;
+      notes?: string;
+      fileUrl?: string;
+      paymentDateTime?: string;
+    } | null;
 }
 
 export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalProps) {
@@ -99,6 +100,20 @@ export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalP
                   <span className={styles.detailLabel}>Payment Method</span>
                   <span className={styles.detailValue}>{payment.paymentMethod}</span>
                 </div>
+                {payment.paymentDateTime && (
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Payment Date/Time</span>
+                    <span className={styles.detailValue}>
+                      {new Date(payment.paymentDateTime).toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                )}
                 <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>Reference No.</span>
                   <span className={styles.detailValue}>{payment.referenceNumber || 'N/A'}</span>
@@ -121,7 +136,19 @@ export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalP
               <div className={styles.proofSection}>
                 <span className={styles.detailLabel}>Proof of Payment</span>
                 <div className={styles.proofImageWrapper}>
-                  {payment.fileUrl ? (
+                  {payment.id ? (
+                    <img 
+                      src={`/api/payment-submissions/${payment.id}/proof`} 
+                      alt="Proof of Payment" 
+                      className={styles.proofImage}
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        if (payment.fileUrl && e.currentTarget.src !== payment.fileUrl) {
+                          e.currentTarget.src = payment.fileUrl;
+                        }
+                      }}
+                    />
+                  ) : payment.fileUrl ? (
                     <img 
                       src={payment.fileUrl} 
                       alt="Proof of Payment" 

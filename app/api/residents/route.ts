@@ -138,17 +138,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, fullName, phone, phase, block, lot } = body;
+    const { fullName, phone, phase, block, lot } = body;
 
-    if (!email || !fullName) {
-      return createErrorResponse('Email and full name are required', 400);
+    if (!fullName) {
+      return createErrorResponse('Full name is required', 400);
     }
+
+    // Generate formatted email: lastnameblknumberlotnumber@gmail.com
+    const cleanName = fullName.trim().toLowerCase();
+    const nameParts = cleanName.split(/\s+/);
+    const lastName = nameParts[nameParts.length - 1] || 'resident';
+    const cleanLastName = lastName.replace(/[^a-z]/g, '');
+    const blkNum = (block || '').replace(/\D/g, '') || '0';
+    const lotNum = (lot || '').replace(/\D/g, '') || '0';
+    const finalEmail = `${cleanLastName}blk${blkNum}lot${lotNum}@gmail.com`;
 
     // 1. Create the Auth User
     let authUser;
     try {
       authUser = await adminAuth.createUser({
-        email,
+        email: finalEmail,
         password: 'lhconnect2026', // Default password
         displayName: fullName,
         phoneNumber: phone ? (phone.startsWith('+') ? phone : `+63${phone.replace(/^0/, '')}`) : undefined,
@@ -162,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString();
     const newUser = {
-      email,
+      email: finalEmail,
       fullName,
       phone: phone || '',
       phase: phase || '',

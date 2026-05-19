@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = request.nextUrl.searchParams;
-  const monthStr = searchParams.get('month'); // e.g. "February 2026"
+  const monthStr = searchParams.get('month'); // e.g. "February" or "February 2026"
+  const yearStr = searchParams.get('year') || new Date().getFullYear().toString(); // e.g. "2026"
   const dateStr = searchParams.get('date');   // e.g. "2026-05-10"
   const type = searchParams.get('type') || 'Monthly Report';
 
@@ -31,25 +32,38 @@ export async function GET(request: NextRequest) {
     
     if (type === 'Daily Report' && dateStr) {
       // For daily report, we filter by the exact day in the 'submittedDate'
-      // Note: In a real app, you'd probably use a timestamp range. 
-      // Here we'll match the ISO string prefix or a specific field if available.
       submissionsQuery = submissionsQuery.where('submittedDate', '>=', `${dateStr}T00:00:00`);
       submissionsQuery = submissionsQuery.where('submittedDate', '<=', `${dateStr}T23:59:59`);
     } else if (type === 'Delinquency Report') {
       // For delinquency, we look at all residents with balance > 0
+    } else if (type === 'Annual Report') {
+      // Fetch all to perform in-memory filtering by year (prevents missing Firestore composite index errors)
     } else {
-      // Monthly/Annual (Annual would need more logic, for now we match monthStr)
-      submissionsQuery = submissionsQuery.where('month', '==', monthStr);
+      // Monthly Report: query by "Month Year" (e.g. "February 2026")
+      let targetMonth = monthStr;
+      if (targetMonth && !targetMonth.includes(' ')) {
+        targetMonth = `${targetMonth} ${yearStr}`;
+      }
+      submissionsQuery = submissionsQuery.where('month', '==', targetMonth);
     }
 
     const submissionsSnapshot = await submissionsQuery.get();
-    const submissions = submissionsSnapshot.docs.map((doc: any) => ({
+    let submissions = submissionsSnapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
 
+    // Perform in-memory filtering for Annual Report by checking if month ends with the selected year
+    if (type === 'Annual Report') {
+      submissions = submissions.filter((sub: any) => {
+        if (!sub.month) return false;
+        return sub.month.toLowerCase().endsWith(yearStr.toLowerCase());
+      });
+    }
+
     // 3. Process data
-    const monthlyDues = 400; 
+    const isAnnual = type === 'Annual Report';
+    const monthlyDues = isAnnual ? 4800 : 400; // 400 * 12 = 4800 for annual, 400 for monthly
     
     interface FinancialRecord {
       id: string;
@@ -76,18 +90,21 @@ export async function GET(request: NextRequest) {
       
       let status: 'Paid' | 'Pending' | 'Delinquent' | 'Rejected' = 'Delinquent';
       
-      if (amountPaid >= monthlyDues || (amountPaid > 0 && Number(resident.balance || 0) <= 0)) {
+      if (amountPaid >= monthlyDues || (!isAnnual && amountPaid > 0 && Number(resident.balance || 0) <= 0)) {
         status = 'Paid';
       } else if (hasPending) {
         status = 'Pending';
       } else if (hasRejected && amountPaid === 0) {
         status = 'Rejected';
-      } else if (Number(resident.balance || 0) > 0) {
+      } else if (isAnnual || Number(resident.balance || 0) > 0) {
         status = 'Delinquent';
       } else if (Number(resident.balance || 0) <= 0) {
-        // If they have no balance and no pending/rejected, they are effectively Paid
         status = 'Paid';
       }
+
+      const balance = isAnnual 
+        ? Math.max(0, 4800 - amountPaid)
+        : Number(resident.balance || 0);
 
       return {
         id: resident.id,
@@ -96,7 +113,7 @@ export async function GET(request: NextRequest) {
         resident: resident.fullName || 'Unknown',
         monthlyDues,
         amountPaid,
-        balance: Number(resident.balance || 0),
+        balance,
         status,
         paymentMethod: residentSubmissions[0]?.paymentMethod || 'N/A'
       };

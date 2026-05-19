@@ -20,6 +20,7 @@ type PaymentSubmission = {
   verifiedDate?: string;
   submittedAt?: any;
   verifiedAt?: any;
+  paymentDateTime?: string;
 };
 
 async function resolveFileUrl(data: any): Promise<string | undefined> {
@@ -103,6 +104,7 @@ async function toSubmission(doc: any): Promise<PaymentSubmission> {
     verifiedDate: data.verifiedDate,
     submittedAt,
     verifiedAt: data.verifiedAt,
+    paymentDateTime: data.paymentDateTime || undefined,
   };
 }
 
@@ -183,6 +185,7 @@ export async function POST(request: NextRequest) {
     const paymentMethod = String(formData.get('paymentMethod') ?? '').trim();
     const referenceNumber = String(formData.get('referenceNumber') ?? '').trim();
     const notes = String(formData.get('notes') ?? '').trim();
+    const paymentDateTime = String(formData.get('paymentDateTime') ?? '').trim();
     const file = formData.get('file');
     let fileUrl = String(formData.get('fileUrl') ?? '').trim();
     let filePath = String(formData.get('filePath') ?? '').trim();
@@ -212,6 +215,28 @@ export async function POST(request: NextRequest) {
 
     if (!referenceNumber) {
       return createErrorResponse('Reference number is required', 400);
+    }
+
+    // Check for duplicate reference number in payment_submissions
+    const duplicateSubmissionQuery = await adminDb
+      .collection('payment_submissions')
+      .where('referenceNumber', '==', referenceNumber)
+      .limit(1)
+      .get();
+
+    if (!duplicateSubmissionQuery.empty) {
+      return createErrorResponse('This reference number has already been used for a submission. Please check your payment details.', 400);
+    }
+
+    // Check for duplicate reference number in approved payments
+    const duplicatePaymentQuery = await adminDb
+      .collection('payments')
+      .where('referenceNumber', '==', referenceNumber)
+      .limit(1)
+      .get();
+
+    if (!duplicatePaymentQuery.empty) {
+      return createErrorResponse('This reference number has already been approved for a payment.', 400);
     }
     
     // Only require file if URL or Base64 is not provided
@@ -294,6 +319,7 @@ export async function POST(request: NextRequest) {
       verifiedAt: null,
       createdAt: submittedAt,
       updatedAt: submittedAt,
+      paymentDateTime,
     });
 
     const submission = {
@@ -313,6 +339,7 @@ export async function POST(request: NextRequest) {
       month: currentMonth,
       submittedDate: submittedAt.toLocaleString(),
       verifiedDate: undefined,
+      paymentDateTime,
     };
 
     // Create an admin notification so admins immediately see new submissions (including failed uploads)

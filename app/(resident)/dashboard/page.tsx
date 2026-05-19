@@ -33,6 +33,7 @@ interface UserProfile {
   block?: string;
   lot?: string;
   balance?: number;
+  profileImage?: string;
 }
 
 export default function DashboardPage() {
@@ -332,7 +333,7 @@ export default function DashboardPage() {
           <div className={`${styles.infoCard} ${currentBalance > 0 ? styles.unpaidCard : ''}`}>
             <div className={styles.cardHeader}>
               <span className={styles.cardTitle}>
-                ACCOUNT BALANCE
+                UNPAID BALANCE
               </span>
               <span className={styles.infoIcon}>{currentBalance > 0 ? '⚠️' : 'ℹ️'}</span>
             </div>

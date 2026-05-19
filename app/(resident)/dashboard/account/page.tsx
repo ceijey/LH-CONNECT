@@ -19,6 +19,7 @@ interface ProfileForm {
   lot: string;
   phone: string;
   role: 'resident' | 'admin';
+  profileImage?: string;
 }
 
 export default function AccountPage() {
@@ -35,6 +36,7 @@ export default function AccountPage() {
     lot: '',
     phone: '',
     role: 'resident',
+    profileImage: '',
   });
 
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function AccountPage() {
           lot: user.lot ?? '',
           phone: user.phone ?? '',
           role: user.role === 'admin' ? 'admin' : 'resident',
+          profileImage: user.profileImage ?? '',
         });
       } catch (error) {
         setToast({ message: 'Failed to load your profile.', type: 'error' });
@@ -62,6 +65,55 @@ export default function AccountPage() {
 
     void loadProfile();
   }, []);
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      setToast({ message: 'Profile photo must be smaller than 1MB.', type: 'error' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      if (base64) {
+        setProfile((current) => {
+          const updated = { ...current, profileImage: base64 };
+          
+          void (async () => {
+            try {
+              setIsSaving(true);
+              const payload = await apiCall('/api/auth/profile', {
+                method: 'POST',
+                body: JSON.stringify(updated),
+              });
+              const savedUser = (payload.user ?? updated) as ProfileForm;
+              setProfile({
+                fullName: savedUser.fullName ?? updated.fullName,
+                email: savedUser.email ?? updated.email,
+                phase: savedUser.phase ?? updated.phase,
+                block: savedUser.block ?? updated.block,
+                lot: savedUser.lot ?? updated.lot,
+                phone: savedUser.phone ?? updated.phone,
+                role: savedUser.role === 'admin' ? 'admin' : 'resident',
+                profileImage: savedUser.profileImage ?? updated.profileImage ?? '',
+              });
+              setToast({ message: 'Profile photo updated successfully!', type: 'success' });
+            } catch (err: any) {
+              setToast({ message: err?.message || 'Failed to save profile photo.', type: 'error' });
+            } finally {
+              setIsSaving(false);
+            }
+          })();
+          
+          return updated;
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -84,7 +136,7 @@ export default function AccountPage() {
         body: JSON.stringify(profile),
       });
 
-      const savedUser = (payload.user ?? profile) as ProfileForm;
+       const savedUser = (payload.user ?? profile) as ProfileForm;
       setProfile({
         fullName: savedUser.fullName ?? profile.fullName,
         email: savedUser.email ?? profile.email,
@@ -93,6 +145,7 @@ export default function AccountPage() {
         lot: savedUser.lot ?? profile.lot,
         phone: savedUser.phone ?? profile.phone,
         role: savedUser.role === 'admin' ? 'admin' : 'resident',
+        profileImage: savedUser.profileImage ?? profile.profileImage ?? '',
       });
       setToast({ message: 'Profile updated successfully.', type: 'success' });
     } catch (error: any) {
@@ -160,11 +213,34 @@ export default function AccountPage() {
               The HOA uses this profile for billing, follow-ups, and resident verification.
             </p>
           </div>
-          <aside className={styles.heroCard}>
-            <span className={styles.heroLabel}>Account summary</span>
-            <strong className={styles.heroValue}>{profile.fullName || 'Resident'}</strong>
-            <span className={styles.heroMeta}>{addressLabel || 'Address not set'}</span>
-            <span className={styles.heroMeta}>{profile.email || 'No email on file'}</span>
+          <aside className={styles.heroCard} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', justifyContent: 'center', padding: '2rem' }}>
+            <div style={{ position: 'relative', marginBottom: '1.25rem', cursor: 'pointer' }} title="Change profile photo">
+              {profile.profileImage ? (
+                <img 
+                  src={profile.profileImage} 
+                  alt="Profile Photo" 
+                  style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #4caf50', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+                />
+              ) : (
+                <div style={{ width: '90px', height: '90px', borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.15)', color: '#ffffff', fontSize: '2.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed rgba(255, 255, 255, 0.4)' }}>
+                  {(profile.fullName || 'R').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <label htmlFor="profile-image-upload" style={{ position: 'absolute', bottom: '0', right: '0', backgroundColor: '#4caf50', color: 'white', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', fontSize: '0.8rem' }}>
+                📷
+              </label>
+              <input 
+                id="profile-image-upload" 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange} 
+                style={{ display: 'none' }} 
+              />
+            </div>
+            <span className={styles.heroLabel} style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255, 255, 255, 0.7)' }}>Account summary</span>
+            <strong className={styles.heroValue} style={{ margin: '0.25rem 0 0.5rem', fontSize: '1.2rem', color: '#ffffff', display: 'block' }}>{profile.fullName || 'Resident'}</strong>
+            <span className={styles.heroMeta} style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', display: 'block' }}>{addressLabel || 'Address not set'}</span>
+            <span className={styles.heroMeta} style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', display: 'block', marginTop: '0.2rem' }}>{profile.email || 'No email on file'}</span>
           </aside>
         </section>
 

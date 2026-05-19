@@ -24,6 +24,7 @@ interface PaymentSubmission {
   submittedDate: string;
   verifiedDate?: string;
   notes?: string;
+  paymentDateTime?: string;
 }
 
 type ProofKind = 'image' | 'pdf' | 'none';
@@ -31,7 +32,7 @@ type ProofKind = 'image' | 'pdf' | 'none';
 export default function AdminPayments() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'Pending' | 'Verified' | 'Rejected'>('Pending');
+  const [activeTab, setActiveTab] = useState<'Pending' | 'Verified' | 'Declined'>('Pending');
   const [searchTerm, setSearchTerm] = useState('');
   const [allPayments, setAllPayments] = useState<PaymentSubmission[]>([]);
   
@@ -114,7 +115,7 @@ export default function AdminPayments() {
   };
 
   const filteredPayments = allPayments.filter((payment) => {
-    const matchesStatus = payment.status === activeTab;
+    const matchesStatus = activeTab === 'Declined' ? payment.status === 'Rejected' : payment.status === activeTab;
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     if (!normalizedSearch) {
@@ -217,20 +218,20 @@ export default function AdminPayments() {
     <>
       <ConfirmationModal
         isOpen={actionModal.isOpen}
-        title={`${actionModal.type} Payment`}
+        title={actionModal.type === 'Reject' ? 'Decline Payment' : `${actionModal.type} Payment`}
         message={
           actionModal.type === 'Reject' 
-            ? `Please provide a reason for rejecting the payment from ${actionModal.name}.`
+            ? `Please provide a reason for declining the payment from ${actionModal.name}.`
             : `Are you sure you want to ${actionModal.type.toLowerCase()} this payment from ${actionModal.name}?`
         }
-        confirmText={actionModal.type === 'Approve' ? 'Verify' : actionModal.type}
+        confirmText={actionModal.type === 'Approve' ? 'Verify' : (actionModal.type === 'Reject' ? 'Decline' : actionModal.type)}
         onConfirm={handleAction}
         onCancel={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
         isDangerous={actionModal.type !== 'Approve'}
         showInput={actionModal.type === 'Reject'}
         inputValue={rejectionReason}
         onInputChange={setRejectionReason}
-        inputPlaceholder="Reason for rejection (e.g., Invalid reference number, amount mismatch...)"
+        inputPlaceholder="Reason for declining (e.g., Invalid reference number, amount mismatch...)"
         imageUrl={actionModal.imageUrl}
       />
 
@@ -299,17 +300,17 @@ export default function AdminPayments() {
               ✓ Verified ({verifiedCount})
             </button>
             <button 
-              className={`${styles.tab} ${activeTab === 'Rejected' ? styles.active : ''}`}
-              onClick={() => startTransition(() => setActiveTab('Rejected'))}
+              className={`${styles.tab} ${activeTab === 'Declined' ? styles.active : ''}`}
+              onClick={() => startTransition(() => setActiveTab('Declined'))}
             >
-              ✕ Rejected ({rejectedCount})
+              ✕ Declined ({rejectedCount})
             </button>
           </div>
 
           <div className={styles.sectionTitle}>
             {activeTab === 'Pending' && '⏳ Pending Payment Verifications'}
             {activeTab === 'Verified' && '✓ Verified Payments'}
-            {activeTab === 'Rejected' && '✕ Rejected Payments'}
+            {activeTab === 'Declined' && '✕ Declined Payments'}
           </div>
           
           <div className={styles.tableWrapper}>
@@ -395,6 +396,17 @@ export default function AdminPayments() {
                         </td>
                         <td className={styles.datetime}>
                           <div>{payment.status === 'Verified' ? payment.verifiedDate : payment.submittedDate}</div>
+                          {payment.paymentDateTime && (
+                            <div className={styles.paymentDateTimeSubtext} style={{ fontSize: '0.75rem', color: '#ff9800', marginTop: '4px', fontWeight: 'bold' }}>
+                              🗓️ Proof: {new Date(payment.paymentDateTime).toLocaleString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          )}
                         </td>
                         <td>{payment.paymentMethod}</td>
                         <td className={styles.paymentActions}>
@@ -415,7 +427,7 @@ export default function AdminPayments() {
                               </button>
                               <button 
                                 className={styles.rejectBtn} 
-                                title="Reject Payment"
+                                title="Decline Payment"
                                 onClick={() => setActionModal({
                                   isOpen: true,
                                   type: 'Reject',
@@ -424,7 +436,7 @@ export default function AdminPayments() {
                                   imageUrl: proofKind === 'image' ? proofSrc : undefined
                                 })}
                               >
-                                ✕ Reject
+                                ✕ Decline
                               </button>
                             </>
                           )}

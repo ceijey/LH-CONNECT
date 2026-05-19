@@ -37,6 +37,7 @@ interface FormData {
   residentName: string;
   blockLot: string;
   paymentAmount: string;
+  paymentDateTime: string;
 }
 
 interface Submission {
@@ -53,6 +54,7 @@ interface Submission {
   residentName: string;
   blockLot: string;
   notes?: string;
+  paymentDateTime?: string;
 }
 
 interface UserProfile {
@@ -65,6 +67,105 @@ interface UserProfile {
 
 const ESTABLISHED_PAYMENT_AMOUNT = '400';
 
+const parseAndFormatDateTime = (ocrText: string): string | null => {
+  const cleanText = ocrText.replace(/\s+/g, ' ');
+
+  // Helper to format Date into YYYY-MM-DDTHH:mm expected by datetime-local
+  const formatToDateTimeLocal = (date: Date): string => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  // Month names mapping
+  const months: { [key: string]: number } = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+    may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7, sep: 8, september: 8,
+    oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11
+  };
+
+  // 1. GCash Style: "January 25, 2026, 04:34 PM" or "Jan 25, 2026 4:34 PM"
+  const gcashRegex = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})\b,?\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
+  let match = cleanText.match(gcashRegex);
+  if (match) {
+    const [_, monthStr, dayStr, yearStr, hourStr, minuteStr, ampm] = match;
+    const month = months[monthStr.toLowerCase()];
+    const day = parseInt(dayStr, 10);
+    const year = parseInt(yearStr, 10);
+    let hour = hourStr ? parseInt(hourStr, 10) : 12;
+    const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
+    
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && hour < 12) hour += 12;
+      if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
+    }
+    
+    const dateObj = new Date(year, month, day, hour, minute);
+    if (!isNaN(dateObj.getTime())) {
+      return formatToDateTimeLocal(dateObj);
+    }
+  }
+
+  // 2. Maya/Other Style: "25 Jan 2026, 4:34 PM" or "25 January 2026 04:34 PM"
+  const mayaRegex = /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
+  match = cleanText.match(mayaRegex);
+  if (match) {
+    const [_, dayStr, monthStr, yearStr, hourStr, minuteStr, ampm] = match;
+    const month = months[monthStr.toLowerCase()];
+    const day = parseInt(dayStr, 10);
+    const year = parseInt(yearStr, 10);
+    let hour = hourStr ? parseInt(hourStr, 10) : 12;
+    const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
+    
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && hour < 12) hour += 12;
+      if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
+    }
+    
+    const dateObj = new Date(year, month, day, hour, minute);
+    if (!isNaN(dateObj.getTime())) {
+      return formatToDateTimeLocal(dateObj);
+    }
+  }
+
+  // 3. Generic Timestamp format: YYYY-MM-DD HH:mm or MM/DD/YYYY HH:mm
+  const standardRegex = /\b(\d{4}|\d{1,2})[-/](\d{1,2})[-/](\d{4}|\d{1,2})(?:\s+,?\s*(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?\b/i;
+  match = cleanText.match(standardRegex);
+  if (match) {
+    const [_, part1, part2, part3, hourStr, minuteStr, ampm] = match;
+    let year, month, day;
+    if (part1.length === 4) {
+      year = parseInt(part1, 10);
+      month = parseInt(part2, 10) - 1;
+      day = parseInt(part3, 10);
+    } else {
+      year = parseInt(part3, 10);
+      const p1 = parseInt(part1, 10);
+      const p2 = parseInt(part2, 10);
+      if (p1 > 12) {
+        day = p1;
+        month = p2 - 1;
+      } else {
+        month = p1 - 1;
+        day = p2;
+      }
+    }
+    let hour = hourStr ? parseInt(hourStr, 10) : 12;
+    const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
+    
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && hour < 12) hour += 12;
+      if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
+    }
+
+    const dateObj = new Date(year, month, day, hour, minute);
+    if (!isNaN(dateObj.getTime())) {
+      return formatToDateTimeLocal(dateObj);
+    }
+  }
+
+  return null;
+};
+
 export default function SubmitPaymentPage() {
   const router = useRouter();
   useAuthPageshow('resident');
@@ -75,6 +176,7 @@ export default function SubmitPaymentPage() {
     residentName: '',
     blockLot: '',
     paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
+    paymentDateTime: '',
   });
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,6 +215,7 @@ export default function SubmitPaymentPage() {
                 ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
                 : '',
               paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
+              paymentDateTime: '',
             }));
           }
         } catch (error) {
@@ -156,6 +259,7 @@ export default function SubmitPaymentPage() {
               paymentAmount: Number(submission.paymentAmount ?? 0),
               status: submission.status === 'Verified' ? 'Verified' : 'Pending',
               submittedDate: submission.submittedDate || new Date().toLocaleString(),
+              paymentDateTime: submission.paymentDateTime,
             };
           }));
         }
@@ -190,14 +294,13 @@ export default function SubmitPaymentPage() {
 
       // Search for reference number patterns
       // GCash/Maya reference numbers are typically 12-13 digits
+      let foundRef = '';
       const refNumberRegex = /\b\d{4}\s?\d{3}\s?\d{6}\b|\b\d{12,13}\b/g;
       const matches = text.match(refNumberRegex);
 
       if (matches && matches.length > 0) {
         // Clean the found number (remove spaces)
-        const foundRef = matches[0].replace(/\s/g, '');
-        setFormData(prev => ({ ...prev, referenceNumber: foundRef }));
-        setToast({ message: `Automatically detected Reference Number: ${foundRef}`, type: 'success' });
+        foundRef = matches[0].replace(/\s/g, '');
       } else {
         // Try to find alphanumeric patterns if no digits-only found
         const alphanumericRef = /\b[A-Z0-9]{8,16}\b/g;
@@ -206,10 +309,38 @@ export default function SubmitPaymentPage() {
            // Basic heuristic: check if it contains at least one digit and one letter
            const likelyRef = alphaMatches.find((m: string) => /\d/.test(m) && /[A-Z]/.test(m));
            if (likelyRef) {
-             setFormData(prev => ({ ...prev, referenceNumber: likelyRef }));
-             setToast({ message: `Detected Alphanumeric Reference: ${likelyRef}`, type: 'success' });
+             foundRef = likelyRef;
            }
         }
+      }
+
+      const detectedDate = parseAndFormatDateTime(text);
+      let detectedDateNice = '';
+
+      setFormData(prev => {
+        const update = { ...prev };
+        if (foundRef) {
+          update.referenceNumber = foundRef;
+        }
+        if (detectedDate) {
+          update.paymentDateTime = detectedDate;
+          detectedDateNice = new Date(detectedDate).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        }
+        return update;
+      });
+
+      if (foundRef && detectedDate) {
+        setToast({ message: `Automatically detected Ref: ${foundRef} & Date/Time: ${detectedDateNice}`, type: 'success' });
+      } else if (foundRef) {
+        setToast({ message: `Automatically detected Reference Number: ${foundRef}`, type: 'success' });
+      } else if (detectedDate) {
+        setToast({ message: `Automatically detected Payment Date/Time: ${detectedDateNice}`, type: 'success' });
       }
     } catch (error) {
       console.error('OCR Error:', error);
@@ -288,6 +419,11 @@ export default function SubmitPaymentPage() {
       return;
     }
 
+    if (!formData.paymentDateTime) {
+      setToast({ message: 'Please enter the date and time of payment', type: 'error' });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -342,6 +478,7 @@ export default function SubmitPaymentPage() {
       payload.append('paymentMethod', paymentMethod === 'bank' ? `Bank Transfer (${selectedBank})` : paymentMethod);
       payload.append('referenceNumber', formData.referenceNumber.trim());
       payload.append('notes', formData.notes.trim());
+      payload.append('paymentDateTime', formData.paymentDateTime);
       
       if (fileBase64) {
         payload.append('fileBase64', fileBase64);
@@ -369,14 +506,30 @@ export default function SubmitPaymentPage() {
       const responseText = await response.text();
       let data: any = {};
       try {
-        data = JSON.parse(responseText);
+        if (responseText) {
+          const firstParse = JSON.parse(responseText);
+          if (typeof firstParse === 'string') {
+            data = JSON.parse(firstParse);
+          } else {
+            data = firstParse;
+          }
+        }
       } catch (e) {
-        console.error('Failed to parse response as JSON. Raw response:', responseText);
+        // Silently fall back to plain text
       }
 
       if (!response.ok) {
-        console.error('API Error Response:', data);
-        const errorMessage = data && data.error ? data.error : (typeof data === 'string' ? data : `Server error: ${response.status} ${response.statusText}`);
+        let errorMessage = 'Failed to submit payment proof';
+        if (data && data.error) {
+          errorMessage = data.error;
+        } else if (typeof data === 'string' && data.trim()) {
+          errorMessage = data;
+        } else if (responseText && responseText.trim() && responseText.length < 200) {
+          errorMessage = responseText;
+        } else {
+          errorMessage = `Server error: ${response.status} ${response.statusText || 'Bad Request'}`;
+        }
+        
         throw new Error(errorMessage);
       }
 
@@ -391,7 +544,8 @@ export default function SubmitPaymentPage() {
           status: submission.status ?? 'Pending',
           submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
           residentName: formData.residentName,
-          blockLot: formData.blockLot
+          blockLot: formData.blockLot,
+          paymentDateTime: formData.paymentDateTime,
         },
         ...current,
       ]);
@@ -408,11 +562,12 @@ export default function SubmitPaymentPage() {
           paymentAmount: Number(formData.paymentAmount),
           paymentMethod: paymentMethod,
           status: 'Pending',
-          submittedDate: new Date().toLocaleString()
+          submittedDate: new Date().toLocaleString(),
+          paymentDateTime: formData.paymentDateTime,
         }
       });
 
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentDateTime: '' });
       setFileName('');
       setPreview(null);
     } catch (error: any) {
@@ -478,9 +633,9 @@ export default function SubmitPaymentPage() {
           {/* Left Column - Form */}
           <section className={styles.formSection}>
             <div className={styles.formCard}>
-              <h2 className={styles.formTitle}>60-Second Proof-of-Payment</h2>
+              <h2 className={styles.formTitle}>Submit Payment</h2>
               <p className={styles.formDescription}>
-                Upload your GCash, Maya, Bank Transfer, or Cash payment screenshot for instant verification
+                Upload your GCash, Maya, or Bank Transfer payment screenshot for instant verification
               </p>
 
               <form onSubmit={handleSubmit} className={styles.form}>
@@ -543,13 +698,6 @@ export default function SubmitPaymentPage() {
                       <div className={styles.methodIcon}>🏦</div>
                       <div className={styles.methodName}>Bank</div>
                     </div>
-                    <div 
-                      className={`${styles.methodCard} ${paymentMethod === 'cash' ? styles.activeCard : ''}`}
-                      onClick={() => setPaymentMethod('cash')}
-                    >
-                      <div className={styles.methodIcon}>💵</div>
-                      <div className={styles.methodName}>Cash</div>
-                    </div>
                   </div>
                   
                   {['gcash', 'maya'].includes(paymentMethod) && (
@@ -598,6 +746,21 @@ export default function SubmitPaymentPage() {
                     value={formData.referenceNumber}
                     onChange={handleInputChange}
                     placeholder="Enter payment reference number"
+                    className={styles.input}
+                  />
+                </div>
+
+                {/* Date and Time of Payment */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Date and Time of Payment
+                    {isOCRProcessing && <span className={styles.ocrStatus}> (Detecting...)</span>}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="paymentDateTime"
+                    value={formData.paymentDateTime}
+                    onChange={handleInputChange}
                     className={styles.input}
                   />
                 </div>
@@ -678,7 +841,7 @@ export default function SubmitPaymentPage() {
                   <span className={styles.stepNumber}>1</span>
                   <div>
                     <strong>Send Payment</strong>
-                    <p>Transfer your monthly dues via GCash, Maya, Bank Transfer, or Cash to the HOA account</p>
+                    <p>Transfer your monthly dues via GCash, Maya, or Bank Transfer to the HOA account</p>
                   </div>
                 </li>
                 <li className={styles.instructionItem}>
@@ -709,9 +872,6 @@ export default function SubmitPaymentPage() {
                   </li>
                   <li>
                     <strong>Bank Transfer:</strong> BDO Account 12345-6789
-                  </li>
-                  <li>
-                    <strong>Cash:</strong> Pay directly at HOA office
                   </li>
                   <li>
                     <strong>HOA Name:</strong> Lincoln Heights HOA
@@ -786,6 +946,19 @@ export default function SubmitPaymentPage() {
                               <span className={styles.detailLabel}>Reference</span>
                               <span className={styles.detailValue}>{submission.referenceNumber || '—'}</span>
                             </div>
+                            {submission.paymentDateTime && (
+                              <div className={styles.detailItem}>
+                                <span className={styles.detailLabel}>Date/Time</span>
+                                <span className={styles.detailValue}>
+                                  {new Date(submission.paymentDateTime).toLocaleString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           <div className={styles.statusMessage}>

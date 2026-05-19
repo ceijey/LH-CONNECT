@@ -5,6 +5,19 @@ import { apiCall } from '@/lib/api-client';
 import Skeleton, { SkeletonText, SkeletonAvatar } from './Skeleton';
 import styles from './ResidentDetailModal.module.css';
 
+function formatResidentId(id: string): string {
+  if (!id) return '';
+  if (id.startsWith('R-')) return id;
+  
+  const numbers = id.replace(/[^0-9]/g, '');
+  const letters = id.replace(/[^a-zA-Z]/g, '');
+  
+  const numPart = (numbers.substring(0, 4) || '0000').padEnd(4, '0');
+  const letterPart = (letters.substring(0, 2) || 'XX').toUpperCase().padEnd(2, 'X');
+  
+  return `R-${numPart}-${letterPart}`;
+}
+
 interface Resident {
   id: string;
   fullName: string;
@@ -18,6 +31,7 @@ interface Resident {
   balance: number;
   createdAt?: string;
   updatedAt?: string;
+  profileImage?: string;
 }
 
 interface ResidentDetailModalProps {
@@ -148,7 +162,7 @@ export default function ResidentDetailModal({
                     <div
                       className={`${styles.badge} ${styles[(resident.approvalStatus || 'pending').toLowerCase()]}`}
                     >
-                      {resident.approvalStatus || 'Pending'}
+                      {resident.approvalStatus === 'Rejected' ? 'Declined' : (resident.approvalStatus || 'Pending')}
                     </div>
                   </div>
                 </div>
@@ -156,11 +170,20 @@ export default function ResidentDetailModal({
                 {/* Profile Section */}
                 <div className={styles.profileSection}>
                   <div className={styles.avatarContainer}>
-                    <div className={styles.avatar}>
-                      {(resident.fullName || 'U').charAt(0).toUpperCase()}
-                    </div>
+                    {resident.profileImage ? (
+                      <img 
+                        src={resident.profileImage} 
+                        alt={resident.fullName} 
+                        className={styles.avatarImage} 
+                        style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #4caf50', margin: '0 auto 0.75rem', display: 'block', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                      />
+                    ) : (
+                      <div className={styles.avatar}>
+                        {(resident.fullName || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <h3 className={styles.residentName}>{resident.fullName}</h3>
-                    <span className={styles.residentId}>ID: {resident.id}</span>
+                    <span className={styles.residentId}>ID: {formatResidentId(resident.id)}</span>
                   </div>
 
                   <div className={styles.datesInfo}>

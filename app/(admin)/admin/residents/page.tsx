@@ -8,7 +8,21 @@ import ConfirmationModal from '@/app/components/ConfirmationModal';
 import ResidentDetailModal from '@/app/components/ResidentDetailModal';
 import ResidentEditModal from '@/app/components/ResidentEditModal';
 import PaymentHistoryModal from '@/app/components/PaymentHistoryModal';
+import BulkImportModal from '@/app/components/BulkImportModal';
 import styles from './admin-page.module.css';
+
+function formatResidentId(id: string): string {
+  if (!id) return '';
+  if (id.startsWith('R-')) return id;
+  
+  const numbers = id.replace(/[^0-9]/g, '');
+  const letters = id.replace(/[^a-zA-Z]/g, '');
+  
+  const numPart = (numbers.substring(0, 4) || '0000').padEnd(4, '0');
+  const letterPart = (letters.substring(0, 2) || 'XX').toUpperCase().padEnd(2, 'X');
+  
+  return `R-${numPart}-${letterPart}`;
+}
 
 interface Resident {
   id: string;
@@ -40,6 +54,7 @@ export default function AdminResidents() {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const totalResidents = allResidents.length;
   const activeCount = allResidents.filter((resident) => resident.status === 'Active').length;
@@ -351,9 +366,18 @@ export default function AdminResidents() {
                 onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
-            <button className={styles.addBtn} onClick={() => router.push('/admin/residents/new')}>
-              <span>+</span> Add Resident
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                className={styles.addBtn} 
+                style={{ background: 'transparent', border: '1.5px solid #1B2A4A', color: '#1B2A4A' }}
+                onClick={() => setImportModalOpen(true)}
+              >
+                📥 Import CSV
+              </button>
+              <button className={styles.addBtn} onClick={() => router.push('/admin/residents/new')}>
+                <span>+</span> Add Resident
+              </button>
+            </div>
           </div>
           
           <div className={styles.tableWrapper}>
@@ -375,7 +399,7 @@ export default function AdminResidents() {
                   <tr key={resident.id}>
                     <td>
                       <span className={styles.idBadge} title={resident.id}>
-                        {resident.id}
+                        {formatResidentId(resident.id)}
                       </span>
                     </td>
                     <td className={styles.nameTd}>{resident.name}</td>
@@ -392,7 +416,7 @@ export default function AdminResidents() {
                     </td>
                     <td>
                       <span className={`${styles.badge} ${styles[resident.approvalStatus.toLowerCase()]}`}>
-                        {resident.approvalStatus}
+                        {resident.approvalStatus === 'Rejected' ? 'Declined' : resident.approvalStatus}
                       </span>
                     </td>
                     <td className={`${styles.balanceTd} ${resident.balance > 0 ? styles.debit : ''}`}>
@@ -489,6 +513,12 @@ export default function AdminResidents() {
           setSelectedResidentId(null);
           setSelectedResident(null);
         }}
+      />
+
+      <BulkImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={loadResidents}
       />
     </>
   );
