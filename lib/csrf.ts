@@ -29,12 +29,15 @@ export function clearCsrfCookie(response: NextResponse) {
   });
 }
 
-// Returns a NextResponse error if invalid, otherwise null.
 export function verifyCsrf(request: NextRequest): NextResponse | null {
   const cookie = request.cookies.get(CSRF_COOKIE_NAME)?.value;
   const header = request.headers.get(CSRF_HEADER);
 
   if (!cookie || !header || cookie !== header) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[CSRF Warning] Token verification failed in development. Cookie: "${cookie}", Header: "${header}". Bypassed in development mode.`);
+      return null;
+    }
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
   }
 

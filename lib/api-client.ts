@@ -52,7 +52,21 @@ export async function apiCall(
 
   const method = (options.method ?? 'GET').toUpperCase();
   if (method !== 'GET' && method !== 'HEAD') {
-    const csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+    let csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+    if (!csrfToken) {
+      console.log(`[API Client] CSRF cookie '${CSRF_COOKIE_NAME}' is missing for ${method} ${endpoint}. Fetching fresh token...`);
+      try {
+        const csrfResponse = await fetch('/api/auth/session', { credentials: 'include' });
+        if (csrfResponse.ok) {
+          const payload = await csrfResponse.json();
+          csrfToken = payload.csrfToken;
+          console.log('[API Client] Successfully initialized fresh CSRF token.');
+        }
+      } catch (err) {
+        console.error('[API Client] Failed to auto-recover CSRF token:', err);
+      }
+    }
+
     if (csrfToken) {
       headers.set(CSRF_HEADER, csrfToken);
     }
