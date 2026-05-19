@@ -47,6 +47,7 @@ export default function ViewStatementsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statements, setStatements] = useState<Statement[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
@@ -63,25 +64,25 @@ export default function ViewStatementsPage() {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStatements = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const [statementsData, profileData] = await Promise.all([
+        const [data, profilePayload] = await Promise.all([
           apiCall('/api/statements'),
           apiCall('/api/auth/profile')
         ]);
-        setStatements(statementsData.statements ?? []);
-        setProfile(profileData.user || {});
+        setStatements(data.statements ?? []);
+        setProfile(profilePayload.user || {});
       } catch (err: any) {
-        console.error('Error fetching data:', err);
-        setError(err.message || 'Failed to load data');
+        console.error('Error fetching statements:', err);
+        setError(err.message || 'Failed to load statements');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
+    fetchStatements();
   }, []);
 
   const auditEvents = useMemo(() => {
@@ -125,11 +126,13 @@ export default function ViewStatementsPage() {
 
   const filteredEvents = useMemo(() => {
     return auditEvents.filter(event => {
+      // 'audit' (Full Audit Log) shows EVERYTHING from the beginning
       if (reportType === 'audit') return true;
 
       const eventDate = new Date(event.date);
       const eventYear = eventDate.getFullYear();
       
+      // Type-specific filters
       if (reportType === 'daily') {
         const today = new Date();
         return eventDate.getDate() === today.getDate() &&
@@ -137,11 +140,48 @@ export default function ViewStatementsPage() {
                eventDate.getFullYear() === today.getFullYear();
       }
 
+      // For monthly/annual, we still respect the year filter
       return eventYear === filterYear;
     });
   }, [auditEvents, filterYear, reportType]);
 
-  const handlePrintReport = () => {
+  const handleDownloadReport = async (format: 'pdf' | 'csv' = 'csv') => {
+    try {
+      setIsDownloading(true);
+      const query = new URLSearchParams({ 
+        format, 
+        reportType,
+        year: filterYear.toString()
+      });
+      
+      const response = await fetch(`/api/statements/download?${query.toString()}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to download report');
+      }
+
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = `${reportType}_report_${filterYear}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast('Report downloaded successfully', 'success');
+    } catch (err: any) {
+      console.error('Download error:', err);
+      showToast(err.message || 'Failed to download report', 'error');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handlePrintPDF = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Please allow popups to print.');
@@ -164,13 +204,15 @@ export default function ViewStatementsPage() {
 
     const rowsHtml = filteredEvents.map(event => `
       <tr>
-        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: ${event.type === 'BILL' ? '#e11d48' : '#059669'};">${event.type}</td>
-        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; font-weight: 600;">${event.description}</td>
-        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">${new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #475569;">${event.status ?? 'Pending'}</td>
-        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 800; text-align: right; color: ${event.type === 'BILL' ? '#e11d48' : '#059669'};">
-          ${event.type === 'BILL' ? '-' : '+'}₱${event.amount.toLocaleString()}
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; font-weight: 500;">
+          ${new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
         </td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; font-weight: 600;">${event.description}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: ${event.type === 'BILL' ? '#e11d48' : '#059669'};">${event.type}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 800; color: ${event.type === 'BILL' ? '#dc2626' : '#15803d'}; text-align: right;">
+          ${event.type === 'BILL' ? '+' : '-'} ₱${event.amount.toLocaleString()}
+        </td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #475569;">${event.status}</td>
       </tr>
     `).join('');
 
@@ -182,9 +224,11 @@ export default function ViewStatementsPage() {
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
             body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #1e293b; background: white; line-height: 1.5; }
             .header { text-align: center; border-bottom: 3px double #1B2A4A; padding-bottom: 24px; margin-bottom: 30px; }
-            .logo { font-size: 28px; font-weight: 800; color: #1B2A4A; text-transform: uppercase; letter-spacing: -0.03em; margin-bottom: 6px; }
-            .subtitle { font-size: 13px; color: #64748b; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
-            .report-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 20px 0 12px 0; text-transform: uppercase; letter-spacing: -0.01em; }
+            .logo-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
+            .logo-img { width: 44px; height: 44px; object-fit: contain; }
+            .logo-text { font-size: 28px; font-weight: 800; color: #1B2A4A; text-transform: uppercase; letter-spacing: -0.03em; }
+            .subtitle { font-size: 13px; color: #64748b; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; }
+            .report-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 25px 0 12px 0; text-transform: uppercase; letter-spacing: -0.01em; text-align: center; }
             .profile-info { font-size: 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; padding: 18px; border-radius: 12px; margin-bottom: 30px; }
             .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; }
             .info-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; }
@@ -202,11 +246,14 @@ export default function ViewStatementsPage() {
         </head>
         <body>
           <div class="header">
-            <div class="logo">Lincoln Heights HOA</div>
-            <div class="subtitle">Community Management & Resident Connection Portal</div>
+            <div class="logo-section">
+              <img src="/lhhoa-logo.png" alt="LH Logo" class="logo-img" />
+              <span class="logo-text">LH-Connect</span>
+            </div>
+            <div class="subtitle">Sta Rosa Delosguzon Suban • TIN: 420-968-199-000</div>
           </div>
           
-          <div class="report-title">Billing Audit Log</div>
+          <div class="report-title">Billing Audit Log — ${reportType.toUpperCase()} Statement</div>
           
           <div class="profile-info">
             <div class="info-grid">
@@ -239,11 +286,11 @@ export default function ViewStatementsPage() {
           <table>
             <thead>
               <tr>
+                <th>Date</th>
+                <th>Transaction Description</th>
                 <th>Type</th>
-                <th>Description</th>
-                <th>Transaction Date</th>
-                <th>Status</th>
                 <th style="text-align: right;">Amount</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -327,19 +374,13 @@ export default function ViewStatementsPage() {
             </div>
             <button 
               className={styles.downloadReportBtn}
-              onClick={handlePrintReport}
+              onClick={handlePrintPDF}
               disabled={filteredEvents.length === 0}
             >
-              🖨️ Export PDF Ledger
+              ⬇ Export PDF
             </button>
           </div>
         </section>
-
-        {error && (
-          <div className={styles.errorBanner}>
-            ⚠️ {error}
-          </div>
-        )}
 
         <section className={styles.tableSection}>
           <div className={styles.tableCard}>
