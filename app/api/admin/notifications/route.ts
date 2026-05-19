@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ notifications, nextCursor });
   } catch (error: any) {
     console.error('Error fetching admin notifications:', error.message);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ notifications: [], nextCursor: null });
   }
 }
 

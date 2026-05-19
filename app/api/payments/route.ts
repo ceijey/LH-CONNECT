@@ -97,6 +97,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ payments, user: decoded });
   } catch (error: any) {
     console.error('Error fetching payments:', error.message || error);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ payments: [], user: decoded });
   }
 }

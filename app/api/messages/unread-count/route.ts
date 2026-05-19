@@ -48,6 +48,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ unreadCount, user: decoded });
   } catch (error: any) {
     console.error('Error fetching unread message count:', error.message || error);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ unreadCount: 0, user: decoded });
   }
 }

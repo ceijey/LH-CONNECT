@@ -191,6 +191,10 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error generating report:', error.message);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({
+      financialData: [],
+      summary: { totalDues: 0, totalCollected: 0, outstandingBalance: 0, collectionRate: '0' },
+      analytics: { totalCount: 0, verifiedCount: 0, pendingCount: 0, rejectedCount: 0, paidCount: 0, delinquentCount: 0, methods: [] }
+    });
   }
 }

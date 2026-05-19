@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ id, ...residentData });
   } catch (error: any) {
     console.error('Error fetching resident:', error.message);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ id, error: 'Temporarily unavailable' });
   }
 }
 

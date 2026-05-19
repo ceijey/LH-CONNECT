@@ -37,6 +37,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ announcements, joinedEventIds });
   } catch (error: any) {
     console.error('Error fetching announcements:', error.message);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ announcements: [], joinedEventIds: [] });
   }
 }

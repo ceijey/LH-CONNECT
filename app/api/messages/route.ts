@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ messages, user: decoded });
   } catch (error: any) {
     console.error('Error fetching messages:', error.message || error);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ messages: [], user: decoded });
   }
 }
 

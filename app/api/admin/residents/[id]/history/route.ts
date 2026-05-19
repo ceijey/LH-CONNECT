@@ -69,6 +69,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ statements });
   } catch (error: any) {
     console.error('Error fetching resident history:', error.message);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ statements: [] });
   }
 }

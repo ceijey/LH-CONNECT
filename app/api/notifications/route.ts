@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ notifications });
   } catch (error: any) {
     console.error('Error fetching notifications:', error.message);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ notifications: [] });
   }
 }
 

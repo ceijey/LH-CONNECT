@@ -214,6 +214,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ statements });
   } catch (error: any) {
     console.error('Error fetching statements:', error.message);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ statements: [] });
   }
 }

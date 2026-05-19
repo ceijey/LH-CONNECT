@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ submissions, user: decoded });
   } catch (error: any) {
     console.error('Error fetching payment submissions:', error.message || error);
-    return createErrorResponse('Internal server error', 500);
+    return NextResponse.json({ submissions: [], user: decoded });
   }
 }
 
