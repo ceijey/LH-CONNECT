@@ -430,12 +430,6 @@ export default function DashboardPage() {
             <h3 className={styles.actionTitle}>View Statements</h3>
             <p className={styles.actionDesc}>Download billing history</p>
           </Link>
-
-          <Link href="/dashboard/announcements" className={styles.actionCard}>
-            <div className={styles.actionIcon}>📢</div>
-            <h3 className={styles.actionTitle}>Announcements</h3>
-            <p className={styles.actionDesc}>Community updates & news</p>
-          </Link>
         </div>
 
         {/* Recent Activity Section */}
