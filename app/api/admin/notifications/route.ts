@@ -21,11 +21,28 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('Forbidden', 403);
     }
 
-    const notificationsSnapshot = await adminDb
+    const url = new URL(request.url);
+    const params = url.searchParams;
+    const limitParam = Math.min(Number(params.get('limit') || '50'), 200);
+    const before = params.get('before');
+
+    let queryRef: FirebaseFirestore.Query = adminDb
       .collection('admin_notifications')
       .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
+      .limit(limitParam);
+
+    // If a `before` cursor (ISO date) is provided, fetch older notifications
+    if (before) {
+      const beforeDate = new Date(before);
+      // For simpler pagination with descending order, use a where clause to get items older than `before`
+      queryRef = adminDb
+        .collection('admin_notifications')
+        .where('createdAt', '<', beforeDate)
+        .orderBy('createdAt', 'desc')
+        .limit(limitParam);
+    }
+
+    const notificationsSnapshot = await queryRef.get();
 
     const notifications = notificationsSnapshot.docs.map((doc: any) => {
       const data = doc.data();
@@ -37,7 +54,12 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ notifications });
+    // Compute nextCursor: the createdAt of the last item (if there may be more)
+    const nextCursor = notifications.length === limitParam
+      ? notifications[notifications.length - 1].createdAt
+      : null;
+
+    return NextResponse.json({ notifications, nextCursor });
   } catch (error: any) {
     console.error('Error fetching admin notifications:', error.message);
     return createErrorResponse('Internal server error', 500);

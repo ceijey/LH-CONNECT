@@ -43,7 +43,7 @@ const normalizeConversation = (message: MessageThread): ChatConversationItem[] =
       sender: senderRole === 'admin' ? String(reply.senderName ?? 'HOA Admin') : String(reply.senderName ?? 'You'),
       content: String(reply.message ?? ''),
       timestamp: formatCombinedTimestamp(reply.date, reply.time),
-      align: senderRole === 'admin' ? 'right' : 'left',
+      align: senderRole === 'resident' ? 'right' : 'left',
     };
   });
 };
