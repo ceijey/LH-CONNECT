@@ -1,0 +1,323 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8faff 0%, #ffffff 50%, #f8faff 100%);
+  color: #1B2A4A;
+}
+
+/* Header Styles */
+.header {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid rgba(27, 42, 74, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerContent {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerLefty {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.backBtn {
+  color: #1B2A4A;
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.backBtn:hover {
+  background: rgba(27, 42, 74, 0.05);
+}
+
+.headerBrand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.headerTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.headerSubtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.logoutBtn {
+  background: transparent;
+  border: 1px solid rgba(27, 42, 74, 0.2);
+  color: #1B2A4A;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutBtn:hover {
+  background: #f1f5f9;
+}
+
+/* Main Content */
+.main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.heroSection {
+  margin-bottom: 3rem;
+}
+
+.pageTitle {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  background: linear-gradient(90deg, #1B2A4A, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pageSubtitle {
+  color: #475569;
+  font-size: 1.05rem;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.errorBanner {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+/* Timeline CSS */
+.timelineSection {
+  width: 100%;
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 2rem;
+  position: relative;
+}
+
+.timelineItem:last-child .markerLine {
+  display: none;
+}
+
+.timelineMarker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.markerDot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 4px solid white;
+  z-index: 2;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.billDot {
+  background: #f43f5e;
+  box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.15);
+}
+
+.payDot {
+  background: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.markerLine {
+  width: 2px;
+  background: #e2e8f0;
+  flex: 1;
+  margin-top: 4px;
+}
+
+.timelineCard {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f1f5f9;
+  padding: 1.5rem;
+  flex: 1;
+  margin-bottom: 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.timelineCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.06);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.cardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.activityHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.typeBadge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+.billBadge {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.payBadge {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.statusBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  text-transform: capitalize;
+}
+
+/* Status Colors */
+.statusBadge.paid,
+.statusBadge.verified {
+  background: #e6fffa;
+  color: #00875a;
+}
+
+.statusBadge.pending {
+  background: #fff8e6;
+  color: #b76e00;
+}
+
+.statusBadge.rejected {
+  background: #ffebe6;
+  color: #de350b;
+}
+
+.activityTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.activityDate {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.cardAmount {
+  display: flex;
+  align-items: center;
+}
+
+.amountText {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.billAmount {
+  color: #e11d48;
+}
+
+.payAmount {
+  color: #059669;
+}
+
+/* Empty State */
+.emptyState {
+  background: white;
+  border: 2px dashed #cbd5e1;
+  border-radius: 20px;
+  padding: 5rem 2rem;
+  text-align: center;
+  color: #64748b;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.emptyTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.5rem;
+}
+
+.emptyText {
+  font-size: 0.9rem;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .timelineItem {
+    gap: 1rem;
+  }
+  
+  .timelineCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .cardAmount {
+    width: 100%;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.75rem;
+  }
+}

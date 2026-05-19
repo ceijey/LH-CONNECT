@@ -305,6 +305,9 @@ export default function DashboardPage() {
             <Link href="/dashboard/announcements" className={styles.accountBtn}>
               📢 Announcements
             </Link>
+            <Link href="/dashboard/activity" className={styles.accountBtn}>
+              📋 Activity
+            </Link>
             <Link href="/dashboard/account" className={styles.accountBtn}>
               👤 My Account
             </Link>
@@ -453,48 +456,6 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Recent Activity Section */}
-        <section className={styles.paymentSection}>
-          <h2 className={styles.sectionTitle}>Recent Account Activity</h2>
-          <div className={styles.paymentList}>
-            {statementsLoading ? (
-              <div className={styles.loading}>Loading activity...</div>
-            ) : recentActivity.length === 0 ? (
-              <div className={styles.empty}>No recent activity found.</div>
-            ) : (
-              recentActivity.map((event) => (
-                <div key={event.id} className={styles.paymentItem}>
-                  <div className={styles.paymentInfo}>
-                    <div className={styles.paymentMonth}>
-                      <span className={`${styles.typeBadge} ${styles[event.type.toLowerCase()]}`}>
-                        {event.type}
-                      </span>
-                      {event.description}
-                    </div>
-                    <div className={styles.paymentDate}>
-                      {new Date(event.date).toLocaleDateString(undefined, { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
-                    </div>
-                  </div>
-                  <div className={styles.paymentAmount}>
-                    <span className={`${styles.amount} ${event.type === 'BILL' ? styles.billAmount : styles.payAmount}`}>
-                      {event.type === 'BILL' ? '-' : '+'}₱{event.amount.toLocaleString()}
-                    </span>
-                    <span className={`${styles.status} ${styles[(event.status ?? 'pending').toLowerCase().replace(/\s/g, '')]}`}>
-                      {event.status ?? 'Pending'}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <Link href="/dashboard/transactions">
-            <button className={styles.viewAllBtn}>View All Transactions</button>
-          </Link>
-        </section>
       </main>
     </div>
   );
