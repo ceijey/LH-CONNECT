@@ -25,6 +25,137 @@ export default function AdminAnnouncementsPage() {
   const [content, setContent] = useState('');
   const [severity, setSeverity] = useState<'info' | 'warning' | 'success' | 'event'>('info');
 
+  // Attendance & Printable Report States
+  const [selectedEvent, setSelectedEvent] = useState<Announcement | null>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const handleViewAttendance = async (event: Announcement) => {
+    setSelectedEvent(event);
+    setShowModal(true);
+    setLoadingAttendees(true);
+    try {
+      const data = await apiCall(`/api/announcements/${event.id}/join`);
+      setAttendees(data.attendees || []);
+    } catch (err: any) {
+      console.error('Failed to load attendees:', err);
+    } finally {
+      setLoadingAttendees(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (!selectedEvent) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print.');
+      return;
+    }
+
+    const eventTitle = selectedEvent.title;
+    const dateStr = new Date().toLocaleDateString(undefined, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const rowsHtml = attendees.map(att => `
+      <tr>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #1e293b;">${att.userName}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">${att.email || 'N/A'}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">${att.phase || 'Lincoln Heights'}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">Block ${att.block || 'N/A'}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">Lot ${att.lot || 'N/A'}</td>
+        <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">${new Date(att.joinedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Meeting Attendance - ${eventTitle}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #1e293b; background: white; line-height: 1.5; }
+            .header { text-align: center; border-bottom: 3px double #1B2A4A; padding-bottom: 24px; margin-bottom: 30px; }
+            .logo { font-size: 28px; font-weight: 800; color: #1B2A4A; text-transform: uppercase; letter-spacing: -0.03em; margin-bottom: 6px; }
+            .subtitle { font-size: 13px; color: #64748b; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
+            .report-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 20px 0 12px 0; text-transform: uppercase; letter-spacing: -0.01em; }
+            .meeting-info { font-size: 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; padding: 18px; border-radius: 12px; margin-bottom: 30px; }
+            .info-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; }
+            .info-label { font-weight: 700; color: #475569; }
+            .info-value { color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+            th { text-align: left; padding: 14px 10px; background: #1B2A4A; color: white; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border: none; }
+            td { font-size: 13px; }
+            tr:nth-child(even) td { background: #f8fafc; }
+            .footer { margin-top: 60px; font-size: 11px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+            @media print {
+              body { padding: 0; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">Lincoln Heights HOA</div>
+            <div class="subtitle">Community Management & Resident Connection Portal</div>
+          </div>
+          
+          <div class="report-title">Meeting Attendance Report</div>
+          
+          <div class="meeting-info">
+            <div class="info-grid">
+              <div class="info-label">Meeting/Event:</div>
+              <div class="info-value" style="font-weight: 700;">${eventTitle}</div>
+              
+              <div class="info-label">Date Printed:</div>
+              <div class="info-value">${dateStr}</div>
+              
+              <div class="info-label">Status:</div>
+              <div class="info-value" style="color: #10b981; font-weight: 700;">Official RSVP Sheet</div>
+              
+              <div class="info-label">Total Attendance:</div>
+              <div class="info-value" style="font-weight: 700; font-size: 16px;">${attendees.length} Residents Registered</div>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Resident Name</th>
+                <th>Email</th>
+                <th>Phase</th>
+                <th>Block</th>
+                <th>Lot</th>
+                <th>Registration Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          
+          <div class="footer">
+            Lincoln Heights Homeowners Association © 2026. All rights reserved.
+          </div>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
@@ -163,6 +294,18 @@ export default function AdminAnnouncementsPage() {
                   </span>
                 </div>
                 <p className={styles.announcementContent}>{ann.content}</p>
+                
+                {ann.severity === 'event' && (
+                  <div className={styles.adminActionRow}>
+                    <button 
+                      className={styles.viewAttendanceBtn}
+                      onClick={() => handleViewAttendance(ann)}
+                    >
+                      👥 View Attendance & RSVPs
+                    </button>
+                  </div>
+                )}
+
                 <div className={styles.announcementFooter}>
                   <span className={styles.author}>👤 Posted by: {ann.createdBy}</span>
                   <span>
@@ -180,6 +323,76 @@ export default function AdminAnnouncementsPage() {
           </div>
         )}
       </div>
+
+      {/* Attendance Modal Overlay */}
+      {showModal && selectedEvent && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h3 className={styles.modalTitle}>📅 Event Attendance</h3>
+                <p className={styles.modalSubtitle}>{selectedEvent.title}</p>
+              </div>
+              <button className={styles.closeBtn} onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            
+            <div className={styles.modalActions}>
+              <button 
+                className={styles.printBtn} 
+                onClick={handlePrint}
+                disabled={attendees.length === 0}
+              >
+                🖨️ Print Attendance Sheet
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              {loadingAttendees ? (
+                <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>Loading attendance list...</div>
+              ) : attendees.length === 0 ? (
+                <div className={styles.emptyAttendees}>
+                  <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>👥</div>
+                  <h4>No Attendees Registered</h4>
+                  <p>No residents have registered to attend this event yet.</p>
+                </div>
+              ) : (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Resident Name</th>
+                        <th>Email</th>
+                        <th>Phase</th>
+                        <th>Block</th>
+                        <th>Lot</th>
+                        <th>RSVP Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attendees.map((att) => (
+                        <tr key={att.id}>
+                          <td style={{ fontWeight: '700', color: '#0f172a' }}>{att.userName}</td>
+                          <td>{att.email}</td>
+                          <td>{att.phase || 'N/A'}</td>
+                          <td>{att.block ? `Block ${att.block}` : 'N/A'}</td>
+                          <td>{att.lot ? `Lot ${att.lot}` : 'N/A'}</td>
+                          <td>
+                            {new Date(att.joinedAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

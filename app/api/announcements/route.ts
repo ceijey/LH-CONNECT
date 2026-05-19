@@ -25,7 +25,16 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ announcements });
+    let joinedEventIds: string[] = [];
+    if (tokenVerification.decoded) {
+      const attendanceSnapshot = await adminDb
+        .collection('event_attendance')
+        .where('userId', '==', tokenVerification.decoded.uid)
+        .get();
+      joinedEventIds = attendanceSnapshot.docs.map((doc: any) => doc.data().announcementId);
+    }
+
+    return NextResponse.json({ announcements, joinedEventIds });
   } catch (error: any) {
     console.error('Error fetching announcements:', error.message);
     return createErrorResponse('Internal server error', 500);

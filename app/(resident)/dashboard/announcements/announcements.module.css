@@ -336,3 +336,49 @@
   margin: 0 auto;
   line-height: 1.6;
 }
+
+.attendanceWrapper {
+  margin-top: 0.75rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.attendanceBtn {
+  width: 100%;
+  max-width: 280px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.attendanceBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.25);
+}
+
+.attendanceBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.attendanceBtn.attending {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.attendanceBtn.attending:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+}

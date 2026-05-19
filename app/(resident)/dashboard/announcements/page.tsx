@@ -24,24 +24,43 @@ export default function ResidentAnnouncementsPage() {
   useAuthPageshow('resident');
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [joinedEventIds, setJoinedEventIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const fetchAnnouncements = async () => {
+    try {
+      setLoading(true);
+      const data = await apiCall('/api/announcements');
+      setAnnouncements(data.announcements || []);
+      setJoinedEventIds(data.joinedEventIds || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load announcements');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        setLoading(true);
-        const data = await apiCall('/api/announcements');
-        setAnnouncements(data.announcements || []);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load announcements');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAnnouncements();
   }, []);
+
+  const toggleAttendance = async (announcementId: string, isJoining: boolean) => {
+    try {
+      setTogglingId(announcementId);
+      await apiCall(`/api/announcements/${announcementId}/join`, {
+        method: isJoining ? 'POST' : 'DELETE',
+      });
+      setJoinedEventIds(prev => 
+        isJoining ? [...prev, announcementId] : prev.filter(id => id !== announcementId)
+      );
+    } catch (err: any) {
+      alert(err.message || 'Failed to update meeting attendance.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const getSeverityLabel = (sev: string) => {
     switch (sev) {
@@ -112,6 +131,23 @@ export default function ResidentAnnouncementsPage() {
                   </span>
                 </div>
                 <p className={styles.featuredContent}>{announcements[0].content}</p>
+                {announcements[0].severity === 'event' && (
+                  <div className={styles.attendanceWrapper}>
+                    <button
+                      className={`${styles.attendanceBtn} ${joinedEventIds.includes(announcements[0].id) ? styles.attending : ''}`}
+                      disabled={togglingId === announcements[0].id}
+                      onClick={() => toggleAttendance(announcements[0].id, !joinedEventIds.includes(announcements[0].id))}
+                    >
+                      {togglingId === announcements[0].id ? (
+                        'Updating RSVP...'
+                      ) : joinedEventIds.includes(announcements[0].id) ? (
+                        'Attending ✓ (Click to cancel)'
+                      ) : (
+                        'Join Meeting / Attend Event ➔'
+                      )}
+                    </button>
+                  </div>
+                )}
                 <div className={styles.featuredFooter}>
                   <span className={styles.author}>👤 HOA Admin ({announcements[0].createdBy})</span>
                   <span>
@@ -140,6 +176,23 @@ export default function ResidentAnnouncementsPage() {
                           </div>
                           <p className={styles.announcementContent}>{ann.content}</p>
                         </div>
+                        {ann.severity === 'event' && (
+                          <div className={styles.attendanceWrapper} style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+                            <button
+                              className={`${styles.attendanceBtn} ${joinedEventIds.includes(ann.id) ? styles.attending : ''}`}
+                              disabled={togglingId === ann.id}
+                              onClick={() => toggleAttendance(ann.id, !joinedEventIds.includes(ann.id))}
+                            >
+                              {togglingId === ann.id ? (
+                                'Updating RSVP...'
+                              ) : joinedEventIds.includes(ann.id) ? (
+                                'Attending ✓'
+                              ) : (
+                                'Join Event ➔'
+                              )}
+                            </button>
+                          </div>
+                        )}
                         <div className={styles.announcementFooter}>
                           <span className={styles.author}>👤 HOA Admin ({ann.createdBy})</span>
                           <span>
