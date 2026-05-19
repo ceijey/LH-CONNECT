@@ -30,9 +30,14 @@ export default function ManualPaymentPage() {
   const [registeredName, setRegisteredName] = useState('');
   const [tin, setTin] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
-  const [lineItems, setLineItems] = useState(
-    Array.from({ length: 6 }, () => ({ natureOfService: '', quantity: '', unitPrice: '' }))
-  );
+  const [lineItems, setLineItems] = useState([
+    { natureOfService: 'Monthly Dues', quantity: '1', unitPrice: '400' },
+    { natureOfService: '', quantity: '', unitPrice: '' },
+    { natureOfService: '', quantity: '', unitPrice: '' },
+    { natureOfService: '', quantity: '', unitPrice: '' },
+    { natureOfService: '', quantity: '', unitPrice: '' },
+    { natureOfService: '', quantity: '', unitPrice: '' }
+  ]);
   const [discountPwd, setDiscountPwd] = useState('0');
   const [withholdingTax, setWithholdingTax] = useState('0');
   const [month, setMonth] = useState('');
@@ -329,6 +334,7 @@ export default function ManualPaymentPage() {
                                 className={styles.tableInput}
                                 value={item.natureOfService}
                                 onChange={(e) => handleLineItemChange(rowIndex, 'natureOfService', e.target.value)}
+                                disabled={rowIndex === 0}
                               />
                             </td>
                             <td>
@@ -338,6 +344,7 @@ export default function ManualPaymentPage() {
                                 className={styles.tableInput}
                                 value={item.quantity}
                                 onChange={(e) => handleLineItemChange(rowIndex, 'quantity', e.target.value)}
+                                disabled={rowIndex === 0}
                               />
                             </td>
                             <td>
@@ -347,6 +354,7 @@ export default function ManualPaymentPage() {
                                 className={styles.tableInput}
                                 value={item.unitPrice}
                                 onChange={(e) => handleLineItemChange(rowIndex, 'unitPrice', e.target.value)}
+                                disabled={rowIndex === 0}
                               />
                             </td>
                             <td>

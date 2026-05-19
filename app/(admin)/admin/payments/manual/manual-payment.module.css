@@ -422,6 +422,13 @@
   font-size: 0.95rem;
 }
 
+.tableInput:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+  border-color: #cbd5e1;
+}
+
 .tableInput:focus {
   outline: none;
   border-color: #3b82f6;
