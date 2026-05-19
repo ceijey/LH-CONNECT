@@ -148,7 +148,312 @@ export default function ManualPaymentPage() {
   const formattedPrintDate = dateSoldTo ? new Date(dateSoldTo).toLocaleDateString('en-GB') : '';
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print invoices.');
+      return;
+    }
+
+    const invoiceTitle = cashSaleChecked ? 'CASH SALE INVOICE' : chargeSaleChecked ? 'CHARGE SALE INVOICE' : 'SERVICE INVOICE';
+    const invoiceNum = invoiceNumber || 'N/A';
+    const invoiceDate = formattedPrintDate || 'N/A';
+    const clientName = registeredName || 'Resident';
+    const clientAddress = businessAddress || 'N/A';
+
+    // Get non-empty line items
+    const activeItems = lineItems.filter(item => item.natureOfService.trim() !== '');
+    if (activeItems.length === 0) {
+      activeItems.push({ natureOfService: 'Monthly Dues', quantity: '1', unitPrice: '400' });
+    }
+
+    const tableRowsHtml = activeItems.map(item => {
+      const qty = item.quantity || '1';
+      const price = Number(item.unitPrice || 0);
+      const amount = Number(qty) * price;
+      return `
+        <tr>
+          <td style="font-weight: 700;">${item.natureOfService}</td>
+          <td style="text-align: center;">${qty}</td>
+          <td style="text-align: right;">₱${price.toLocaleString()}</td>
+          <td style="font-weight: 800; text-align: right;">₱${amount.toLocaleString()}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const discountHtml = Number(discountPwd) > 0 ? `
+      <div class="summary-row">
+        <span>PWD Discount</span>
+        <span>-₱${Number(discountPwd).toLocaleString()}</span>
+      </div>
+    ` : '';
+
+    const taxHtml = Number(withholdingTax) > 0 ? `
+      <div class="summary-row">
+        <span>Withholding Tax</span>
+        <span>-₱${Number(withholdingTax).toLocaleString()}</span>
+      </div>
+    ` : '';
+
+    const copiesHtml = Array.from({ length: 6 }).map((_, copyIndex) => `
+      <div class="invoice-box">
+        <div class="print-header">
+          <div class="print-logo-section">
+            <img src="/lhhoa-logo.png" alt="LH Logo" class="print-logo-img" />
+            <span class="print-logo-text">LH-CONNECT</span>
+          </div>
+          <div class="print-subtitle">
+            LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000
+          </div>
+        </div>
+        
+        <div class="print-divider"></div>
+
+        <h2 class="print-invoice-title">${invoiceTitle}</h2>
+
+        <div class="print-profile-info">
+          <div class="print-info-grid">
+            <div>
+              <div class="print-info-item">
+                <span class="print-info-label">Invoice No:</span>
+                <span class="print-info-value">${invoiceNum}</span>
+              </div>
+              <div class="print-info-item" style="margin-top: 2px;">
+                <span class="print-info-label">Date:</span>
+                <span class="print-info-value">${invoiceDate}</span>
+              </div>
+            </div>
+            <div>
+              <div class="print-info-item">
+                <span class="print-info-label">Sold To:</span>
+                <span class="print-info-value">${clientName}</span>
+              </div>
+              <div class="print-info-item" style="margin-top: 2px;">
+                <span class="print-info-label">Address:</span>
+                <span class="print-info-value">${clientAddress}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="print-table-wrapper">
+          <table class="print-table">
+            <thead>
+              <tr>
+                <th style="width: 50%;">NATURE OF SERVICE</th>
+                <th style="width: 10%; text-align: center;">QTY</th>
+                <th style="width: 20%; text-align: right;">PRICE</th>
+                <th style="width: 20%; text-align: right;">AMOUNT</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="print-summary">
+          <div class="summary-row">
+            <span>Total Sale</span>
+            <span>₱${saleAmount.toLocaleString()}</span>
+          </div>
+          ${discountHtml}
+          ${taxHtml}
+          <div class="summary-row total-row">
+            <span>Total Amount Due</span>
+            <span>₱${totalAmount.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div class="print-footer">
+          <div class="not-valid">THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX.</div>
+          <div class="copyright">LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION © 2026. ALL RIGHTS RESERVED.</div>
+        </div>
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${invoiceTitle} - ${invoiceNum}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+            @page {
+              size: A4 portrait;
+              margin: 5mm;
+            }
+            body {
+              font-family: 'Inter', system-ui, sans-serif;
+              margin: 0;
+              padding: 0;
+              background: white;
+              color: #1e293b;
+              box-sizing: border-box;
+            }
+            .print-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              grid-template-rows: repeat(3, 1fr);
+              gap: 4mm;
+              width: 200mm;
+              height: 287mm;
+              box-sizing: border-box;
+              padding: 2mm;
+            }
+            .invoice-box {
+              border: 1px dashed #64748b;
+              border-radius: 8px;
+              padding: 3mm;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              background: white;
+              box-sizing: border-box;
+              overflow: hidden;
+              height: 93mm;
+            }
+            .print-header {
+              text-align: center;
+              margin-bottom: 1px;
+            }
+            .print-logo-section {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 4px;
+            }
+            .print-logo-img {
+              width: 14px;
+              height: 14px;
+              object-fit: contain;
+            }
+            .print-logo-text {
+              font-size: 10px;
+              font-weight: 800;
+              color: #1B2A4A;
+              letter-spacing: -0.01em;
+            }
+            .print-subtitle {
+              font-size: 6px;
+              color: #475569;
+              text-transform: uppercase;
+              letter-spacing: 0.02em;
+              margin-top: 1px;
+              font-weight: 600;
+            }
+            .print-divider {
+              border-bottom: 1.5px solid #1B2A4A;
+              margin: 2px 0 3px;
+            }
+            .print-invoice-title {
+              font-size: 8.5px;
+              font-weight: 800;
+              text-align: center;
+              margin: 1px 0 3px;
+              color: #0f172a;
+              text-transform: uppercase;
+              letter-spacing: 0.03em;
+            }
+            .print-profile-info {
+              font-size: 7.2px;
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              padding: 3px 5px;
+              background: #f8fafc;
+              margin-bottom: 3px;
+            }
+            .print-info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1.2fr;
+              gap: 2px 8px;
+            }
+            .print-info-item {
+              display: flex;
+              justify-content: space-between;
+              border-bottom: 1px dashed #cbd5e1;
+              padding-bottom: 1px;
+            }
+            .print-info-label {
+              font-weight: 700;
+              color: #475569;
+            }
+            .print-info-value {
+              font-weight: 600;
+              color: #0f172a;
+              text-align: right;
+            }
+            .print-table-wrapper {
+              margin-bottom: 3px;
+              flex-grow: 1;
+            }
+            .print-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 7.2px;
+            }
+            .print-table th {
+              text-align: left;
+              padding: 2px;
+              color: #94a3b8;
+              text-transform: uppercase;
+              font-weight: 700;
+              font-size: 6.2px;
+              border-bottom: 1.5px solid #cbd5e1;
+            }
+            .print-table td {
+              padding: 2px;
+              border-bottom: 1px solid #f1f5f9;
+              color: #0f172a;
+            }
+            .print-summary {
+              display: grid;
+              gap: 1.5px;
+              font-size: 7.2px;
+              margin-bottom: 3px;
+            }
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              color: #475569;
+            }
+            .total-row {
+              font-weight: 800;
+              color: #1e3a8a;
+              border-top: 1px solid #cbd5e1;
+              padding-top: 1.5px;
+            }
+            .print-footer {
+              text-align: center;
+              margin-top: auto;
+            }
+            .not-valid {
+              font-size: 4.8px;
+              font-weight: 700;
+              color: #94a3b8;
+              text-transform: uppercase;
+            }
+            .copyright {
+              font-size: 4.8px;
+              color: #cbd5e1;
+              text-transform: uppercase;
+              font-weight: 600;
+              margin-top: 1px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-grid">
+            ${copiesHtml}
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -449,116 +754,6 @@ export default function ManualPaymentPage() {
         </div>
       </form>
       </div>
-
-      <section className={styles.printArea}>
-        <div className={styles.printGrid}>
-          {Array.from({ length: 6 }).map((_, copyIndex) => (
-            <div key={copyIndex} className={`${styles.invoicePaper} ${styles.printInvoice}`}>
-              {/* Centered Brand Header */}
-              <div className={styles.printHeader}>
-                <div className={styles.printLogoSection}>
-                  <img src="/lhhoa-logo.png" alt="LH Logo" className={styles.printLogoImg} />
-                  <span className={styles.printLogoText}>LH-CONNECT</span>
-                </div>
-                <div className={styles.printSubtitle}>
-                  LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000
-                </div>
-              </div>
-              
-              <div className={styles.printDivider} />
-
-              <h2 className={styles.printInvoiceTitle}>
-                {cashSaleChecked ? 'CASH SALE INVOICE' : chargeSaleChecked ? 'CHARGE SALE INVOICE' : 'SERVICE INVOICE'}
-              </h2>
-
-              {/* Rounded profile info box (matching layout in reference image) */}
-              <div className={styles.printProfileInfo}>
-                <div className={styles.printInfoGrid}>
-                  <div>
-                    <div className={styles.printInfoItem}>
-                      <span className={styles.printInfoLabel}>Invoice No:</span>
-                      <span className={styles.printInfoValue}>{invoiceNumber || 'N/A'}</span>
-                    </div>
-                    <div className={styles.printInfoItem} style={{ marginTop: '2px' }}>
-                      <span className={styles.printInfoLabel}>Date:</span>
-                      <span className={styles.printInfoValue}>{formattedPrintDate || 'N/A'}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className={styles.printInfoItem}>
-                      <span className={styles.printInfoLabel}>Sold To:</span>
-                      <span className={styles.printInfoValue}>{registeredName || 'Resident'}</span>
-                    </div>
-                    <div className={styles.printInfoItem} style={{ marginTop: '2px' }}>
-                      <span className={styles.printInfoLabel}>Address:</span>
-                      <span className={styles.printInfoValue}>{businessAddress || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Service Table styled nicely */}
-              <div className={styles.printTableWrapper}>
-                <table className={styles.printTable}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '45%' }}>Nature of Service</th>
-                      <th style={{ width: '15%' }}>Qty</th>
-                      <th style={{ width: '20%' }}>Price</th>
-                      <th style={{ width: '20%', textAlign: 'right' }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lineItems.map((item, rowIndex) => {
-                      const itemAmount = Number(item.quantity || 0) * Number(item.unitPrice || 0);
-                      return (
-                        <tr key={`print-item-${copyIndex}-${rowIndex}`}>
-                          <td style={{ fontWeight: 700 }}>{item.natureOfService || 'Monthly Dues'}</td>
-                          <td>{item.quantity || '1'}</td>
-                          <td>₱{Number(item.unitPrice || 0).toLocaleString()}</td>
-                          <td style={{ fontWeight: 800, textAlign: 'right' }}>₱{itemAmount.toLocaleString()}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Total Summary */}
-              <div className={styles.printSummaryGrid}>
-                <div className={styles.printSummaryRow}>
-                  <span>Total Sale</span>
-                  <span>₱{saleAmount.toLocaleString()}</span>
-                </div>
-                {Number(discountPwd) > 0 && (
-                  <div className={styles.printSummaryRow}>
-                    <span>PWD Discount</span>
-                    <span>-₱{Number(discountPwd).toLocaleString()}</span>
-                  </div>
-                )}
-                {Number(withholdingTax) > 0 && (
-                  <div className={styles.printSummaryRow}>
-                    <span>Withholding Tax</span>
-                    <span>-₱{Number(withholdingTax).toLocaleString()}</span>
-                  </div>
-                )}
-                <div className={styles.printSummaryRowTotal}>
-                  <span>Total Amount Due</span>
-                  <span>₱{totalAmount.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className={styles.printInvoiceFooter}>
-                <div className={styles.printNotValid}>THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX.</div>
-                <div className={styles.printCopyright}>
-                  LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION © 2026. ALL RIGHTS RESERVED.
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
