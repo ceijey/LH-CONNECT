@@ -135,7 +135,7 @@ export default function ResidentActivityPage() {
         <body>
           <div class="header">
             <div class="logo">Lincoln Heights HOA</div>
-            <div class="subtitle">Community Management & Resident Connection Portal</div>
+            <div class="subtitle">Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan • TIN: 420-968-199-000</div>
           </div>
           
           <div class="report-title">Account Activity Ledger</div>
@@ -164,7 +164,7 @@ export default function ResidentActivityPage() {
               </div>
             </div>
             <div style="margin-top: 12px; font-size: 12px; color: #64748b; text-align: right;">
-              Report Generated: <strong>${dateStr}</strong>
+              Address: <strong>Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan</strong> | Report Generated: <strong>${dateStr}</strong>
             </div>
           </div>
           

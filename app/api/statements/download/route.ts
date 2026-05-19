@@ -81,8 +81,8 @@ async function generateAuditPDF(events: any[], residentName: string, title: stri
   
   page.drawText('LH-Connect', { x: 50, y: height - 45, size: 24, font: fontBold, color: rgb(0.1, 0.2, 0.4) });
   
-  const address = 'San Pablo Dinalupihan Bataan';
-  const tin = 'TIN: 480-266-103-000';
+  const address = 'Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan';
+  const tin = 'TIN: 420-968-199-000';
   page.drawText(address, { x: width - 50 - fontRegular.widthOfTextAtSize(address, 10), y: height - 40, size: 10, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
   page.drawText(tin, { x: width - 50 - fontRegular.widthOfTextAtSize(tin, 10), y: height - 55, size: 10, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
 
@@ -174,7 +174,7 @@ async function generateAuditPDF(events: any[], residentName: string, title: stri
   // --- PROFESSIONAL FOOTER ---
   const footerY = 40;
   page.drawRectangle({ x: 50, y: footerY + 15, width: width - 100, height: 0.5, color: rgb(0.7, 0.7, 0.7) });
-  drawCenteredText('LH-Connect community management • San Pablo Dinalupihan Bataan • TIN: 480-266-103-000', 8, fontItalic, rgb(0.5, 0.5, 0.5), footerY, page);
+  drawCenteredText('LH-Connect community management • Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan • TIN: 420-968-199-000', 8, fontItalic, rgb(0.5, 0.5, 0.5), footerY, page);
 
   return pdfDoc.save();
 }

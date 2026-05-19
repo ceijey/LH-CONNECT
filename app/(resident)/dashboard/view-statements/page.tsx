@@ -250,7 +250,7 @@ export default function ViewStatementsPage() {
               <img src="/lhhoa-logo.png" alt="LH Logo" class="logo-img" />
               <span class="logo-text">LH-Connect</span>
             </div>
-            <div class="subtitle">Sta Rosa Delosguzon Suban • TIN: 420-968-199-000</div>
+            <div class="subtitle">Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan • TIN: 420-968-199-000</div>
           </div>
           
           <div class="report-title">Billing Audit Log — ${reportType.toUpperCase()} Statement</div>

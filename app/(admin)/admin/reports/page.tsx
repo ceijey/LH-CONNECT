@@ -208,7 +208,7 @@ export default function AdminReports() {
                   <span className={reportsStyles.printLogoText}>LH-Connect</span>
                 </div>
                 <div className={reportsStyles.printAddressInfo}>
-                  <div>Sta Rosa Delosguzon Suban</div>
+                  <div>Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan</div>
                   <div>TIN: <span className={reportsStyles.printTIN}>420-968-199-000</span></div>
                 </div>
               </div>
