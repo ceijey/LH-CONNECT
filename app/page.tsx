@@ -25,7 +25,7 @@ export default function LandingPage() {
           </Link>
           <div className={styles.navLinks}>
             <Link href="#features" className={styles.navLink}>Features</Link>
-            <Link href="/login" className={styles.loginNavButton}>
+            <Link href="/login?force=true" className={styles.loginNavButton}>
               Sign In
             </Link>
           </div>
@@ -43,7 +43,7 @@ export default function LandingPage() {
             A unified management and information system for automating monthly dues, real-time resident analytics, and seamless communication.
           </p>
           <div className={styles.heroButtons}>
-            <Link href="/login" className={styles.primaryButton}>
+            <Link href="/login?force=true" className={styles.primaryButton}>
               Get Started <span style={{ fontSize: '1.2em' }}>→</span>
             </Link>
             <Link href="#features" className={styles.secondaryButton}>
@@ -130,7 +130,7 @@ export default function LandingPage() {
             <p className={styles.ctaSubtitle}>
               Join modern neighborhoods leveraging LH-Connect to automate their management and build stronger communities.
             </p>
-            <Link href="/login" className={styles.ctaButton}>
+            <Link href="/login?force=true" className={styles.ctaButton}>
               Create your account today
             </Link>
           </div>

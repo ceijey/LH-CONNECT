@@ -9,6 +9,7 @@ function redirectTo(request: NextRequest, path: string) {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const force = request.nextUrl.searchParams.get('force') === 'true';
   
   const sessionCookie = request.cookies.get('lh_session')?.value;
   const roleCookie = request.cookies.get('lh_role')?.value;
@@ -40,7 +41,7 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  if (isAuthPage && isAuthenticated) {
+  if (isAuthPage && isAuthenticated && !force) {
     if (role === 'admin') {
       return redirectTo(request, '/admin/dashboard');
     }
