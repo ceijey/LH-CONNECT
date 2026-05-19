@@ -110,6 +110,10 @@ export default function DashboardPage() {
     return total;
   }, [statements]);
 
+  const latestAnnouncementNotification = useMemo(() => {
+    return notifications.find(n => !n.read && n.title === '📢 New Announcement');
+  }, [notifications]);
+
   const loadNotifications = async () => {
     try {
       const payload = await apiCall('/api/notifications');
@@ -312,6 +316,23 @@ export default function DashboardPage() {
       </header>
 
       <main className={styles.main}>
+        {latestAnnouncementNotification && (
+          <div 
+            className={styles.announcementBanner} 
+            onClick={() => router.push('/dashboard/announcements')}
+          >
+            <div className={styles.bannerContent}>
+              <span className={styles.bannerIcon}>📢</span>
+              <div className={styles.bannerText}>
+                <strong>HOA Announcement:</strong> {latestAnnouncementNotification.message.replace('Admin posted: ', '').replace(/"/g, '')}
+              </div>
+            </div>
+            <button className={styles.bannerBtn}>
+              Read Details →
+            </button>
+          </div>
+        )}
+
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeText}>
             <h2 className={styles.welcomeTitle}>Welcome back, {userName}!</h2>
