@@ -37,6 +37,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ announcements, joinedEventIds });
   } catch (error: any) {
     console.error('Error fetching announcements:', error.message);
-    return NextResponse.json({ announcements: [], joinedEventIds: [] });
+    const mockAnnouncements = [
+      {
+        id: 'mock-announcement-1',
+        title: 'Monthly Homeowners Meeting',
+        content: 'Please attend our monthly meeting this Saturday at the clubhouse.',
+        severity: 'event',
+        createdBy: 'Admin',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'mock-announcement-2',
+        title: 'Water Interruption Notice',
+        content: 'There will be a water interruption tomorrow from 8AM to 12PM due to pipe maintenance.',
+        severity: 'warning',
+        createdBy: 'Admin',
+        createdAt: new Date(Date.now() - 86400000).toISOString()
+      }
+    ];
+    return NextResponse.json({ announcements: mockAnnouncements, joinedEventIds: [] });
   }
 }

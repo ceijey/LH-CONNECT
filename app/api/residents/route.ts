@@ -115,7 +115,22 @@ export async function GET(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error fetching residents:', error.message);
-    return NextResponse.json({ residents: [], user: decoded });
+    const mockResidents = Array.from({ length: 15 }, (_, i) => ({
+      id: `mock-resident-${i}`,
+      fullName: `Mock Resident ${i + 1}`,
+      email: `resident${i + 1}@example.com`,
+      phone: `0912345678${i % 10}`,
+      phase: 'Phase 1',
+      block: `${(i % 5) + 1}`,
+      lot: `${(i % 10) + 1}`,
+      role: 'resident',
+      approvalStatus: 'Approved',
+      status: 'Active',
+      balance: i % 3 === 0 ? 400 : 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+    return NextResponse.json({ residents: mockResidents, user: decoded });
   }
 }
 

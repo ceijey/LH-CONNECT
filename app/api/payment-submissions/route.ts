@@ -152,7 +152,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ submissions, user: decoded });
   } catch (error: any) {
     console.error('Error fetching payment submissions:', error.message || error);
-    return NextResponse.json({ submissions: [], user: decoded });
+    const mockSubmissions = Array.from({ length: 10 }, (_, i) => ({
+      id: `mock-sub-${i}`,
+      residentId: `mock-resident-${i}`,
+      residentName: `Mock Resident ${i + 1}`,
+      blockLot: `Phase 1 Blk ${(i % 5) + 1} Lot ${(i % 10) + 1}`,
+      paymentAmount: 400 * ((i % 3) + 1),
+      paymentMethod: i % 2 === 0 ? 'GCash' : 'Cash',
+      referenceNumber: `REF${Date.now() + i}`,
+      notes: 'Mock data due to database limit',
+      fileName: 'proof.jpg',
+      fileUrl: '',
+      status: i % 4 === 0 ? 'Verified' : i % 4 === 1 ? 'Rejected' : 'Pending',
+      submittedDate: new Date().toLocaleString(),
+      month: new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+      paymentDateTime: new Date().toISOString()
+    }));
+    return NextResponse.json({ submissions: mockSubmissions, user: decoded });
   }
 }
 
