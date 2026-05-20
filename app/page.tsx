@@ -139,7 +139,14 @@ export default function LandingPage() {
       
       {/* Footer */}
       <footer className={styles.footer}>
-        <p>© {new Date().getFullYear()} LH-Connect. All rights reserved.</p>
+        <div className={styles.footerContent}>
+          <p className={styles.footerCopyright}>© {new Date().getFullYear()} LH-Connect. All rights reserved.</p>
+          <div className={styles.footerLinks}>
+            <Link href="/terms-and-conditions" className={styles.footerLink}>Terms and Conditions</Link>
+            <span className={styles.footerDivider}>•</span>
+            <Link href="/data-privacy" className={styles.footerLink}>Privacy Policy</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

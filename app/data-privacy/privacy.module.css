@@ -1,0 +1,59 @@
+.container {
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: #1B2A4A;
+  padding: 2rem;
+  padding-top: 6rem;
+}
+
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-block;
+  color: #2563EB;
+  text-decoration: none;
+  margin-bottom: 2rem;
+  transition: color 0.3s ease;
+}
+
+.backLink:hover {
+  color: #1D4ED8;
+  text-decoration: underline;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #1B2A4A;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.section h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1B2A4A;
+}
+
+.section p {
+  color: #4A5568;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.section ul {
+  color: #4A5568;
+  line-height: 1.8;
+  margin-left: 1.5rem;
+}
+
+.section li {
+  margin-bottom: 0.5rem;
+}
