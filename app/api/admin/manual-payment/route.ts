@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 6. Send Email if possible
-    if (residentEmail && process.env.RESEND_API_KEY) {
+    if (residentEmail) {
       try {
         await sendPaymentVerifiedEmail({
           toEmail: residentEmail,

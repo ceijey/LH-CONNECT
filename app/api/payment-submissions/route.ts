@@ -21,6 +21,7 @@ type PaymentSubmission = {
   submittedAt?: any;
   verifiedAt?: any;
   paymentDateTime?: string;
+  receiptAmount?: string;
 };
 
 async function resolveFileUrl(data: any): Promise<string | undefined> {
@@ -105,6 +106,7 @@ async function toSubmission(doc: any): Promise<PaymentSubmission> {
     submittedAt,
     verifiedAt: data.verifiedAt,
     paymentDateTime: data.paymentDateTime || undefined,
+    receiptAmount: data.receiptAmount || undefined,
   };
 }
 
@@ -202,6 +204,7 @@ export async function POST(request: NextRequest) {
     const referenceNumber = String(formData.get('referenceNumber') ?? '').trim();
     const notes = String(formData.get('notes') ?? '').trim();
     const paymentDateTime = String(formData.get('paymentDateTime') ?? '').trim();
+    const receiptAmount = String(formData.get('receiptAmount') ?? '').trim();
     const file = formData.get('file');
     let fileUrl = String(formData.get('fileUrl') ?? '').trim();
     let filePath = String(formData.get('filePath') ?? '').trim();
@@ -223,6 +226,10 @@ export async function POST(request: NextRequest) {
 
     if (paymentAmount <= 0) {
       return createErrorResponse('Payment amount must be greater than 0', 400);
+    }
+
+    if (paymentAmount > 400) {
+      return createErrorResponse('Payment amount cannot exceed the monthly dues of ₱400.', 400);
     }
 
     if (!paymentMethod) {
@@ -336,6 +343,7 @@ export async function POST(request: NextRequest) {
       createdAt: submittedAt,
       updatedAt: submittedAt,
       paymentDateTime,
+      receiptAmount,
     });
 
     const submission = {
@@ -356,6 +364,7 @@ export async function POST(request: NextRequest) {
       submittedDate: submittedAt.toLocaleString(),
       verifiedDate: undefined,
       paymentDateTime,
+      receiptAmount,
     };
 
     // Create an admin notification so admins immediately see new submissions (including failed uploads)

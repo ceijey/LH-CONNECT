@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error generating report:', error.message);
-    const mockFinancialData = Array.from({ length: 15 }, (_, i) => ({
+    const mockFinancialData = Array.from({ length: 10 }, (_, i) => ({
       id: `mock-resident-${i}`,
       block: `${(i % 5) + 1}`,
       lot: `${(i % 10) + 1}`,
@@ -205,15 +205,15 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       financialData: mockFinancialData,
-      summary: { totalDues: 6000, totalCollected: 3200, outstandingBalance: 2800, collectionRate: '53.3' },
+      summary: { totalDues: 4000, totalCollected: 2000, outstandingBalance: 2000, collectionRate: '50.0' },
       analytics: { 
-        totalCount: 15, 
-        verifiedCount: 8, 
-        pendingCount: 2, 
+        totalCount: 10, 
+        verifiedCount: 5, 
+        pendingCount: 1, 
         rejectedCount: 0, 
-        paidCount: 8, 
-        delinquentCount: 7, 
-        methods: [{ name: 'GCash', value: 5 }, { name: 'Cash', value: 3 }] 
+        paidCount: 5, 
+        delinquentCount: 5, 
+        methods: [{ name: 'GCash', value: 3 }, { name: 'Cash', value: 2 }] 
       }
     });
   }

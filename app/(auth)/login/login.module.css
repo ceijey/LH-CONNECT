@@ -3,6 +3,34 @@
   display: flex;
   background-color: #ffffff;
   font-family: 'Inter', system-ui, sans-serif;
+  position: relative;
+}
+
+.backToHome {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #1B2A4A;
+  border: 1.5px solid #E0E0E0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+.backToHome:hover {
+  background-color: #F5F5F5;
+  border-color: #1B2A4A;
+  color: #1B2A4A;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 /* Left side - Visuals */
@@ -45,7 +73,7 @@
   background: white;
   border-radius: 20px;
   padding: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .visualTitle {
@@ -229,8 +257,8 @@
 }
 
 .forgotPassword {
-  text-align: right;
-  margin-top: 0;
+  text-align: center;
+  margin-top: 0.2rem;
   flex-shrink: 0;
 }
 
@@ -277,7 +305,6 @@
 
 .signupPrompt {
   text-align: center;
-  margin-top: 0.8rem;
   color: #9E9E9E;
   font-size: 0.95rem;
 }
@@ -319,13 +346,13 @@
 .termsLabel {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .termsText {
   color: #9E9E9E;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   margin: 0;
 }
 
@@ -335,7 +362,7 @@
   color: #3b82f6;
   text-decoration: underline;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   padding: 0;
   font-weight: 600;
   line-height: 1.2;
@@ -347,13 +374,25 @@
 
 /* Animations */
 @keyframes rotateGlow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .loginBox {
@@ -365,26 +404,41 @@
   .visualSection {
     display: none;
   }
+
   .formSection {
     background: linear-gradient(135deg, #F5F5F5 0%, #E0E0E0 100%);
   }
+
   .mobileLogoContainer {
     display: flex;
     justify-content: center;
   }
+
   .mobileLogo {
     width: 60px;
     height: 60px;
     border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   }
 }
 
 @media (max-width: 640px) {
+  .pageContainer {
+    padding-top: 4rem;
+  }
+
+  .backToHome {
+    top: 1rem;
+    right: 1rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
+
   .formSection {
     padding: 1rem;
   }
-  
+
   .loginBox {
     padding: 1.5rem;
     border-radius: 20px;
@@ -398,10 +452,6 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
-  }
-
-  .forgotPassword {
-    text-align: left;
   }
 
   .title {

@@ -38,8 +38,6 @@ export default function ManualPaymentPage() {
     { natureOfService: '', quantity: '', unitPrice: '' },
     { natureOfService: '', quantity: '', unitPrice: '' }
   ]);
-  const [discountPwd, setDiscountPwd] = useState('0');
-  const [withholdingTax, setWithholdingTax] = useState('0');
   const [month, setMonth] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,7 +75,6 @@ export default function ManualPaymentPage() {
     const itemTotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
     return sum + itemTotal;
   }, 0);
-  const totalAmount = saleAmount - Number(discountPwd || 0) - Number(withholdingTax || 0);
 
   const handleLineItemChange = (index: number, field: 'natureOfService' | 'quantity' | 'unitPrice', value: string) => {
     setLineItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
@@ -128,9 +125,9 @@ export default function ManualPaymentPage() {
             amount: Number(item.quantity || 0) * Number(item.unitPrice || 0),
           })),
           totalSale: saleAmount,
-          discountPwd: Number(discountPwd),
-          withholdingTax: Number(withholdingTax),
-          totalAmount,
+          discountPwd: 0,
+          withholdingTax: 0,
+          totalAmount: saleAmount,
         }),
       });
 
@@ -180,19 +177,7 @@ export default function ManualPaymentPage() {
       `;
     }).join('');
 
-    const discountHtml = Number(discountPwd) > 0 ? `
-      <div class="summary-row">
-        <span>PWD Discount</span>
-        <span>-₱${Number(discountPwd).toLocaleString()}</span>
-      </div>
-    ` : '';
-
-    const taxHtml = Number(withholdingTax) > 0 ? `
-      <div class="summary-row">
-        <span>Withholding Tax</span>
-        <span>-₱${Number(withholdingTax).toLocaleString()}</span>
-      </div>
-    ` : '';
+    // PWD and withholding tax removed
 
     const copiesHtml = Array.from({ length: 6 }).map((_, copyIndex) => `
       <div class="invoice-box">
@@ -256,11 +241,9 @@ export default function ManualPaymentPage() {
             <span>Total Sale</span>
             <span>₱${saleAmount.toLocaleString()}</span>
           </div>
-          ${discountHtml}
-          ${taxHtml}
           <div class="summary-row total-row">
             <span>Total Amount Due</span>
-            <span>₱${totalAmount.toLocaleString()}</span>
+            <span>₱${saleAmount.toLocaleString()}</span>
           </div>
         </div>
 
@@ -677,29 +660,9 @@ export default function ManualPaymentPage() {
                     <span>Total Sale</span>
                     <span>₱{saleAmount.toLocaleString()}</span>
                   </div>
-                  <div className={styles.summaryRow}>
-                    <span>Discount for PWD</span>
-                    <input
-                      type="number"
-                      min="0"
-                      className={styles.tableInput}
-                      value={discountPwd}
-                      onChange={(e) => setDiscountPwd(e.target.value)}
-                    />
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>Less Withholding Tax</span>
-                    <input
-                      type="number"
-                      min="0"
-                      className={styles.tableInput}
-                      value={withholdingTax}
-                      onChange={(e) => setWithholdingTax(e.target.value)}
-                    />
-                  </div>
                   <div className={styles.summaryRowTotal}>
                     <span>Total Amount Due</span>
-                    <span>₱{totalAmount.toLocaleString()}</span>
+                    <span>₱{saleAmount.toLocaleString()}</span>
                   </div>
                 </div>
               </div>

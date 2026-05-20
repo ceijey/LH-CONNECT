@@ -117,12 +117,13 @@
 }
 
 .pageTitle {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 800;
   margin: 0 0 0.5rem 0;
   background: linear-gradient(90deg, #1B2A4A, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  white-space: nowrap;
 }
 
 .pageSubtitle {
@@ -176,6 +177,12 @@
   cursor: pointer;
   transition: all 0.2s;
   height: 42px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .downloadReportBtn:hover:not(:disabled) {
@@ -411,8 +418,27 @@
 }
 
 /* Responsive fixes */
+@media (max-width: 1024px) {
+  .heroSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+  .pageTitle {
+    white-space: normal;
+  }
+}
+
 @media (max-width: 640px) {
   .actionButtons {
     flex-direction: column;
+  }
+  .pageTitle {
+    font-size: 1.75rem;
+  }
+  .reportControls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
   }
 }

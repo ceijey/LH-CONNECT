@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
+import { sendDueBillEmail } from '@/lib/mailer';
 
 const MONTHLY_DUES = 400;
 
@@ -80,6 +81,16 @@ export async function GET(request: NextRequest) {
           createdAt,
           updatedAt: createdAt,
         });
+
+        // Send the email to the resident
+        if (userData.email) {
+          sendDueBillEmail({
+            toEmail: userData.email,
+            residentName: userData.fullName || 'Resident',
+            dueAmount: MONTHLY_DUES,
+            dueMonth: currentMonthName
+          }).catch(err => console.log('Failed to send email:', err));
+        }
       } else {
         const amountPaid = Number(currentStatement.amountPaid ?? 0);
         const normalizedBalance = Math.max(0, MONTHLY_DUES - amountPaid);

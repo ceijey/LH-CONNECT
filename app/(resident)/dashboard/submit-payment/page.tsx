@@ -38,6 +38,7 @@ interface FormData {
   blockLot: string;
   paymentAmount: string;
   paymentDateTime: string;
+  receiptAmount: string;
 }
 
 interface Submission {
@@ -55,6 +56,7 @@ interface Submission {
   blockLot: string;
   notes?: string;
   paymentDateTime?: string;
+  receiptAmount?: string;
 }
 
 interface UserProfile {
@@ -177,6 +179,7 @@ export default function SubmitPaymentPage() {
     blockLot: '',
     paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
     paymentDateTime: '',
+    receiptAmount: '',
   });
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -216,6 +219,7 @@ export default function SubmitPaymentPage() {
                 : '',
               paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
               paymentDateTime: '',
+              receiptAmount: '',
             }));
           }
         } catch (error) {
@@ -292,6 +296,31 @@ export default function SubmitPaymentPage() {
       
       console.log('Extracted text:', text);
 
+      const lowerText = text.toLowerCase();
+      const isValidReceipt = [
+        'gcash', 'maya', 'paymaya', 'instapay', 'pesonet', 'ref', 'reference', 'transaction',
+        'trans.no', 'ref.no', 'ref no', 'trans no', 'amount', 'payment', 'successful', 'sent', 
+        'received', 'bank', 'bdo', 'bpi', 'metrobank', 'unionbank', 'landbank', 'security bank'
+      ].some(keyword => lowerText.includes(keyword));
+
+      if (!isValidReceipt) {
+        setToast({ 
+          message: 'This is not a receipt from the supported e-wallets like Maya and GCash.', 
+          type: 'error' 
+        });
+        // Reset file input and preview
+        setFormData(prev => ({
+          ...prev,
+          file: null,
+          referenceNumber: '',
+          receiptAmount: '',
+          paymentDateTime: '',
+        }));
+        setFileName('');
+        setPreview(null);
+        return;
+      }
+
       // Search for reference number patterns
       // GCash/Maya reference numbers are typically 12-13 digits
       let foundRef = '';
@@ -314,13 +343,32 @@ export default function SubmitPaymentPage() {
         }
       }
 
+      // Search for amount patterns
+      let foundAmount = '';
+      const amountRegex = /(?:PHP|P|₱|Amount|Amt)\s*[:.-]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i;
+      const amountMatch = text.match(amountRegex);
+      if (amountMatch) {
+         foundAmount = amountMatch[1].replace(/,/g, '');
+      } else {
+         const fallbackRegex = /\b(\d{1,3}(?:,\d{3})*\.\d{2})\b/;
+         const fallbackMatch = text.match(fallbackRegex);
+         if (fallbackMatch) {
+            foundAmount = fallbackMatch[1].replace(/,/g, '');
+         }
+      }
+
       const detectedDate = parseAndFormatDateTime(text);
       let detectedDateNice = '';
+      let detectedAmountNice = '';
 
       setFormData(prev => {
         const update = { ...prev };
         if (foundRef) {
           update.referenceNumber = foundRef;
+        }
+        if (foundAmount) {
+          update.receiptAmount = foundAmount;
+          detectedAmountNice = `₱${foundAmount}`;
         }
         if (detectedDate) {
           update.paymentDateTime = detectedDate;
@@ -335,12 +383,13 @@ export default function SubmitPaymentPage() {
         return update;
       });
 
-      if (foundRef && detectedDate) {
-        setToast({ message: `Automatically detected Ref: ${foundRef} & Date/Time: ${detectedDateNice}`, type: 'success' });
-      } else if (foundRef) {
-        setToast({ message: `Automatically detected Reference Number: ${foundRef}`, type: 'success' });
-      } else if (detectedDate) {
-        setToast({ message: `Automatically detected Payment Date/Time: ${detectedDateNice}`, type: 'success' });
+      let toastMsg = 'Automatically detected:';
+      if (foundRef) toastMsg += ` Ref: ${foundRef}`;
+      if (foundAmount) toastMsg += ` | Amount: ${detectedAmountNice}`;
+      if (detectedDate) toastMsg += ` | Date: ${detectedDateNice}`;
+
+      if (foundRef || foundAmount || detectedDate) {
+        setToast({ message: toastMsg, type: 'success' });
       }
     } catch (error) {
       console.error('OCR Error:', error);
@@ -409,6 +458,22 @@ export default function SubmitPaymentPage() {
       return;
     }
 
+    if (!formData.receiptAmount.trim()) {
+      setToast({ message: 'Please enter the receipt amount', type: 'error' });
+      return;
+    }
+
+    const scannedAmount = Number(formData.receiptAmount.trim());
+    if (isNaN(scannedAmount) || scannedAmount <= 0) {
+      setToast({ message: 'Receipt amount must be a valid number greater than 0', type: 'error' });
+      return;
+    }
+
+    if (scannedAmount > 400) {
+      setToast({ message: 'Payment amount cannot exceed the monthly dues of ₱400.', type: 'error' });
+      return;
+    }
+
     if (!formData.file) {
       setToast({ message: 'Please upload a payment proof', type: 'error' });
       return;
@@ -474,11 +539,12 @@ export default function SubmitPaymentPage() {
       const payload = new FormData();
       payload.append('residentName', formData.residentName.trim());
       payload.append('blockLot', formData.blockLot.trim());
-      payload.append('paymentAmount', formData.paymentAmount.trim());
+      payload.append('paymentAmount', formData.receiptAmount.trim());
       payload.append('paymentMethod', paymentMethod === 'bank' ? `Bank Transfer (${selectedBank})` : paymentMethod);
       payload.append('referenceNumber', formData.referenceNumber.trim());
       payload.append('notes', formData.notes.trim());
       payload.append('paymentDateTime', formData.paymentDateTime);
+      payload.append('receiptAmount', formData.receiptAmount.trim());
       
       if (fileBase64) {
         payload.append('fileBase64', fileBase64);
@@ -567,7 +633,7 @@ export default function SubmitPaymentPage() {
         }
       });
 
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentDateTime: '' });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentDateTime: '', receiptAmount: '' });
       setFileName('');
       setPreview(null);
     } catch (error: any) {
@@ -763,6 +829,27 @@ export default function SubmitPaymentPage() {
                     onChange={handleInputChange}
                     className={styles.input}
                   />
+                </div>
+
+                {/* Scanned/Detected Receipt Amount */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Receipt Amount (Scanned from Image)
+                    {isOCRProcessing && <span className={styles.ocrStatus}> (Detecting...)</span>}
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }}>₱</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="receiptAmount"
+                      value={formData.receiptAmount}
+                      onChange={handleInputChange}
+                      placeholder="Amount detected from receipt"
+                      className={styles.input}
+                      style={{ paddingLeft: '28px' }}
+                    />
+                  </div>
                 </div>
 
                 {/* Upload Payment Proof */}

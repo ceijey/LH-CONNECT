@@ -18,16 +18,17 @@ async function ensureMonthlyStatementsForResidents(residents: any[]) {
 
   const statementsRef = adminDb.collection('statements');
 
-  for (const resident of residents) {
-    try {
-      const stmtQuery = await statementsRef
-        .where('residentId', '==', resident.id)
-        .where('month', '==', currentMonthName)
-        .where('year', '==', currentYear)
-        .limit(1)
-        .get();
+  try {
+    // Optimization: Query all statements for current month/year in EXACTLY ONE query
+    const stmtQuery = await statementsRef
+      .where('month', '==', currentMonthName)
+      .where('year', '==', currentYear)
+      .get();
+    
+    const existingResidentIds = new Set(stmtQuery.docs.map((doc: any) => doc.data().residentId));
 
-      if (stmtQuery.empty) {
+    for (const resident of residents) {
+      if (!existingResidentIds.has(resident.id)) {
         console.log(`[Automation] Automatically creating statement for resident ${resident.id} (${resident.fullName})`);
         
         await statementsRef.add({
@@ -50,9 +51,9 @@ async function ensureMonthlyStatementsForResidents(residents: any[]) {
           updatedAt: createdAt,
         });
       }
-    } catch (err: any) {
-      console.error(`[Automation] Error generating statement for resident ${resident.id}:`, err.message);
     }
+  } catch (err: any) {
+    console.error(`[Automation] Error generating statement:`, err.message);
   }
 }
 
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error fetching residents:', error.message);
-    const mockResidents = Array.from({ length: 15 }, (_, i) => ({
+    const mockResidents = Array.from({ length: 10 }, (_, i) => ({
       id: `mock-resident-${i}`,
       fullName: `Mock Resident ${i + 1}`,
       email: `resident${i + 1}@example.com`,

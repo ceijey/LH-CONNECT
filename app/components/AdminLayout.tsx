@@ -124,7 +124,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
           message="Are you sure you want to logout?"
           confirmText="Logout"
           cancelText="Cancel"
-          isDangerous={true}
+          isDangerous={false}
           onConfirm={confirmLogout}
           onCancel={cancelLogout}
         />

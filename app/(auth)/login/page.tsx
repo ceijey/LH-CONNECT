@@ -289,6 +289,13 @@ export default function LoginPage() {
 
   return (
     <div className={styles.pageContainer}>
+      <Link href="/" className={styles.backToHome}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back to Home
+      </Link>
       
       {/* Left Visual Section */}
       <div className={styles.visualSection}>
@@ -396,29 +403,23 @@ export default function LoginPage() {
                   {errors.password && <p className={styles.errorMessage}>{errors.password}</p>}
                 </div>
 
-                <div className={styles.optionsRow}>
-                  <div className={styles.termsGroup}>
-                    <input
-                      type="checkbox"
-                      name="acceptTerms"
-                      id="loginAcceptTerms"
-                      checked={formData.acceptTerms}
-                      onChange={handleChange}
-                      className={styles.termsCheckbox}
-                      disabled={isLoading}
-                    />
-                    <div className={styles.termsLabel}>
-                      <label htmlFor="loginAcceptTerms" className={styles.termsText}>
-                        I accept the{' '}
-                      </label>
-                      <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
-                        Terms and Conditions
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={styles.forgotPassword}>
-                    <Link href="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
+                <div className={styles.termsGroup}>
+                  <input
+                    type="checkbox"
+                    name="acceptTerms"
+                    id="loginAcceptTerms"
+                    checked={formData.acceptTerms}
+                    onChange={handleChange}
+                    className={styles.termsCheckbox}
+                    disabled={isLoading}
+                  />
+                  <div className={styles.termsLabel}>
+                    <label htmlFor="loginAcceptTerms" className={styles.termsText}>
+                      I accept the{' '}
+                    </label>
+                    <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
+                      Terms and Conditions
+                    </button>
                   </div>
                 </div>
                 {errors.acceptTerms && <p className={styles.errorMessage}>{errors.acceptTerms}</p>}
@@ -428,6 +429,10 @@ export default function LoginPage() {
                 <button type="submit" className={styles.button} disabled={isLoading}>
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </button>
+
+                <div className={styles.forgotPassword}>
+                  <Link href="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
+                </div>
 
                 <div className={styles.signupPrompt}>
                   Don't have an account?

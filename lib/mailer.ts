@@ -31,7 +31,7 @@ export async function sendDueBillEmail({
   })}`;
 
   const { error } = await resend.emails.send({
-    from: 'onboarding@resend.dev',
+    from: 'admin@lhconnect.com',
     to: [toEmail],
     subject: `📋 Monthly Due Bill — ${dueMonth}`,
     html: `
@@ -47,23 +47,17 @@ export async function sendDueBillEmail({
           <tr>
             <td align="center">
               <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:600px;">
-
-                <!-- Header -->
                 <tr>
                   <td style="background:linear-gradient(135deg,#1B2A4A 0%,#2C3E6B 100%);padding:36px 40px;text-align:center;">
                     <h1 style="color:#ffffff;font-size:26px;margin:0;letter-spacing:-0.5px;">LH-Connect</h1>
                     <p style="color:rgba(255,255,255,0.75);font-size:13px;margin:4px 0 0;">Lincoln Heights Homeowners Association</p>
                   </td>
                 </tr>
-
-                <!-- Alert Banner -->
                 <tr>
                   <td style="background:#fff8e1;border-bottom:2px solid #ffe082;padding:16px 40px;text-align:center;">
                     <p style="color:#b45309;font-size:14px;font-weight:600;margin:0;">⚠️ You have an outstanding balance for <strong>${dueMonth}</strong></p>
                   </td>
                 </tr>
-
-                <!-- Body -->
                 <tr>
                   <td style="padding:36px 40px;">
                     <p style="color:#374151;font-size:16px;margin:0 0 8px;">Dear <strong>${residentName}</strong>,</p>
@@ -71,8 +65,6 @@ export async function sendDueBillEmail({
                       This is a friendly reminder from the Lincoln Heights HOA that your monthly dues are now due.
                       Please settle your balance at your earliest convenience to avoid penalties.
                     </p>
-
-                    <!-- Amount Card -->
                     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:2px solid rgba(220,38,38,0.2);border-radius:10px;margin-bottom:28px;">
                       <tr>
                         <td style="padding:24px;text-align:center;">
@@ -82,8 +74,6 @@ export async function sendDueBillEmail({
                         </td>
                       </tr>
                     </table>
-
-                    <!-- CTA Button -->
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td align="center">
@@ -96,15 +86,12 @@ export async function sendDueBillEmail({
                     </table>
                   </td>
                 </tr>
-
-                <!-- Footer -->
                 <tr>
                   <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:24px 40px;text-align:center;">
                     <p style="color:#9ca3af;font-size:12px;margin:0 0 4px;">Lincoln Heights Homeowners Association</p>
                     <p style="color:#9ca3af;font-size:12px;margin:0;">This is an automated notification. Please do not reply to this email.</p>
                   </td>
                 </tr>
-
               </table>
             </td>
           </tr>
@@ -145,7 +132,7 @@ export async function sendPaymentSubmittedEmail({
   })}`;
 
   const { error } = await resend.emails.send({
-    from: 'onboarding@resend.dev',
+    from: 'admin@lhconnect.com',
     to: [ADMIN_EMAIL],
     subject: `💰 New Payment Submitted — ${residentName}`,
     html: `
@@ -157,20 +144,17 @@ export async function sendPaymentSubmittedEmail({
           <tr>
             <td align="center">
               <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:600px;">
-
                 <tr>
                   <td style="background:linear-gradient(135deg,#1B2A4A 0%,#2C3E6B 100%);padding:30px 40px;text-align:center;">
                     <h1 style="color:#fff;font-size:24px;margin:0;">LH-Connect</h1>
                     <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:4px 0 0;">Admin Payment Notification</p>
                   </td>
                 </tr>
-
                 <tr>
                   <td style="background:#f0fdf4;border-bottom:2px solid #86efac;padding:16px 40px;text-align:center;">
                     <p style="color:#15803d;font-size:14px;font-weight:600;margin:0;">✅ A resident has submitted payment proof for verification</p>
                   </td>
                 </tr>
-
                 <tr>
                   <td style="padding:32px 40px;">
                     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:28px;">
@@ -199,7 +183,6 @@ export async function sendPaymentSubmittedEmail({
                         <td style="padding:12px 20px;color:#111827;font-size:14px;font-weight:600;">${referenceNumber}</td>
                       </tr>` : ''}
                     </table>
-
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td align="center">
@@ -212,13 +195,11 @@ export async function sendPaymentSubmittedEmail({
                     </table>
                   </td>
                 </tr>
-
                 <tr>
                   <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px;text-align:center;">
                     <p style="color:#9ca3af;font-size:12px;margin:0;">LH-Connect • Automated Admin Notification</p>
                   </td>
                 </tr>
-
               </table>
             </td>
           </tr>

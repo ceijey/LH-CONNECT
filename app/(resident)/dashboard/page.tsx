@@ -236,7 +236,7 @@ export default function DashboardPage() {
         cancelText="Cancel"
         onConfirm={confirmLogout}
         onCancel={() => setShowLogoutModal(false)}
-        isDangerous={true}
+        isDangerous={false}
       />
 
       <header className={styles.header}>
@@ -304,9 +304,6 @@ export default function DashboardPage() {
             </div>
             <Link href="/dashboard/announcements" className={styles.accountBtn}>
               📢 Announcements
-            </Link>
-            <Link href="/dashboard/activity" className={styles.accountBtn}>
-              📋 Activity
             </Link>
             <Link href="/dashboard/account" className={styles.accountBtn}>
               👤 My Account

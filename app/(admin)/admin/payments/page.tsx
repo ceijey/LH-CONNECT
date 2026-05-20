@@ -25,6 +25,7 @@ interface PaymentSubmission {
   verifiedDate?: string;
   notes?: string;
   paymentDateTime?: string;
+  receiptAmount?: string;
 }
 
 type ProofKind = 'image' | 'pdf' | 'none';
@@ -404,6 +405,14 @@ export default function AdminPayments() {
                                 year: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit'
+                              })}
+                            </div>
+                          )}
+                          {payment.receiptAmount && (
+                            <div className={styles.paymentDateTimeSubtext} style={{ fontSize: '0.75rem', color: '#4caf50', marginTop: '4px', fontWeight: 'bold' }}>
+                              💵 Scanned: ₱{Number(payment.receiptAmount).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
                               })}
                             </div>
                           )}
