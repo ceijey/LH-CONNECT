@@ -88,3 +88,47 @@ export async function sendAccountStatusEmail({ toEmail, residentName, status, }:
 
   if (error) throw new Error(`Resend error: ${error.message}`);
 }
+
+interface AnnouncementEmailOptions {
+  toEmail: string;
+  residentName?: string;
+  title: string;
+  content: string;
+}
+
+export async function sendAnnouncementEmail({ toEmail, residentName, title, content, }: AnnouncementEmailOptions): Promise<void> {
+  const resend = getResend();
+  const subject = `📢 ${title}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>${subject}</title>
+    </head>
+    <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+      <div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">
+        <div style="background:#1B2A4A;color:#fff;padding:20px 28px;">
+          <h1 style="margin:0;font-size:20px;">LH-Connect</h1>
+        </div>
+        <div style="padding:28px;color:#374151;">
+          <p>Dear <strong>${residentName ?? 'Resident'}</strong>,</p>
+          <h2 style="font-size:18px;margin-top:8px;margin-bottom:12px;">${title}</h2>
+          <div style="font-size:15px;line-height:1.6;color:#374151;">${content}</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: RESEND_FROM,
+    to: [toEmail],
+    subject,
+    html,
+  });
+
+  if (error) throw new Error(`Resend error: ${error.message}`);
+}

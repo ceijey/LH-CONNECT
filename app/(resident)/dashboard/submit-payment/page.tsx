@@ -232,7 +232,7 @@ export default function SubmitPaymentPage() {
       };
 
       loadResidentProfile();
-    }, [router, isMounted]);
+    }, [isMounted]);
 
   useEffect(() => {
     const loadRecentSubmissions = async () => {
