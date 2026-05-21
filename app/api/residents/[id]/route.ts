@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { verifyCsrf } from '@/lib/csrf';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
-import { sendDueBillEmail } from '@/lib/mailer';
+import { sendDueBillEmail, sendAccountStatusEmail } from '@/lib/mailer';
 import { sendDueBillSMS } from '@/lib/sms';
 import { logAuditAction } from '@/lib/audit-logger';
 
@@ -130,6 +130,26 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           `Set resident ${currentData?.fullName || id} status to ${updatePayload.approvalStatus}`, 
           id
         );
+
+        // Send approval/rejection email to resident
+        try {
+          const authUser = await adminAuth.getUser(id);
+          const residentEmail = authUser.email;
+          const residentName = currentData?.fullName || authUser.displayName || 'Resident';
+
+          if (residentEmail && (updatePayload.approvalStatus === 'Approved' || updatePayload.approvalStatus === 'Rejected')) {
+            await sendAccountStatusEmail({
+              toEmail: residentEmail,
+              residentName,
+              status: updatePayload.approvalStatus,
+            });
+            console.log(`[Mailer] Account status email sent to ${residentEmail} for ${updatePayload.approvalStatus}`);
+          } else {
+            console.warn('[Mailer] Skipping account status email because resident email is missing or approvalStatus is invalid.');
+          }
+        } catch (emailErr: any) {
+          console.error('[Mailer] Could not fetch auth user to send account status email:', emailErr?.message || emailErr);
+        }
 
       } catch (notifyErr) {
         console.error('Failed to update registration notifications:', notifyErr);
