@@ -18,6 +18,11 @@ export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  const totalPages = Math.ceil(logs.length / ITEMS_PER_PAGE);
+  const paginatedLogs = logs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   useEffect(() => {
     fetchLogs();
@@ -102,7 +107,7 @@ export default function AuditLogsPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log) => {
+                {paginatedLogs.map((log) => {
                   const { date, time } = formatDate(log.createdAt);
                   return (
                     <tr key={log.id}>
@@ -131,6 +136,28 @@ export default function AuditLogsPage() {
                 })}
               </tbody>
             </table>
+            
+            {totalPages > 1 && (
+              <div className={styles.pagination}>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={styles.pageButton}
+                >
+                  Previous
+                </button>
+                <span className={styles.pageInfo}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className={styles.pageButton}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

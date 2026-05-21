@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,7 @@ import { logoutAndRedirect } from '@/lib/auth-session';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import ChatBox, { type ChatConversationItem, type ChatThreadItem } from '@/app/components/ChatBox';
 import Toast from '@/app/components/Toast';
+import { compressImageToBase64 } from '@/lib/image-compress';
 import styles from './contact-hoa.module.css';
 
 const formatCombinedTimestamp = (date?: string, time?: string) => {
@@ -32,6 +33,7 @@ const normalizeConversation = (message: MessageThread): ChatConversationItem[] =
       message: message.message,
       date: message.date,
       time: message.time,
+      imageUrl: (message as any).imageUrl,
     },
   ];
 
@@ -44,6 +46,7 @@ const normalizeConversation = (message: MessageThread): ChatConversationItem[] =
       content: String(reply.message ?? ''),
       timestamp: formatCombinedTimestamp(reply.date, reply.time),
       align: senderRole === 'resident' ? 'right' : 'left',
+      imageUrl: reply.imageUrl,
     };
   });
 };
@@ -56,6 +59,7 @@ export default function ContactHOAPage() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const residentId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
   const { messages, isLoading, error } = useMessages(residentId, 'resident');
@@ -105,12 +109,20 @@ export default function ContactHOAPage() {
   const handleSendReply = async () => {
     const trimmedReply = replyText.trim();
 
-    if (!trimmedReply) {
-      showToast('Type a message before sending.', 'error');
+    if (!trimmedReply && !selectedImage) {
+      showToast('Type a message or attach an image before sending.', 'error');
       return;
     }
 
     try {
+      let fileBase64 = undefined;
+      let fileName = undefined;
+      if (selectedImage) {
+        showToast('Compressing and preparing image...', 'info');
+        fileBase64 = await compressImageToBase64(selectedImage);
+        fileName = selectedImage.name;
+      }
+
       const subject = selectedThread?.subject ?? 'New HOA Message';
       await apiCall('/api/messages', {
         method: 'POST',
@@ -122,10 +134,13 @@ export default function ContactHOAPage() {
           to: 'HOA Admin',
           priority: 'Normal',
           threadId: selectedThread?.id,
+          fileBase64,
+          fileName,
         }),
       });
 
       setReplyText('');
+      setSelectedImage(null);
       showToast('Your message has been sent.', 'success');
     } catch (error) {
       console.error('Failed to send reply:', error);
@@ -190,6 +205,8 @@ export default function ContactHOAPage() {
           error={error}
           emptyMessage="No messages yet. Use the form to send a message to the HOA."
           composerPlaceholder="Type your message to the HOA..."
+          selectedImage={selectedImage}
+          onImageSelect={setSelectedImage}
         />
 
         <div className={styles.infoBox}>

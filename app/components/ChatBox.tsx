@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import styles from './ChatBox.module.css';
 
 export interface ChatThreadItem {
@@ -19,6 +19,7 @@ export interface ChatConversationItem {
   content: string;
   timestamp?: string;
   align?: 'left' | 'right';
+  imageUrl?: string;
 }
 
 interface ChatBoxProps {
@@ -38,6 +39,8 @@ interface ChatBoxProps {
   error?: string | null;
   emptyMessage?: string;
   composerPlaceholder?: string;
+  selectedImage?: File | null;
+  onImageSelect?: (file: File | null) => void;
 }
 
 export default function ChatBox({
@@ -57,8 +60,12 @@ export default function ChatBox({
   error = null,
   emptyMessage = 'No messages yet.',
   composerPlaceholder = 'Write a message...',
+  selectedImage,
+  onImageSelect,
 }: ChatBoxProps) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
   const selectedThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) ?? null,
     [threads, selectedThreadId],
@@ -67,6 +74,16 @@ export default function ChatBox({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [conversation, selectedThreadId]);
+
+  // Close lightbox on Escape key
+  useEffect(() => {
+    if (!lightboxSrc) return;
+    const handleEsc = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxSrc(null);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [lightboxSrc]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -77,6 +94,26 @@ export default function ChatBox({
 
   return (
     <section className={styles.shell} aria-label={title}>
+      {/* ===== Lightbox Overlay ===== */}
+      {lightboxSrc && (
+        <div className={styles.lightboxOverlay} onClick={() => setLightboxSrc(null)}>
+          <button
+            type="button"
+            className={styles.lightboxClose}
+            onClick={(e) => { e.stopPropagation(); setLightboxSrc(null); }}
+            aria-label="Close preview"
+          >
+            ✕
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="Full preview"
+            className={styles.lightboxImage}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div>
@@ -148,7 +185,19 @@ export default function ChatBox({
                 >
                   <div className={`${styles.bubble} ${isMine ? styles.bubbleMine : styles.bubbleTheirs}`}>
                     <div className={styles.bubbleSender}>{message.sender}</div>
-                    <div className={styles.bubbleContent}>{message.content}</div>
+                    {message.content && <div className={styles.bubbleContent}>{message.content}</div>}
+                    {message.imageUrl && (
+                      <div
+                        className={styles.bubbleImageThumb}
+                        onClick={() => setLightboxSrc(message.imageUrl!)}
+                        title="Click to view full image"
+                      >
+                        <img src={message.imageUrl} alt="Attachment" />
+                        <div className={styles.thumbOverlay}>
+                          <span>🔍 View</span>
+                        </div>
+                      </div>
+                    )}
                     {message.timestamp ? <div className={styles.bubbleTime}>{message.timestamp}</div> : null}
                   </div>
                 </article>
@@ -159,6 +208,12 @@ export default function ChatBox({
         </div>
 
         <div className={styles.composer}>
+          {selectedImage && (
+            <div className={styles.imagePreviewWrapper}>
+              <span className={styles.imagePreviewName}>📎 {selectedImage.name}</span>
+              <button type="button" className={styles.removeImageBtn} onClick={() => onImageSelect?.(null)}>✕</button>
+            </div>
+          )}
           <textarea
             className={styles.composerInput}
             placeholder={composerPlaceholder}
@@ -169,17 +224,34 @@ export default function ChatBox({
           />
           <div className={styles.composerFooter}>
             <p className={styles.composerHint}>Enter sends, Shift+Enter adds a new line.</p>
-            <button
-              type="button"
-              className={styles.sendButton}
-              onClick={() => void onSendReply()}
-              disabled={isLoading || !selectedThreadId}
-            >
-              {sendLabel}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <label className={styles.attachBtn} title="Attach Image">
+                📎
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0] && onImageSelect) {
+                      onImageSelect(e.target.files[0]);
+                    }
+                    e.target.value = ''; // Reset input
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                className={styles.sendButton}
+                onClick={() => void onSendReply()}
+                disabled={isLoading || !selectedThreadId}
+              >
+                {sendLabel}
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
 }
+

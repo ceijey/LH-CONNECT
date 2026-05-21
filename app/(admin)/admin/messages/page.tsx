@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,6 +6,7 @@ import { apiCall } from '@/lib/api-client';
 import { useMessages, type MessageThread } from '@/lib/useMessages';
 import ChatBox, { type ChatConversationItem, type ChatThreadItem } from '@/app/components/ChatBox';
 import Toast from '@/app/components/Toast';
+import { compressImageToBase64 } from '@/lib/image-compress';
 
 type ReadStatus = 'Unread' | 'Read';
 
@@ -29,6 +30,7 @@ const normalizeConversation = (message: MessageThread): ChatConversationItem[] =
       message: message.message,
       date: message.date,
       time: message.time,
+      imageUrl: (message as any).imageUrl,
     },
   ];
 
@@ -41,6 +43,7 @@ const normalizeConversation = (message: MessageThread): ChatConversationItem[] =
       content: String(reply.message ?? ''),
       timestamp: formatCombinedTimestamp(reply.date, reply.time),
       align: senderRole === 'admin' ? 'right' : 'left',
+      imageUrl: reply.imageUrl,
     };
   });
 };
@@ -53,6 +56,7 @@ export default function AdminMessages() {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [readMessageIds, setReadMessageIds] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const adminId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
   const { messages, isLoading, error } = useMessages(adminId, 'admin');
@@ -136,12 +140,20 @@ export default function AdminMessages() {
       return;
     }
 
-    if (!trimmedReply) {
-      showToast('Type a reply before sending.', 'error');
+    if (!trimmedReply && !selectedImage) {
+      showToast('Type a reply or attach an image before sending.', 'error');
       return;
     }
 
     try {
+      let fileBase64 = undefined;
+      let fileName = undefined;
+      if (selectedImage) {
+        showToast('Compressing and preparing image...', 'info');
+        fileBase64 = await compressImageToBase64(selectedImage);
+        fileName = selectedImage.name;
+      }
+
       const response = await apiCall('/api/messages', {
         method: 'POST',
         body: JSON.stringify({
@@ -152,6 +164,8 @@ export default function AdminMessages() {
           to: selectedThread.from,
           priority: selectedThread.priority ?? 'Normal',
           threadId: selectedThread.id,
+          fileBase64,
+          fileName,
         }),
       });
 
@@ -160,6 +174,7 @@ export default function AdminMessages() {
       }
 
       setReplyText('');
+      setSelectedImage(null);
       showToast('Reply sent successfully.', 'success');
     } catch (error) {
       console.error('Failed to send reply:', error);
@@ -199,6 +214,8 @@ export default function AdminMessages() {
           error={error}
           emptyMessage="No messages yet. Residents can send messages via the Contact HOA form."
           composerPlaceholder="Type a reply to the resident..."
+          selectedImage={selectedImage}
+          onImageSelect={setSelectedImage}
         />
       </div>
     </>

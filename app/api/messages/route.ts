@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import { verifyCsrf } from '@/lib/csrf';
 import { groupMessagesIntoThreads } from '@/lib/message-threads';
 import { notifyUserOfMessageUpdate } from '@/app/api/messages/subscribe/route';
@@ -21,9 +21,10 @@ const buildReply = (
   date: string,
   time: string,
   createdAt: string,
+  imageUrl?: string,
 ) => {
   const isoCreatedAt = createdAt && createdAt.includes('T') ? createdAt : new Date(createdAt).toISOString();
-  return {
+  const reply: any = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     senderId,
     senderName,
@@ -33,6 +34,8 @@ const buildReply = (
     time,
     createdAt: isoCreatedAt,
   };
+  if (imageUrl) reply.imageUrl = imageUrl;
+  return reply;
 };
 
 const normalizeSubject = (value: unknown) => {
@@ -118,9 +121,17 @@ export async function POST(request: NextRequest) {
     const recipientId = String(body.recipientId ?? '').trim() || 'admin';
     const priority = String(body.priority ?? 'Normal').trim() || 'Normal';
     const threadId = String(body.threadId ?? '').trim();
+    let imageUrl = body.imageUrl ? String(body.imageUrl) : undefined;
+    const fileBase64 = body.fileBase64 ? String(body.fileBase64) : undefined;
+    const fileName = body.fileName ? String(body.fileName) : 'image.jpg';
 
-    if (!messageText) {
-      return createErrorResponse('Message is required', 400);
+    if (fileBase64) {
+      imageUrl = fileBase64;
+      console.log(`[api/messages] Storing Base64 image payload directly in Firestore to minimize Firebase Storage quota usage.`);
+    }
+
+    if (!messageText && !imageUrl) {
+      return createErrorResponse('Message or image is required', 400);
     }
 
     const senderName = String(userData.fullName ?? userData.name ?? decoded.uid).trim();
@@ -131,7 +142,7 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const { date, time } = formatTimestamp(now);
     const subject = normalizeSubject(subjectText || `Message from ${senderName}`);
-    const reply = buildReply(messageText, decoded.uid, senderName, senderRole, date, time, now.toISOString());
+    const reply = buildReply(messageText, decoded.uid, senderName, senderRole, date, time, now.toISOString(), imageUrl);
 
     if (threadId) {
       const threadRef = adminDb.collection('messages').doc(threadId);
@@ -225,6 +236,7 @@ export async function POST(request: NextRequest) {
       updatedAt: now.toISOString(),
       address: addressParts,
       replies: [reply],
+      ...(imageUrl ? { imageUrl } : {}),
     };
 
     const ref = adminDb.collection('messages').doc();
