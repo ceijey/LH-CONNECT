@@ -17,9 +17,11 @@ export function useAuthPageshow(expectedRole: 'admin' | 'resident') {
     const userRole = localStorage.getItem('userRole');
 
     if (!isAuthenticated || userRole !== expectedRole) {
+      // router may be unstable during HMR; call replace without listing router as a dep
       router.replace('/login');
     }
-  }, [router, expectedRole]);
+    // intentionally omitting `router` from deps to avoid HMR-induced re-runs
+  }, [expectedRole]);
 
   // Separate effect for resident approval status (runs on pathname changes)
   useEffect(() => {
@@ -49,5 +51,5 @@ export function useAuthPageshow(expectedRole: 'admin' | 'resident') {
     checkApprovalStatus();
     window.addEventListener('pageshow', checkApprovalStatus);
     return () => window.removeEventListener('pageshow', checkApprovalStatus);
-  }, [router, expectedRole, pathname]);
+  }, [expectedRole, pathname]);
 }

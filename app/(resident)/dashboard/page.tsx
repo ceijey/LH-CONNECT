@@ -143,7 +143,8 @@ export default function DashboardPage() {
     };
 
     loadResidentProfile();
-  }, [router]);
+    // router is intentionally omitted from deps to avoid HMR re-invoking navigation actions
+  }, []);
 
   const markAsRead = async (id: string) => {
     try {
