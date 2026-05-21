@@ -71,8 +71,8 @@ export default function AdminNotifications() {
     // Fetch on mount but don't block rendering
     fetchNotifications().catch(err => console.error('Initial notification fetch failed:', err));
 
-    // Refresh the top page every 30 seconds for better responsiveness
-    const interval = setInterval(() => fetchNotifications().catch(() => {}), 30000);
+    // Refresh every 2 minutes to reduce Firestore reads
+    const interval = setInterval(() => fetchNotifications().catch(() => {}), 120000);
     return () => clearInterval(interval);
   }, []);
 

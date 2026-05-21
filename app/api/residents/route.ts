@@ -46,10 +46,14 @@ async function ensureMonthlyStatementsForResidents(residents: any[]) {
         });
 
         const currentBalance = Number(resident.balance ?? 0);
+        const newBalance = currentBalance + MONTHLY_DUES;
         await adminDb.collection('users').doc(resident.id).update({
-          balance: currentBalance + MONTHLY_DUES,
+          balance: newBalance,
           updatedAt: createdAt,
         });
+        // Update in-memory so callers don't need to re-fetch
+        resident.balance = newBalance;
+        resident.updatedAt = createdAt;
       }
     }
   } catch (err: any) {
@@ -86,31 +90,18 @@ export async function GET(request: NextRequest) {
         .where('role', '==', 'resident')
         .get();
 
-      const initialResidents = residentsSnapshot.docs.map((doc: any) => ({
+      const residents = residentsSnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      // Automatically generate monthly statements & sync balances
-      await ensureMonthlyStatementsForResidents(initialResidents);
-
-      // Re-fetch updated residents
-      const updatedSnapshot = await adminDb
-        .collection('users')
-        .where('role', '==', 'resident')
-        .get();
-
-      const residents = updatedSnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      // Automatically generate monthly statements & sync balances (updates array in-place)
+      await ensureMonthlyStatementsForResidents(residents);
 
       return NextResponse.json({ residents, user: decoded });
     } else if (userRole === 'resident') {
       // Return current resident's profile from users collection.
-      const residentDoc = await adminDb.collection('users').doc(userId).get();
-      const residentData = residentDoc.data();
-      return NextResponse.json({ resident: residentData, user: decoded });
+      return NextResponse.json({ resident: userData, user: decoded });
     } else {
       return createErrorResponse('Unauthorized role', 403);
     }

@@ -1,0 +1,201 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1rem;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  background-color: #f8fafc;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover {
+  background-color: #f8fafc;
+}
+
+.adminInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.adminName {
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.actionBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.actionApproveResident,
+.actionVerifyPayment {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.actionDeclineResident,
+.actionRejectPayment,
+.actionDeleteResident,
+.actionDeleteSubmission {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.actionPendingResident {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.actionManualPayment {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.actionCreateAnnouncement {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+}
+
+.actionUpdateResidentDetails {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.actionDefault {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.details {
+  color: #64748b;
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+.timeInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.date {
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.time {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.emptyState {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.loading {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.loader {
+  border: 3px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 3px solid #3b82f6;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .table th, .table td {
+    padding: 0.75rem 1rem;
+  }
+}

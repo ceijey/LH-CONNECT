@@ -45,10 +45,14 @@ async function ensureMonthlyStatementsForResidents(residents: any[]) {
         });
 
         const currentBalance = Number(resident.balance ?? 0);
+        const newBalance = currentBalance + MONTHLY_DUES;
         await adminDb.collection('users').doc(resident.id).update({
-          balance: currentBalance + MONTHLY_DUES,
+          balance: newBalance,
           updatedAt: createdAt,
         });
+        // Update in-memory so callers don't need to re-fetch
+        resident.balance = newBalance;
+        resident.updatedAt = createdAt;
       }
     }
   } catch (err: any) {
@@ -67,8 +71,8 @@ export async function GET(request: NextRequest) {
   const userId = decoded.uid;
 
   try {
-    const userDoc = await adminDb.collection('users').doc(userId).get();
-    const userData = userDoc.data();
+    // Use userData from middleware to avoid redundant Firestore read
+    const userData = (tokenVerification as any).userData;
 
     if (!userData || userData.role !== 'admin') {
       return createErrorResponse('Forbidden', 403);
@@ -120,19 +124,13 @@ export async function GET(request: NextRequest) {
       const residentsSnapshot = await adminDb.collection('users')
         .where('role', '==', 'resident')
         .get();
-      const initialResidents = residentsSnapshot.docs.map((doc: any) => ({
+      residents = residentsSnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data()
       }));
 
-      // Auto-generate statements & sync balances
-      await ensureMonthlyStatementsForResidents(initialResidents);
-
-      // Re-fetch updated residents list
-      const updatedSnapshot = await adminDb.collection('users')
-        .where('role', '==', 'resident')
-        .get();
-      residents = updatedSnapshot.docs.map((doc: any) => doc.data());
+      // Auto-generate statements & sync balances (updates residents in-place)
+      await ensureMonthlyStatementsForResidents(residents);
     } catch (e) {
       console.warn('Failed to fetch residents:', e);
     }

@@ -3,6 +3,7 @@ import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware'
 import { adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
+import { logAuditAction } from '@/lib/audit-logger';
 
 export async function POST(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
     if (!adminData || (adminData.role ?? '') !== 'admin') {
       return createErrorResponse('Forbidden', 403);
     }
+    const adminName = adminData.fullName || adminData.name || 'Admin';
 
     const body = await request.json();
     const { residentId, paymentAmount, paymentMethod = 'Cash', month, notes } = body;
@@ -140,6 +142,14 @@ export async function POST(request: NextRequest) {
         console.error('[ManualPayment] Failed to send email:', emailErr.message);
       }
     }
+
+    await logAuditAction(
+      adminId,
+      adminName,
+      'Manual Payment',
+      `Recorded manual ${paymentMethod} payment of ₱${amount} for ${residentName} (${month})`,
+      submissionRef.id
+    );
 
     return NextResponse.json({ 
       success: true, 

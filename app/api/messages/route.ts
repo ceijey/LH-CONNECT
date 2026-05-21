@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get the requesting user's role
-    const userDoc = await adminDb.collection('users').doc(userId).get();
-    const userData = userDoc.data();
+    // Use userData from middleware to avoid redundant Firestore read
+    const userData = (tokenVerification as any).userData;
 
     if (!userData) {
       return createErrorResponse('User not found', 404);
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   if (csrfErr) return csrfErr;
   try {
     const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
-    const userData = userDoc.data();
+    const userData = userDoc.exists ? userDoc.data() : (tokenVerification as any).userData;
 
     if (!userData) {
       return createErrorResponse('User not found', 404);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyCsrf } from '@/lib/csrf';
+import { logAuditAction } from '@/lib/audit-logger';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,6 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if ((userData.role ?? '') !== 'admin') {
       return createErrorResponse('Forbidden', 403);
     }
+    const adminName = userData.fullName || userData.name || 'Admin';
 
     const body = await request.json();
     const { status, rejectionReason } = body as { status?: string; rejectionReason?: string };
@@ -131,6 +133,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         submissionId: id
       });
     }
+    
+    await logAuditAction(
+      userId,
+      adminName,
+      status === 'Verified' ? 'Verify Payment' : (status === 'Rejected' ? 'Reject Payment' : 'Verify Payment'),
+      `${status} payment of ₱${submissionData.paymentAmount} from ${submissionData.residentName}`,
+      id
+    );
 
     const updated = (await docRef.get()).data();
     return NextResponse.json({ submission: { id, ...updated } });
@@ -155,11 +165,24 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   try {
     const userDoc = await adminDb.collection('users').doc(userId).get();
-    if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
+    const userData = userDoc.data();
+    if (!userDoc.exists || userData?.role !== 'admin') {
       return createErrorResponse('Forbidden', 403);
     }
+    const adminName = userData?.fullName || userData?.name || 'Admin';
 
-    await adminDb.collection('payment_submissions').doc(id).delete();
+    const docRef = adminDb.collection('payment_submissions').doc(id);
+    const docData = (await docRef.get()).data();
+
+    await docRef.delete();
+
+    await logAuditAction(
+      userId,
+      adminName,
+      'Delete Submission',
+      `Deleted payment submission from ${docData?.residentName || 'Unknown'} for ₱${docData?.paymentAmount || 0}`,
+      id
+    );
 
     return NextResponse.json({ message: 'Submission deleted successfully' });
   } catch (error: any) {

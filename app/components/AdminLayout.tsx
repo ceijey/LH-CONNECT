@@ -73,6 +73,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     { href: '/admin/announcements', icon: '📢', label: 'Announcements', id: 'announcements' },
     { href: '/admin/reports', icon: '📑', label: 'Reports', id: 'reports' },
     { href: '/admin/payments/manual', icon: '💵', label: 'Manual Payment', id: 'manual-payment' },
+    { href: '/admin/audit-logs', icon: '📝', label: 'Audit Log', id: 'audit-logs' },
   ];
 
   const getActiveTitle = () => {

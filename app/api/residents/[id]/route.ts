@@ -4,6 +4,7 @@ import { verifyCsrf } from '@/lib/csrf';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { sendDueBillEmail } from '@/lib/mailer';
 import { sendDueBillSMS } from '@/lib/sms';
+import { logAuditAction } from '@/lib/audit-logger';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,9 +54,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const adminDoc = await adminDb.collection('users').doc(userId).get();
-    if (!adminDoc.exists || adminDoc.data()?.role !== 'admin') {
+    const adminData = adminDoc.data();
+    if (!adminDoc.exists || adminData?.role !== 'admin') {
       return createErrorResponse('Forbidden', 403);
     }
+    const adminName = adminData.fullName || adminData.name || 'Admin';
 
     // Get the resident's current data before update
     const residentDoc = await adminDb.collection('users').doc(id).get();
@@ -114,9 +117,32 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             console.error('Failed to create admin notification for action:', notifyErr);
           }
         }
+
+        // Add audit log
+        let auditAction: 'Approve Resident' | 'Decline Resident' | 'Pending Resident' = 'Pending Resident';
+        if (updatePayload.approvalStatus === 'Approved') auditAction = 'Approve Resident';
+        else if (updatePayload.approvalStatus === 'Rejected') auditAction = 'Decline Resident';
+        
+        await logAuditAction(
+          userId, 
+          adminName, 
+          auditAction, 
+          `Set resident ${currentData?.fullName || id} status to ${updatePayload.approvalStatus}`, 
+          id
+        );
+
       } catch (notifyErr) {
         console.error('Failed to update registration notifications:', notifyErr);
       }
+    } else {
+      // General update audit log
+      await logAuditAction(
+        userId,
+        adminName,
+        'Update Resident Details',
+        `Updated details for resident ${currentData?.fullName || id}`,
+        id
+      );
     }
 
     // Create notification and send email if balance is being set
@@ -245,9 +271,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   try {
     const adminDoc = await adminDb.collection('users').doc(userId).get();
-    if (!adminDoc.exists || adminDoc.data()?.role !== 'admin') {
+    const adminData = adminDoc.data();
+    if (!adminDoc.exists || adminData?.role !== 'admin') {
       return createErrorResponse('Forbidden', 403);
     }
+    const adminName = adminData.fullName || adminData.name || 'Admin';
 
     // 1. Delete from Firebase Auth
     try {
@@ -259,6 +287,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // 2. Delete from Firestore
     await adminDb.collection('users').doc(id).delete();
+
+    // 3. Audit Log
+    await logAuditAction(
+      userId,
+      adminName,
+      'Delete Resident',
+      `Deleted resident account ${id}`,
+      id
+    );
 
     return NextResponse.json({ message: 'Resident deleted successfully' });
   } catch (error: any) {

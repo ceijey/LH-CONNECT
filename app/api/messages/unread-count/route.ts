@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
   const decoded = tokenVerification.decoded!;
 
   try {
-    const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
-    const userData = userDoc.data();
+    // Use userData from middleware to avoid redundant Firestore read
+    const userData = (tokenVerification as any).userData;
 
     if (!userData) {
       return createErrorResponse('User not found', 404);

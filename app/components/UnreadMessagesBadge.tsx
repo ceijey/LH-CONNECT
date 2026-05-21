@@ -47,7 +47,7 @@ export default function UnreadMessagesBadge({ className }: UnreadMessagesBadgePr
     };
 
     loadCount();
-    const interval = window.setInterval(loadCount, 30000);
+    const interval = window.setInterval(loadCount, 120000);
     window.addEventListener('lh-messages-updated', onMessagesUpdated);
 
     return () => {

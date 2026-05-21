@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyCsrf } from '@/lib/csrf';
+import { logAuditAction } from '@/lib/audit-logger';
 
 export async function POST(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
@@ -75,6 +76,14 @@ export async function POST(request: NextRequest) {
     if (count > 0) {
       await batch.commit();
     }
+
+    await logAuditAction(
+      adminId,
+      adminName,
+      'Create Announcement',
+      `Posted a new ${severity} announcement: "${title}"`,
+      announcementRef.id
+    );
 
     return NextResponse.json({
       success: true,

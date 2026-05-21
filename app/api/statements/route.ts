@@ -68,7 +68,23 @@ export async function GET(request: NextRequest) {
         const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
         const dueIso = due.toISOString();
 
-        await statementsRef.add({
+        const newStmtRef = await statementsRef.add({
+          residentId: userId,
+          month: currentMonthName,
+          year: currentYear,
+          date: createdAt,
+          dueDate: dueIso,
+          totalDues: MONTHLY_DUES,
+          amountPaid: 0,
+          balance: MONTHLY_DUES,
+          status: 'Pending',
+          createdAt,
+          updatedAt: createdAt,
+        });
+
+        // Add to in-memory array so we don't need to re-fetch
+        existingStatements.push({
+          id: newStmtRef.id,
           residentId: userId,
           month: currentMonthName,
           year: currentYear,
@@ -110,15 +126,14 @@ export async function GET(request: NextRequest) {
         if (Object.keys(updates).length > 0) {
           updates.updatedAt = now.toISOString();
           await statementsRef.doc(currentStatement.id).update(updates);
+          // Apply updates in-memory so we don't need to re-fetch
+          Object.assign(currentStatement, updates);
         }
       }
 
-      const normalizedStatementsSnapshot = await statementsRef
-        .where('residentId', '==', userId)
-        .get();
-
-      statements = normalizedStatementsSnapshot.docs.map((doc: any) => {
-        const data = { id: doc.id, ...doc.data(), totalDues: MONTHLY_DUES } as any;
+      // Use the in-memory array instead of re-fetching from Firestore
+      statements = existingStatements.map((data: any) => {
+        data.totalDues = MONTHLY_DUES;
         // ensure dueDate exists on returned statements
         if (!data.dueDate) {
           try {
