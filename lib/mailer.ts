@@ -41,7 +41,68 @@ interface PaymentVerifiedOptions {
 }
 
 export async function sendPaymentVerifiedEmail(options: PaymentVerifiedOptions): Promise<void> {
-  console.log(`[mailer stub] sendPaymentVerifiedEmail -> resident=${options.residentName}, amount=${options.amount}, month=${options.month}`);
+  await sendPaymentStatusEmail({
+    toEmail: options.toEmail,
+    residentName: options.residentName,
+    amount: options.amount,
+    month: options.month,
+    status: 'Verified',
+  });
+}
+
+interface PaymentStatusEmailOptions {
+  toEmail: string;
+  residentName: string;
+  amount: number;
+  month: string;
+  status: 'Verified' | 'Rejected';
+  rejectionReason?: string;
+}
+
+export async function sendPaymentStatusEmail({
+  toEmail,
+  residentName,
+  amount,
+  month,
+  status,
+  rejectionReason,
+}: PaymentStatusEmailOptions): Promise<void> {
+  const resend = getResend();
+  const isApproved = status === 'Verified';
+  const subject = isApproved ? `✅ Payment Approved for ${month}` : `⚠️ Payment Declined for ${month}`;
+  const message = isApproved
+    ? `Your payment of ₱${amount.toLocaleString()} for ${month} has been approved.`
+    : `Your payment of ₱${amount.toLocaleString()} for ${month} was declined.${rejectionReason ? ` Reason: ${rejectionReason}` : ''}`;
+
+  const { error } = await resend.emails.send({
+    from: RESEND_FROM,
+    to: [toEmail],
+    subject,
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${subject}</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+        <div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">
+          <div style="background:#1B2A4A;color:#fff;padding:24px 32px;">
+            <h1 style="margin:0;font-size:24px;">LH-Connect</h1>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 16px;font-size:16px;color:#374151;">Dear <strong>${residentName}</strong>,</p>
+            <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">${message}</p>
+            <p style="margin:0;font-size:14px;color:#6b7280;">You can check your account for the latest payment status and notification details.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+
+  if (error) throw new Error(`Resend error: ${error.message}`);
 }
 
 interface AccountStatusEmailOptions {

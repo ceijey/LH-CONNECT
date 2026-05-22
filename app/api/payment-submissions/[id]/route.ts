@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { sendPaymentStatusEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
 import { logAuditAction } from '@/lib/audit-logger';
 
@@ -40,6 +41,24 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const submissionData = doc.data()!;
     const residentId = submissionData.residentId;
+    const paymentAmount = Number(submissionData.paymentAmount ?? 0);
+    const month = submissionData.month || 'Current';
+    const residentName = submissionData.residentName || 'Resident';
+
+    let residentEmail: string | undefined;
+    if (residentId) {
+      try {
+        const authUser = await adminAuth.getUser(residentId);
+        residentEmail = authUser.email ?? undefined;
+      } catch (emailLookupErr: any) {
+        console.warn('[PaymentSubmission] Could not fetch auth user email:', emailLookupErr?.message ?? emailLookupErr);
+      }
+
+      if (!residentEmail) {
+        const residentDoc = await adminDb.collection('users').doc(residentId).get();
+        residentEmail = residentDoc.data()?.email;
+      }
+    }
 
     const now = new Date();
     const updatePayload: any = { 
@@ -58,7 +77,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         const residentDoc = await residentRef.get();
         if (residentDoc.exists) {
           const currentBalance = Number(residentDoc.data()?.balance ?? 0);
-          const paymentAmount = Number(submissionData.paymentAmount ?? 0);
           await residentRef.update({
             balance: Math.max(0, currentBalance - paymentAmount),
             updatedAt: now.toISOString()
@@ -67,10 +85,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           // Create official payment record
           await adminDb.collection('payments').add({
             residentId,
-            residentName: submissionData.residentName || 'Unknown',
+            residentName,
             amount: paymentAmount,
             type: 'Payment',
-            description: `Monthly Dues - ${submissionData.month || 'Current'}`,
+            description: `Monthly Dues - ${month}`,
             paymentMethod: submissionData.paymentMethod,
             referenceNumber: submissionData.referenceNumber,
             fileUrl: submissionData.fileUrl || null,
@@ -120,8 +138,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Create a notification for the resident
     if (residentId) {
       const notificationMessage = status === 'Verified' 
-        ? `Your payment of ₱${submissionData.paymentAmount} has been approved.` 
-        : `Your payment of ₱${submissionData.paymentAmount} was rejected. Reason: ${rejectionReason || 'No reason provided'}`;
+        ? `Your payment of ₱${paymentAmount} has been approved.` 
+        : `Your payment of ₱${paymentAmount} was rejected. Reason: ${rejectionReason || 'No reason provided'}`;
 
       await adminDb.collection('notifications').add({
         userId: residentId,
@@ -132,13 +150,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         createdAt: now,
         submissionId: id
       });
+
+      if (residentEmail && (status === 'Verified' || status === 'Rejected')) {
+        try {
+          await sendPaymentStatusEmail({
+            toEmail: residentEmail,
+            residentName,
+            amount: paymentAmount,
+            month,
+            status,
+            rejectionReason: status === 'Rejected' ? (rejectionReason || 'No reason provided') : undefined,
+          });
+        } catch (emailErr: any) {
+          console.error('[PaymentSubmission] Failed to send payment status email:', emailErr?.message ?? emailErr);
+        }
+      }
     }
     
     await logAuditAction(
       userId,
       adminName,
       status === 'Verified' ? 'Verify Payment' : (status === 'Rejected' ? 'Reject Payment' : 'Verify Payment'),
-      `${status} payment of ₱${submissionData.paymentAmount} from ${submissionData.residentName}`,
+      `${status} payment of ₱${paymentAmount} from ${residentName}`,
       id
     );
 
