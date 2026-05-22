@@ -65,8 +65,9 @@
 .message {
   margin: 0;
   font-size: 1rem;
-  color: #9E9E9E;
+  color: #374151;
   line-height: 1.6;
+  font-weight: 500;
 }
 
 .footer {
@@ -195,13 +196,22 @@
   border-radius: 8px;
   font-family: inherit;
   font-size: 0.95rem;
+  color: #1B2A4A;
+  background: #fafafa;
   resize: vertical;
   transition: all 0.2s ease;
   outline: none;
+  box-sizing: border-box;
+}
+
+.modalInput::placeholder {
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .modalInput:focus {
   border-color: #1b2a4a;
+  background: #ffffff;
   box-shadow: 0 0 0 4px rgba(27, 42, 74, 0.1);
 }
 

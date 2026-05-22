@@ -1,7 +1,7 @@
 .shell {
   display: grid;
   grid-template-columns: 350px minmax(0, 1fr);
-  min-height: 75vh;
+  height: 80vh;
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 24px;
@@ -13,6 +13,8 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100%;
+  overflow: hidden;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: #ffffff;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -63,7 +65,9 @@
   gap: 0.5rem;
   padding: 1rem;
   overflow-y: auto;
-  flex-grow: 1;
+  flex: 1 1 0;
+  min-height: 0; /* critical for flex children to scroll */
+  scroll-behavior: smooth;
 }
 
 .threadList::-webkit-scrollbar {
@@ -174,6 +178,7 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   height: 100%;
+  overflow: hidden;
   background: #f8fafc;
 }
 
@@ -236,9 +241,10 @@
   padding: 1.75rem;
   overflow-y: auto;
   background: #f1f5f9;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(243, 244, 246, 0.5) 0, transparent 50%), 
+  background-image:
+    radial-gradient(at 0% 0%, rgba(243, 244, 246, 0.5) 0, transparent 50%),
     radial-gradient(at 50% 0%, rgba(219, 234, 254, 0.3) 0, transparent 50%);
+  max-height: calc(100vh - 250px); /* Ensure chat area is scrollable */
 }
 
 .messageStream::-webkit-scrollbar {
@@ -434,8 +440,8 @@
 @media (max-width: 1024px) {
   .shell {
     grid-template-columns: 1fr;
-    grid-template-rows: 300px minmax(0, 1fr);
-    min-height: 80vh;
+    grid-template-rows: 45% minmax(0, 1fr);
+    height: 90vh;
   }
 
   .sidebar {

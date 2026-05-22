@@ -189,7 +189,7 @@ export default function AdminReports() {
           <title>${selectedReportType.toUpperCase()} - ${getFormattedPeriod()}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #1e293b; background: white; line-height: 1.5; }
+            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px 40px 80px 40px; color: #1e293b; background: white; line-height: 1.5; }
             .header { text-align: center; border-bottom: 3px double #1B2A4A; padding-bottom: 24px; margin-bottom: 30px; }
             .logo-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
             .logo-img { width: 44px; height: 44px; object-fit: contain; }
@@ -204,9 +204,24 @@ export default function AdminReports() {
             table { width: 100%; border-collapse: collapse; margin-top: 25px; }
             th { text-align: left; padding: 14px 10px; background: transparent; color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 2px solid #e2e8f0; }
             td { font-size: 13px; }
-            .footer { margin-top: 60px; font-size: 11px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+            .footer {
+              position: fixed;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              font-size: 11px;
+              text-align: center;
+              color: #94a3b8;
+              border-top: 1px solid #e2e8f0;
+              padding: 12px 40px;
+              background: white;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              font-weight: 600;
+            }
             @media print {
-              body { padding: 0; }
+              body { padding: 0 0 60px 0; }
+              .footer { position: fixed; bottom: 0; left: 0; right: 0; }
             }
           </style>
         </head>

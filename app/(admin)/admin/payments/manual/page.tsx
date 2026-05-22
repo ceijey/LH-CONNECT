@@ -84,6 +84,19 @@ export default function ManualPaymentPage() {
     setSelectedResidentId(resident.id);
     setRegisteredName(resident.fullName);
     setShowResults(false);
+
+    // Auto-populate Business Address from resident's phase/block/lot
+    // Strip any existing "Phase/Block/Lot" prefixes to avoid duplication
+    const cleanPhase = resident.phase?.replace(/^phase\s*/i, '').trim();
+    const cleanBlock = resident.block?.replace(/^block\s*/i, '').trim();
+    const cleanLot = resident.lot?.replace(/^lot\s*/i, '').trim();
+
+    const addressParts: string[] = [];
+    if (cleanPhase) addressParts.push(`Phase ${cleanPhase}`);
+    if (cleanBlock) addressParts.push(`Block ${cleanBlock}`);
+    if (cleanLot) addressParts.push(`Lot ${cleanLot}`);
+    addressParts.push('Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan');
+    setBusinessAddress(addressParts.join(', '));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

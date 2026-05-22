@@ -125,6 +125,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       joinedAt: new Date(),
     });
 
+    // 5. Notify admin that a resident RSVP'd to the event
+    const residentName = profile.fullName || profile.name || 'A resident';
+    const location = [
+      profile.phase ? `Phase ${profile.phase}` : null,
+      profile.block ? `Block ${profile.block}` : null,
+      profile.lot ? `Lot ${profile.lot}` : null,
+    ].filter(Boolean).join(', ');
+
+    await adminDb.collection('admin_notifications').add({
+      type: 'event_rsvp',
+      title: '📅 Event RSVP',
+      message: `${residentName}${location ? ` (${location})` : ''} confirmed attendance to "${annData.title}".`,
+      residentId: userId,
+      residentName,
+      announcementId,
+      eventTitle: annData.title,
+      read: false,
+      createdAt: new Date(),
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Successfully joined meeting / event.',

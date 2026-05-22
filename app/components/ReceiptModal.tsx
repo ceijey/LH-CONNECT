@@ -29,6 +29,25 @@ export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalP
 
   if (!isOpen || !payment) return null;
 
+  // Derive period covered from paymentDateTime or submittedDate
+  const derivePeriodCovered = (): string => {
+    const dateStr = payment.paymentDateTime || payment.submittedDate;
+    if (!dateStr) return new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+      }
+    } catch {
+      // fallback
+    }
+    return dateStr;
+  };
+
+  const periodCovered = derivePeriodCovered();
+  const isPaid = payment.status === 'Verified';
+  const monthlyDueBill = payment.paymentAmount ?? 400;
+
   const handleDownloadImage = async () => {
     if (!receiptRef.current) return;
     
@@ -43,7 +62,7 @@ export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalP
       
       const image = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
-      link.download = `Receipt-${payment.id}.png`;
+      link.download = `LHHOA-Receipt-${payment.id?.substring(0, 8) || 'billing'}.png`;
       link.href = image;
       link.click();
     } catch (error) {
@@ -53,114 +72,128 @@ export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalP
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Payment Receipt</h2>
+          <h2 className={styles.modalTitle}>Monthly Dues Billing</h2>
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
         <div className={styles.scrollArea}>
           <div className={styles.receiptContainer} ref={receiptRef}>
-            {/* Receipt Header */}
+            {/* Receipt Header - Logo + Org Info */}
             <div className={styles.receiptHeader}>
-              <div className={styles.brandInfo}>
-                <span className={styles.brandIcon}>🏠</span>
-                <div>
-                  <h1 className={styles.brandName}>LH-Connect</h1>
-                  <p className={styles.brandTagline}>Lincoln Heights HOA Official Receipt</p>
-                </div>
-              </div>
-              <div className={styles.receiptMeta}>
-                <div className={styles.receiptId}># {payment.id.substring(0, 12)}</div>
-                <div className={styles.receiptDate}>
-                  {payment.verifiedDate || payment.submittedDate}
-                </div>
+              <img
+                src="/lhhoa-logo.png"
+                alt="LHHOA Logo"
+                className={styles.receiptLogo}
+                crossOrigin="anonymous"
+              />
+              <div className={styles.orgInfo}>
+                <h1 className={styles.orgName}>Lincoln Heights Homeowners Association</h1>
+                <p className={styles.orgSub}>Lincoln Heights Subdivision</p>
+                <p className={styles.orgSub}>San Pablo, Dinalupihan Bataan</p>
+                <p className={styles.orgSub}>TIN 480-266-103-000</p>
               </div>
             </div>
 
-            {/* Status Watermark */}
-            <div className={`${styles.watermark} ${styles[(payment.status || 'pending').toLowerCase()]}`}>
-              {(payment.status || 'pending').toUpperCase()}
-            </div>
+            {/* Title */}
+            <div className={styles.billingTitle}>MONTHLY DUES BILLING</div>
 
-            {/* Transaction Body */}
-            <div className={styles.receiptBody}>
-              <div className={styles.detailsGrid}>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Resident Name</span>
-                  <span className={styles.detailValue}>{payment.residentName}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Address</span>
-                  <span className={styles.detailValue}>{payment.blockLot}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Payment Method</span>
-                  <span className={styles.detailValue}>{payment.paymentMethod}</span>
-                </div>
+            {/* Billing Details */}
+            <table className={styles.billingTable}>
+              <tbody>
+                <tr>
+                  <td className={styles.fieldLabel}>Name</td>
+                  <td className={styles.fieldColon}>:</td>
+                  <td className={styles.fieldValue}>{payment.residentName || '—'}</td>
+                </tr>
+                <tr>
+                  <td className={styles.fieldLabel}>Address</td>
+                  <td className={styles.fieldColon}>:</td>
+                  <td className={styles.fieldValue}>{payment.blockLot || '—'}</td>
+                </tr>
+                <tr>
+                  <td className={styles.fieldLabel}>Period Covered</td>
+                  <td className={styles.fieldColon}>:</td>
+                  <td className={styles.fieldValue}>{periodCovered}</td>
+                </tr>
+                <tr>
+                  <td className={styles.fieldLabel}>Monthly Due Bill</td>
+                  <td className={styles.fieldColon}>:</td>
+                  <td className={styles.fieldValue}>{monthlyDueBill.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td className={styles.fieldLabel}>Arrears</td>
+                  <td className={styles.fieldColon}>:</td>
+                  <td className={styles.fieldValue}>—</td>
+                </tr>
+                <tr className={styles.totalRow}>
+                  <td className={styles.totalLabel}>Total Amount Due</td>
+                  <td className={styles.totalColon}>:</td>
+                  <td className={styles.totalValue}>
+                    {isPaid ? (
+                      <span className={styles.paidBadge}>PAID</span>
+                    ) : (
+                      <span className={styles.pendingBadge}>PENDING</span>
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <td className={styles.fieldLabel}>Due Date</td>
+                  <td className={styles.fieldColon}>:</td>
+                  <td className={styles.fieldValue}>—</td>
+                </tr>
+                {payment.referenceNumber && (
+                  <tr>
+                    <td className={styles.fieldLabel}>Reference No.</td>
+                    <td className={styles.fieldColon}>:</td>
+                    <td className={styles.fieldValue}>{payment.referenceNumber}</td>
+                  </tr>
+                )}
+                {payment.paymentMethod && (
+                  <tr>
+                    <td className={styles.fieldLabel}>Payment Method</td>
+                    <td className={styles.fieldColon}>:</td>
+                    <td className={styles.fieldValue}>{payment.paymentMethod}</td>
+                  </tr>
+                )}
                 {payment.paymentDateTime && (
-                  <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Payment Date/Time</span>
-                    <span className={styles.detailValue}>
-                      {new Date(payment.paymentDateTime).toLocaleString(undefined, {
-                        month: 'short',
+                  <tr>
+                    <td className={styles.fieldLabel}>Payment Date/Time</td>
+                    <td className={styles.fieldColon}>:</td>
+                    <td className={styles.fieldValue}>
+                      {new Date(payment.paymentDateTime).toLocaleString('en-US', {
+                        month: 'long',
                         day: 'numeric',
                         year: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
-                    </span>
-                  </div>
+                    </td>
+                  </tr>
                 )}
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Reference No.</span>
-                  <span className={styles.detailValue}>{payment.referenceNumber || 'N/A'}</span>
-                </div>
-              </div>
+              </tbody>
+            </table>
 
-              <div className={styles.amountSection}>
-                <div className={styles.amountLabel}>Total Amount Paid</div>
-                <div className={styles.amountValue}>₱{payment.paymentAmount.toLocaleString()}</div>
-              </div>
-
-              {payment.notes && (
-                <div className={styles.notesSection}>
-                  <span className={styles.detailLabel}>Notes</span>
-                  <p className={styles.notesText}>{payment.notes}</p>
-                </div>
-              )}
-
-              {/* Proof of Payment Section */}
-              <div className={styles.proofSection}>
-                <span className={styles.detailLabel}>Proof of Payment</span>
-                <div className={styles.proofImageWrapper}>
-                  {payment.id ? (
-                    <img 
-                      src={`/api/payment-submissions/${payment.id}/proof`} 
-                      alt="Proof of Payment" 
-                      className={styles.proofImage}
-                      crossOrigin="anonymous"
-                      onError={(e) => {
-                        if (payment.fileUrl && e.currentTarget.src !== payment.fileUrl) {
-                          e.currentTarget.src = payment.fileUrl;
-                        }
-                      }}
-                    />
-                  ) : payment.fileUrl ? (
-                    <img 
-                      src={payment.fileUrl} 
-                      alt="Proof of Payment" 
-                      className={styles.proofImage}
-                      crossOrigin="anonymous"
-                    />
-                  ) : (
-                    <div className={styles.noProof}>No image attached</div>
-                  )}
-                </div>
-              </div>
+            {/* Notes Section */}
+            <div className={styles.notesSection}>
+              <p className={styles.notesTitle}>Note:</p>
+              <ul className={styles.notesList}>
+                <li>Please pay your monthly dues on/or before due date to avoid sanctions.</li>
+                <li>If payment has been made, please disregard this bill.</li>
+                <li>If you cannot pay your monthly due bill on time, please visit LHHOA Office.</li>
+                {payment.notes && <li>{payment.notes}</li>}
+              </ul>
             </div>
+
+            {/* Thank You */}
+            <div className={styles.thankYou}>Thank You</div>
 
             {/* Receipt Footer */}
             <div className={styles.receiptFooter}>
@@ -168,11 +201,46 @@ export default function ReceiptModal({ isOpen, onClose, payment }: ReceiptModalP
               <p>© {new Date().getFullYear()} Lincoln Heights Homeowners Association</p>
             </div>
           </div>
+
+          {/* Proof of Payment - Outside printable area */}
+          <div className={styles.proofSection}>
+            <p className={styles.proofTitle}>Attached Proof of Payment</p>
+            <div className={styles.proofImageWrapper}>
+              {payment.id ? (
+                <img 
+                  src={`/api/payment-submissions/${payment.id}/proof`} 
+                  alt="Proof of Payment" 
+                  className={styles.proofImage}
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    if (payment.fileUrl && e.currentTarget.src !== payment.fileUrl) {
+                      e.currentTarget.src = payment.fileUrl;
+                    }
+                  }}
+                />
+              ) : payment.fileUrl ? (
+                <img 
+                  src={payment.fileUrl} 
+                  alt="Proof of Payment" 
+                  className={styles.proofImage}
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div className={styles.noProof}>No image attached</div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className={styles.modalFooter}>
           <button className={styles.secondaryBtn} onClick={onClose}>
             Close
+          </button>
+          <button 
+            className={styles.printBtn} 
+            onClick={handlePrint}
+          >
+            🖨️ Print Receipt
           </button>
           <button 
             className={styles.primaryBtn} 
