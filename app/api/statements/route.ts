@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       } else {
         const amountPaid = Number(currentStatement.amountPaid ?? 0);
         const normalizedBalance = Math.max(0, MONTHLY_DUES - amountPaid);
-        const normalizedStatus = normalizedBalance === 0 ? 'Paid' : (amountPaid > 0 ? 'Partially Paid' : 'Pending');
+        const normalizedStatus = normalizedBalance === 0 ? 'Paid' : 'Pending';
 
         const updates: any = {};
         if (Number(currentStatement.totalDues ?? 0) !== MONTHLY_DUES) updates.totalDues = MONTHLY_DUES;
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
           balance: Math.max(0, MONTHLY_DUES - Number(stmt.amountPaid ?? 0)),
           status: Math.max(0, MONTHLY_DUES - Number(stmt.amountPaid ?? 0)) === 0
             ? 'Paid'
-            : (Number(stmt.amountPaid ?? 0) > 0 ? 'Partially Paid' : 'Pending'),
+            : 'Pending',
           relatedSubmissions: matchingSubmissions
         };
       });

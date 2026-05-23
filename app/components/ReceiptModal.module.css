@@ -481,14 +481,40 @@
     visibility: visible !important;
   }
 
-  .receiptContainer {
-    position: absolute;
-    left: 0;
-    top: 0;
+  .printGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
     width: 100%;
-    box-shadow: none;
-    padding: 32px 40px;
-    min-height: auto;
-    page-break-after: always;
+    padding: 0;
   }
+
+  .receiptContainer {
+    position: relative;
+    box-shadow: none;
+    padding: 12px;
+    min-height: auto;
+    page-break-after: auto;
+    page-break-inside: avoid;
+    border: 1px dashed #ccc;
+  }
+  
+  /* Scale down contents to fit 6 per page */
+  .receiptHeader { margin-bottom: 8px; gap: 8px; }
+  .receiptLogo { width: 36px; height: 36px; }
+  .orgName { font-size: 0.75rem; }
+  .orgSub { font-size: 0.55rem; }
+  .billingTitle { font-size: 0.8rem; margin: 4px 0 8px; }
+  .billingTable td { padding: 2px; font-size: 0.65rem; }
+  .fieldLabel { font-size: 0.65rem; }
+  .fieldValue { font-size: 0.65rem; }
+  .totalRow td { padding-top: 4px; padding-bottom: 4px; }
+  .totalLabel { font-size: 0.7rem; }
+  .totalValue { font-size: 0.8rem; }
+  .notesSection { margin-top: 8px; padding-top: 4px; }
+  .notesTitle { font-size: 0.65rem; margin-bottom: 4px; }
+  .notesList li { font-size: 0.55rem; margin-bottom: 2px; }
+  .thankYou { padding-top: 8px; font-size: 0.65rem; }
+  .receiptFooter { margin-top: 8px; padding-top: 4px; }
+  .receiptFooter p { font-size: 0.5rem; margin: 1px 0; }
 }

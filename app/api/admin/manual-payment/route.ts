@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         const newAmountPaid = Number(stmtData.amountPaid || 0) + amount;
         const stmtTotalDues = Number(stmtData.totalDues || 0);
         const newStmtBalance = Math.max(0, stmtTotalDues - newAmountPaid);
-        const newStatus = newStmtBalance === 0 ? 'Paid' : (newAmountPaid > 0 ? 'Partially Paid' : 'Pending');
+        const newStatus = newStmtBalance === 0 ? 'Paid' : 'Pending';
 
         await statementsRef.doc(targetStmt.id).update({
           amountPaid: newAmountPaid,

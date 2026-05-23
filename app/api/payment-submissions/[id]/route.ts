@@ -113,7 +113,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
               const stmtData = targetStmt.data();
               const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
               const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
-              const newStatus = newBalance === 0 ? 'Paid' : (newAmountPaid > 0 ? 'Partially Paid' : 'Pending');
+              const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
 
               await statementsRef.doc(targetStmt.id).update({
                 amountPaid: newAmountPaid,

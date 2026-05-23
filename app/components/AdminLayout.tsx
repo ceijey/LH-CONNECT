@@ -72,6 +72,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     { href: '/admin/messages', icon: '💬', label: 'Messages', id: 'messages' },
     { href: '/admin/announcements', icon: '📢', label: 'Announcements', id: 'announcements' },
     { href: '/admin/reports', icon: '📑', label: 'Reports', id: 'reports' },
+    { href: '/admin/billing', icon: '🧾', label: 'Billing', id: 'billing' },
     { href: '/admin/payments/manual', icon: '💵', label: 'Manual Payment', id: 'manual-payment' },
     { href: '/admin/audit-logs', icon: '📝', label: 'Audit Log', id: 'audit-logs' },
   ];

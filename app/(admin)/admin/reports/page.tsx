@@ -55,6 +55,8 @@ export default function AdminReports() {
     collectionRate: '0'
   });
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
@@ -113,6 +115,7 @@ export default function AdminReports() {
 
   useEffect(() => {
     fetchReport();
+    setCurrentPage(1);
   }, [selectedMonth, selectedYear, selectedReportType, selectedDate]);
 
   const sortedData = useMemo(() => {
@@ -140,6 +143,7 @@ export default function AdminReports() {
       direction = 'descending';
     }
     setSortConfig({ key, direction });
+    setCurrentPage(1);
   };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -548,7 +552,7 @@ export default function AdminReports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedData.map((row) => (
+                  {sortedData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((row) => (
                     <tr key={row.id}>
                       <td>Blk {row.block} Lot {row.lot}</td>
                       <td>{row.resident}</td>
@@ -578,6 +582,68 @@ export default function AdminReports() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {sortedData.length > ITEMS_PER_PAGE && (
+              <div className={styles.pagination}>
+                <span className={styles.paginationInfo}>
+                  Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, sortedData.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} of {sortedData.length} records
+                </span>
+                <div className={styles.paginationControls}>
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    title="First page"
+                  >
+                    «
+                  </button>
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    ‹ Prev
+                  </button>
+                  {Array.from({ length: Math.ceil(sortedData.length / ITEMS_PER_PAGE) }, (_, i) => i + 1)
+                    .filter(page => page === 1 || page === Math.ceil(sortedData.length / ITEMS_PER_PAGE) || Math.abs(page - currentPage) <= 1)
+                    .reduce((acc: (number | string)[], page, idx, arr) => {
+                      if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                      acc.push(page);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === '...' ? (
+                        <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>…</span>
+                      ) : (
+                        <button
+                          key={item}
+                          className={`${styles.pageBtn} ${currentPage === item ? styles.pageBtnActive : ''}`}
+                          onClick={() => setCurrentPage(item as number)}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )
+                  }
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(sortedData.length / ITEMS_PER_PAGE), p + 1))}
+                    disabled={currentPage === Math.ceil(sortedData.length / ITEMS_PER_PAGE)}
+                  >
+                    Next ›
+                  </button>
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setCurrentPage(Math.ceil(sortedData.length / ITEMS_PER_PAGE))}
+                    disabled={currentPage === Math.ceil(sortedData.length / ITEMS_PER_PAGE)}
+                    title="Last page"
+                  >
+                    »
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className={`${reportsStyles.printOnly} ${reportsStyles.printFooter}`}>

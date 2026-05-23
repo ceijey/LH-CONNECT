@@ -44,6 +44,8 @@ export default function AdminResidents() {
   const [searchTerm, setSearchTerm] = useState('');
   const [allResidents, setAllResidents] = useState<Resident[]>([]);
   const [filteredResidents, setFilteredResidents] = useState<Resident[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string; name: string }>({
     isOpen: false,
     id: '',
@@ -127,6 +129,7 @@ export default function AdminResidents() {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
+    setCurrentPage(1);
     applyFiltersAndSorting(term, sortConfig, allResidents);
   };
 
@@ -137,6 +140,7 @@ export default function AdminResidents() {
     }
     const newSortConfig = { key, direction };
     setSortConfig(newSortConfig);
+    setCurrentPage(1);
     applyFiltersAndSorting(searchTerm, newSortConfig, allResidents);
   };
 
@@ -395,7 +399,7 @@ export default function AdminResidents() {
                 </tr>
               </thead>
               <tbody>
-                {filteredResidents.map((resident) => (
+                {filteredResidents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((resident) => (
                   <tr key={resident.id}>
                     <td>
                       <span className={styles.idBadge} title={resident.id}>
@@ -451,6 +455,68 @@ export default function AdminResidents() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {filteredResidents.length > ITEMS_PER_PAGE && (
+            <div className={styles.pagination}>
+              <span className={styles.paginationInfo}>
+                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredResidents.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredResidents.length)} of {filteredResidents.length} residents
+              </span>
+              <div className={styles.paginationControls}>
+                <button
+                  className={styles.pageBtn}
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  title="First page"
+                >
+                  «
+                </button>
+                <button
+                  className={styles.pageBtn}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ‹ Prev
+                </button>
+                {Array.from({ length: Math.ceil(filteredResidents.length / ITEMS_PER_PAGE) }, (_, i) => i + 1)
+                  .filter(page => page === 1 || page === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE) || Math.abs(page - currentPage) <= 1)
+                  .reduce((acc: (number | string)[], page, idx, arr) => {
+                    if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                    acc.push(page);
+                    return acc;
+                  }, [])
+                  .map((item, idx) =>
+                    item === '...' ? (
+                      <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>…</span>
+                    ) : (
+                      <button
+                        key={item}
+                        className={`${styles.pageBtn} ${currentPage === item ? styles.pageBtnActive : ''}`}
+                        onClick={() => setCurrentPage(item as number)}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )
+                }
+                <button
+                  className={styles.pageBtn}
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredResidents.length / ITEMS_PER_PAGE), p + 1))}
+                  disabled={currentPage === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE)}
+                >
+                  Next ›
+                </button>
+                <button
+                  className={styles.pageBtn}
+                  onClick={() => setCurrentPage(Math.ceil(filteredResidents.length / ITEMS_PER_PAGE))}
+                  disabled={currentPage === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE)}
+                  title="Last page"
+                >
+                  »
+                </button>
+              </div>
+            </div>
+          )}
       </div>
 
       <ResidentDetailModal

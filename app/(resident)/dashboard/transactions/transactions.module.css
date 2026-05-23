@@ -538,10 +538,6 @@
   font-size: 0.8rem;
 }
 
-.statusBadge.partiallypaid {
-  background: #fff3e0;
-  color: #e65100;
-}
 
 .statusBadge.rejected, .statusBadge.failed {
   background: #ffebee;
