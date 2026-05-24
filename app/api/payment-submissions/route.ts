@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
     const paymentDateTime = String(formData.get('paymentDateTime') ?? '').trim();
     const receiptAmount = String(formData.get('receiptAmount') ?? '').trim();
     const file = formData.get('file');
-    let fileUrl = String(formData.get('fileUrl') ?? '').trim();
+    let fileUrl: string | undefined = String(formData.get('fileUrl') ?? '').trim() || undefined;
     let filePath = String(formData.get('filePath') ?? '').trim();
     let fileBase64 = String(formData.get('fileBase64') ?? '').trim();
     let fileName = String(formData.get('fileName') ?? '').trim();
