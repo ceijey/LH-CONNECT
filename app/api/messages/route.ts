@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import { encrypt, decrypt } from '@/lib/encryption';
 import { verifyCsrf } from '@/lib/csrf';
 import { groupMessagesIntoThreads } from '@/lib/message-threads';
 import { notifyUserOfMessageUpdate } from '@/app/api/messages/subscribe/route';
@@ -81,13 +82,42 @@ export async function GET(request: NextRequest) {
       messagesSnapshot = await adminDb.collection('messages').get();
     }
 
-    const messages = groupMessagesIntoThreads((messagesSnapshot.docs || [])
+    const rawMessages = (messagesSnapshot.docs || [])
       .map((doc: any) => ({ id: doc.id, ...doc.data() }))
       .filter((message: any) => (
         userRole === 'admin'
           ? true
           : message.senderId === userId || message.recipientId === userId
-      )));
+      ));
+
+    // Decrypt message bodies and replies where encrypted
+    for (const m of rawMessages) {
+      try {
+        if (m.message) {
+          try {
+            m.message = decrypt(String(m.message));
+          } catch (err) {
+            // If decrypt fails, leave as-is
+          }
+        }
+
+        if (Array.isArray(m.replies)) {
+          for (const r of m.replies) {
+            if (r.message) {
+              try {
+                r.message = decrypt(String(r.message));
+              } catch (err) {
+                // ignore
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // ignore per-message failures
+      }
+    }
+
+    const messages = groupMessagesIntoThreads(rawMessages);
 
     return NextResponse.json({ messages, user: decoded });
   } catch (error: any) {
@@ -142,7 +172,15 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const { date, time } = formatTimestamp(now);
     const subject = normalizeSubject(subjectText || `Message from ${senderName}`);
-    const reply = buildReply(messageText, decoded.uid, senderName, senderRole, date, time, now.toISOString(), imageUrl);
+    // Build reply and then encrypt message bodies before persisting
+    const replyPlain = buildReply(messageText, decoded.uid, senderName, senderRole, date, time, now.toISOString(), imageUrl);
+    const reply = { ...replyPlain };
+    try {
+      reply.message = encrypt(String(messageText));
+    } catch (err) {
+      console.error('Failed to encrypt reply message:', err);
+      reply.message = '';
+    }
 
     if (threadId) {
       const threadRef = adminDb.collection('messages').doc(threadId);
@@ -225,7 +263,15 @@ export async function POST(request: NextRequest) {
       block: userData.block ?? '',
       lot: userData.lot ?? '',
       subject: normalizeSubject(subject),
-      message: messageText,
+      // store encrypted message body; keep plaintext preview for quick display
+      message: (() => {
+        try {
+          return encrypt(String(messageText));
+        } catch (err) {
+          console.error('Failed to encrypt message body:', err);
+          return '';
+        }
+      })(),
       preview: messageText.slice(0, 120),
       status: 'Unread',
       read: false,

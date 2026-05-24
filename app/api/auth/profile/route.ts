@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createErrorResponse, verifyToken } from '@/lib/auth-middleware';
 import { verifyCsrf } from '@/lib/csrf';
 import { adminDb } from '@/lib/firebase-admin';
+import { encrypt, decrypt } from '@/lib/encryption';
 
 export const runtime = 'nodejs';
 
@@ -44,7 +45,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ user: fallbackProfile });
     }
 
-    return NextResponse.json({ user: userDoc.data() });
+    const userData = userDoc.data() ?? {};
+    // Decrypt phone if present (stored as phoneEncrypted)
+    if (userData.phoneEncrypted) {
+      try {
+        userData.phone = decrypt(String(userData.phoneEncrypted));
+      } catch (err) {
+        console.error('Failed to decrypt phone for profile GET:', err);
+        userData.phone = undefined;
+      }
+    }
+
+    return NextResponse.json({ user: userData });
   } catch (error: any) {
     console.error('Error getting profile, providing fallback:', error.message);
     return NextResponse.json({
@@ -100,13 +112,27 @@ export async function POST(request: NextRequest) {
       ? 'Approved'
       : (existingData.approvalStatus ?? 'Pending');
 
-    const userProfile = {
+    // Encrypt sensitive fields before storing
+    let phoneEncrypted: string | undefined = undefined;
+    let phoneMasked: string | undefined = undefined;
+    try {
+      phoneEncrypted = encrypt(String(body.phone));
+      // Mask for display in admin notifications (last 4 digits)
+      const digits = String(body.phone).replace(/\D/g, '');
+      phoneMasked = digits.length > 4 ? `****${digits.slice(-4)}` : `****${digits}`;
+    } catch (err) {
+      console.error('Failed to encrypt phone:', err);
+    }
+
+    const userProfile: any = {
       fullName: body.fullName,
       email: body.email,
       phase: body.phase,
       block: body.block,
       lot: body.lot,
-      phone: body.phone,
+      // Store encrypted phone and masked phone; do not store plaintext phone
+      phoneEncrypted: phoneEncrypted ?? null,
+      phoneMasked: phoneMasked ?? null,
       role: trustedRole,
       approvalStatus: trustedApprovalStatus,
       createdAt: existingData.createdAt || new Date().toISOString(),
@@ -129,7 +155,7 @@ export async function POST(request: NextRequest) {
             phase: userProfile.phase,
             block: userProfile.block,
             lot: userProfile.lot,
-            phone: userProfile.phone,
+            phoneMasked: userProfile.phoneMasked,
           },
           read: false,
           createdAt: new Date(),
@@ -139,7 +165,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ message: 'Profile saved successfully', user: userProfile });
+    // Return decrypted phone to the authenticated client only
+    const responseUser = { ...userProfile };
+    if (userProfile.phoneEncrypted) {
+      try {
+        responseUser.phone = decrypt(String(userProfile.phoneEncrypted));
+      } catch (err) {
+        responseUser.phone = undefined;
+      }
+    }
+
+    return NextResponse.json({ message: 'Profile saved successfully', user: responseUser });
   } catch (error: any) {
     console.error('Error saving profile:', error.message);
     return createErrorResponse('Internal server error', 500);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import { encrypt, decrypt } from '@/lib/encryption';
 import { verifyCsrf } from '@/lib/csrf';
 
 type PaymentSubmission = {
@@ -25,6 +26,16 @@ type PaymentSubmission = {
 };
 
 async function resolveFileUrl(data: any): Promise<string | undefined> {
+  // If file stored encrypted (inline Base64 was encrypted), decrypt and return it
+  if (data.fileEncrypted) {
+    try {
+      const decrypted = decrypt(String(data.fileEncrypted));
+      if (decrypted && String(decrypted).startsWith('data:')) return decrypted;
+    } catch (err) {
+      console.error('Failed to decrypt fileEncrypted:', err);
+    }
+  }
+
   // If it's a Base64 string, don't return it in the list to avoid payload size limits on Vercel
   if (data.fileUrl && data.fileUrl.startsWith('data:')) {
     return undefined;
@@ -96,7 +107,10 @@ async function toSubmission(doc: any): Promise<PaymentSubmission> {
     paymentAmount: Number(data.paymentAmount ?? 0),
     paymentMethod: data.paymentMethod ?? 'Unknown',
     referenceNumber: data.referenceNumber ?? '',
-    notes: data.notes,
+    // Decrypt notes if stored encrypted
+    notes: data.notesEncrypted ? (() => {
+      try { return decrypt(String(data.notesEncrypted)); } catch (err) { return data.notes ?? null; }
+    })() : data.notes,
     fileName: data.fileName,
     fileUrl,
     filePath: data.filePath,
@@ -323,6 +337,29 @@ export async function POST(request: NextRequest) {
     const submittedAt = new Date();
     const currentMonth = submittedAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
 
+    // Encrypt notes and inline file content (if any) before storing
+    let notesEncrypted: string | undefined = undefined;
+    if (notes) {
+      try {
+        notesEncrypted = encrypt(String(notes));
+        // avoid storing plaintext notes
+        // notes = undefined;
+      } catch (err) {
+        console.error('Failed to encrypt notes for submission:', err);
+      }
+    }
+
+    let fileEncrypted: string | undefined = undefined;
+    if (fileUrl && fileUrl.startsWith('data:')) {
+      try {
+        fileEncrypted = encrypt(String(fileUrl));
+        // Remove inline data from fileUrl to avoid storing plaintext
+        fileUrl = undefined;
+      } catch (err) {
+        console.error('Failed to encrypt inline file data:', err);
+      }
+    }
+
     const docRef = await adminDb.collection('payment_submissions').add({
       residentId: userId,
       residentName,
@@ -330,10 +367,11 @@ export async function POST(request: NextRequest) {
       paymentAmount,
       paymentMethod,
       referenceNumber,
-      notes,
+      notesEncrypted: notesEncrypted ?? null,
       fileName,
       fileUrl,
       filePath,
+      fileEncrypted: fileEncrypted ?? null,
       status: 'Pending',
       month: currentMonth,
       submittedDate: submittedAt.toLocaleString(),
@@ -354,7 +392,8 @@ export async function POST(request: NextRequest) {
       paymentAmount,
       paymentMethod,
       referenceNumber,
-      notes,
+      // Do not return plaintext notes in API response; return null or indicate encrypted
+      notes: notes ? '[ENCRYPTED]' : null,
       fileName,
       fileUrl,
       filePath,
