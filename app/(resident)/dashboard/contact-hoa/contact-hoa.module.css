@@ -584,33 +584,40 @@
   }
 
   .headerContent {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .headerLefty {
+    width: auto;
     gap: 0.5rem;
   }
 
   .backBtn {
-    padding: 0.35rem 0.7rem;
-    font-size: 0.85rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
   }
 
   .headerBrand {
-    gap: 0.5rem;
+    gap: 0.4rem;
   }
 
   .headerIcon {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .headerTitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .headerSubtitle {
-    font-size: 0.65rem;
+    display: none;
   }
 
   .logoutBtn {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
   }
 
   .main {
@@ -740,9 +747,11 @@
   }
 
   .sendBtn {
-    padding: 0.6rem 0.95rem;
-    font-size: 0.8rem;
-    border-radius: 4px;
+    padding: 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    width: 100%;
+    text-align: center;
   }
 
   .infoBox {

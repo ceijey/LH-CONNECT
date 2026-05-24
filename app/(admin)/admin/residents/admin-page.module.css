@@ -75,6 +75,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
   border-bottom: 1px solid #f0f4f8;
 }
 

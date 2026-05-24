@@ -382,3 +382,110 @@
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
 }
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .main {
+    padding: 2rem 1.5rem;
+  }
+  
+  .pageTitle {
+    font-size: 2rem;
+  }
+  
+  .featuredCard {
+    padding: 1.75rem;
+  }
+  
+  .featuredTitle {
+    font-size: 1.5rem;
+  }
+  
+  .recentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .headerContent {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .headerLefty {
+    width: auto;
+    gap: 0.5rem;
+  }
+  
+  .headerBrand {
+    gap: 0.4rem;
+  }
+  
+  .headerTitle {
+    font-size: 0.95rem;
+  }
+  
+  .headerSubtitle {
+    display: none;
+  }
+  
+  .backBtn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .logoutBtn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .main {
+    padding: 1.5rem 1rem;
+  }
+  
+  .pageTitle {
+    font-size: 1.75rem;
+  }
+  
+  .pageSubtitle {
+    font-size: 0.95rem;
+  }
+  
+  .featuredCard {
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+  
+  .featuredHeader, .announcementHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .featuredFooter, .announcementFooter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .featuredTitle {
+    font-size: 1.3rem;
+  }
+  
+  .announcementCard {
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+  
+  .emptyFeed {
+    padding: 3rem 1.5rem;
+  }
+}

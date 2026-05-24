@@ -442,3 +442,60 @@
     width: 100%;
   }
 }
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .headerContent {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .headerLefty {
+    width: auto;
+    gap: 0.5rem;
+  }
+  
+  .headerBrand {
+    gap: 0.4rem;
+  }
+  
+  .headerTitle {
+    font-size: 0.95rem;
+  }
+  
+  .headerSubtitle {
+    display: none;
+  }
+  
+  .backBtn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .logoutBtn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .main {
+    padding: 1.5rem 1rem;
+  }
+  
+  .pageTitle {
+    font-size: 1.5rem;
+  }
+  
+  .tableCard {
+    border-radius: 12px;
+    overflow-x: auto;
+  }
+  
+  .auditTable th, .auditTable td {
+    padding: 1rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
