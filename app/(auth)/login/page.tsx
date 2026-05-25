@@ -257,12 +257,32 @@ export default function LoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, signupFormData.email, signupFormData.password);
       const idToken = await userCredential.user.getIdToken();
 
+      // Create the secure server session first so the CSRF cookie exists before the profile POST.
+      const sessionResponse = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionResponse.ok) {
+        const sessionError = await parseApiResponse(sessionResponse);
+        throw new Error(sessionError?.error ?? 'Failed to create secure session.');
+      }
+
+      const sessionPayload = await parseApiResponse(sessionResponse);
+      const csrfToken = String(sessionPayload?.csrfToken ?? '').trim();
+
       const profileResponse = await fetch('/api/auth/profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({
           fullName: signupFormData.fullName,
           email: signupFormData.email,
