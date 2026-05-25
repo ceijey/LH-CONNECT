@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase-client';
+import { auth } from '@/lib/firebase-client';
+import { apiCall } from '@/lib/api-client';
 
 export interface MessageThread {
   id: string;
@@ -28,120 +28,75 @@ export function useRealtimeMessages(userId: string, role: 'admin' | 'resident') 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!db) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    let unsubscribeAuth = () => {};
-    let unsubscribeMessages = () => {};
     let isActive = true;
+    let eventSource: EventSource | null = null;
 
-    const setSortedMessages = (items: MessageThread[]) => {
-      items.sort((a, b) => {
-        const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
-        const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
-        return bTime - aTime;
-      });
+    const fetchMessages = async () => {
+      setIsLoading(true);
+      setError(null);
 
-      setMessages(items);
-      setIsLoading(false);
-    };
+      try {
+        const payload = await apiCall('/api/messages');
+        if (!isActive) return;
+        const items = Array.isArray(payload.messages) ? payload.messages : [];
 
-    const handleError = (err: { message: string }) => {
-      console.error('Error listening to messages:', err);
-      setError(err.message);
-      setIsLoading(false);
-    };
+        items.sort((a: MessageThread, b: MessageThread) => {
+          const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return bTime - aTime;
+        });
 
-    unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      unsubscribeMessages();
-
-      if (!isActive) {
-        return;
+        setMessages(items);
+      } catch (err: any) {
+        console.error('Error fetching messages via API:', err);
+        if (isActive) setError(err.message || String(err));
+      } finally {
+        if (isActive) setIsLoading(false);
       }
+    };
 
-      const activeUserId = firebaseUser?.uid || userId;
-
-      if (!firebaseUser || !activeUserId) {
+    // Listen for auth changes and then fetch initial messages + subscribe to SSE
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      // Only proceed when there is an active authenticated user
+      if (!firebaseUser && !userId) {
         setMessages([]);
         setIsLoading(false);
         return;
       }
 
+      void fetchMessages();
+
       try {
-        const messagesRef = collection(db, 'messages');
+        // Subscribe to server-sent events for live updates
+        eventSource = new EventSource('/api/messages/subscribe');
 
-        if (role === 'admin') {
-          const adminQuery = query(messagesRef);
+        eventSource.addEventListener('message', (ev: MessageEvent) => {
+          try {
+            const data = JSON.parse(ev.data || '{}');
+            if (data && data.type === 'message_update') {
+              void fetchMessages();
+            }
+          } catch (e) {
+            // ignore malformed SSE payloads
+          }
+        });
 
-          unsubscribeMessages = onSnapshot(
-            adminQuery,
-            (snapshot) => {
-              const items: MessageThread[] = [];
-              snapshot.forEach((doc) => {
-                items.push({ id: doc.id, ...doc.data() } as MessageThread);
-              });
-
-              setSortedMessages(items);
-            },
-            handleError,
-          );
-
-          return;
-        }
-
-        const sentQuery = query(messagesRef, where('senderId', '==', activeUserId));
-        const receivedQuery = query(messagesRef, where('recipientId', '==', activeUserId));
-        let sentMessages: MessageThread[] = [];
-        let receivedMessages: MessageThread[] = [];
-
-        const mergeAndSet = () => {
-          const merged = new Map<string, MessageThread>();
-
-          [...sentMessages, ...receivedMessages].forEach((item) => {
-            merged.set(item.id, item);
-          });
-
-          setSortedMessages(Array.from(merged.values()));
-        };
-
-        const unsubscribeSent = onSnapshot(
-          sentQuery,
-          (snapshot) => {
-            sentMessages = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as MessageThread));
-            mergeAndSet();
-          },
-          handleError,
-        );
-
-        const unsubscribeReceived = onSnapshot(
-          receivedQuery,
-          (snapshot) => {
-            receivedMessages = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as MessageThread));
-            mergeAndSet();
-          },
-          handleError,
-        );
-
-        unsubscribeMessages = () => {
-          unsubscribeSent();
-          unsubscribeReceived();
-        };
-      } catch (err: any) {
-        console.error('Error setting up messages listener:', err);
-        setError(err.message);
-        setIsLoading(false);
+        eventSource.addEventListener('error', (err) => {
+          console.warn('SSE connection error for messages:', err);
+          // On error, attempt to re-fetch once
+          void fetchMessages();
+        });
+      } catch (sseErr) {
+        console.warn('Failed to initialize SSE for messages:', sseErr);
       }
     });
 
     return () => {
       isActive = false;
       unsubscribeAuth();
-      unsubscribeMessages();
+      if (eventSource) {
+        try { eventSource.close(); } catch (_) {}
+      }
     };
   }, [userId, role]);
 
