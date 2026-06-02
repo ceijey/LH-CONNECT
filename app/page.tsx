@@ -1,13 +1,31 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from './page.module.css';
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 export default function LandingPage() {
+  const slideImages = [
+    { src: '/linss.webp', alt: 'Lincoln Heights community overview' },
+    { src: '/lincolnbg.jpg', alt: 'Neighborhood homes and community hub' },
+    { src: '/linss.webp', alt: 'Community document sharing placeholder' },
+  ];
+
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setActiveSlide((current) => (current + 1) % slideImages.length);
+    }, 4500);
+    return () => clearInterval(intervalId);
+  }, [slideImages.length]);
+
   return (
     <div className={styles.landingContainer}>
-      {/* Dynamic Background */}
+      {/* Animated Background */}
+      <AnimatedBackground />
 
       {/* Navigation */}
       <nav className={styles.navbar}>
@@ -35,20 +53,40 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className={styles.heroSection}>
         <div className={styles.heroContent}>
-          <h1 className={styles.heroTitle}>
-            Modernizing Your <br />
-            <span className={styles.highlight}>Community Experience</span>
-          </h1>
-          <p className={styles.heroSubtitle}>
-            A unified management and information system for automating monthly dues, real-time resident analytics, and seamless communication.
-          </p>
-          <div className={styles.heroButtons}>
-            <Link href="/login?force=true" className={styles.primaryButton}>
-              Get Started <span style={{ fontSize: '1.2em' }}>→</span>
-            </Link>
-            <Link href="#features" className={styles.secondaryButton}>
-              Explore Features
-            </Link>
+          <span className={styles.heroTopBadge}>Built for Lincoln Heights </span>
+          <div className={styles.heroGrid}>
+            <div className={styles.heroLeft}>
+              <h1 className={styles.heroTitle}>
+                Modernizing Your <br />
+                <span className={styles.highlight}>Community Experience</span>
+              </h1>
+              <p className={styles.heroSubtitle}>
+                Streamline dues, resident updates, and community communications with an HOA system designed for clarity, speed, and transparency.
+              </p>
+              <div className={styles.heroButtons}>
+                <Link href="/login?force=true" className={styles.primaryButton}>
+                  Get Started <span style={{ fontSize: '1.2em' }}>→</span>
+                </Link>
+                <Link href="#features" className={styles.secondaryButton}>
+                  Explore Features
+                </Link>
+              </div>
+            </div>
+
+            <div className={styles.heroRight}>
+              <div className={styles.heroImageCard}>
+                <div className={styles.heroImageWrapper}>
+                  <Image
+                    src={slideImages[activeSlide].src}
+                    alt={slideImages[activeSlide].alt}
+                    fill
+                    className={styles.heroImage}
+                    sizes="(max-width: 768px) 100vw, 420px"
+                    priority
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -130,8 +168,8 @@ export default function LandingPage() {
             <p className={styles.ctaSubtitle}>
               Join modern neighborhoods leveraging LH-Connect to automate their management and build stronger communities.
             </p>
-            <Link href="/login?force=true" className={styles.ctaButton}>
-              Create your account today
+            <Link href="/login" className={styles.ctaButton}>
+              Sign In
             </Link>
           </div>
         </div>
@@ -139,12 +177,25 @@ export default function LandingPage() {
       
       {/* Footer */}
       <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <p className={styles.footerCopyright}>© {new Date().getFullYear()} LH-Connect. All rights reserved.</p>
-          <div className={styles.footerLinks}>
-            <Link href="/terms-and-conditions" className={styles.footerLink}>Terms and Conditions</Link>
-            <span className={styles.footerDivider}>•</span>
-            <Link href="/data-privacy" className={styles.footerLink}>Privacy Policy</Link>
+        <div className={styles.footerInner}>
+          <div className={styles.footerColumns}>
+            <div className={styles.footerBrand}>
+              <div className={styles.footerLogo}>LH-Connect</div>
+              <p className={styles.footerDescription}>
+                A streamlined community management platform built for HOAs, helping residents and officers stay aligned with fast payments, notices, and resident support.
+              </p>
+            </div>
+            <div className={styles.footerLegal}>
+              <h4 className={styles.legalHeading}>LEGAL</h4>
+              <ul className={styles.legalLinks}>
+                <li>
+                  <Link href="/data-privacy" className={styles.footerLink}>Privacy Policy</Link>
+                </li>
+                <li>
+                  <Link href="/terms-and-conditions" className={styles.footerLink}>Terms of Service</Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </footer>

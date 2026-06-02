@@ -12,16 +12,21 @@
 }
 
 .backLink {
-  display: inline-block;
-  color: #2563EB;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1B2A4A;
   text-decoration: none;
   margin-bottom: 2rem;
-  transition: color 0.3s ease;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: transparent;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .backLink:hover {
-  color: #1D4ED8;
-  text-decoration: underline;
+  background-color: #E5E7EB;
+  color: #1B2A4A;
 }
 
 .title {

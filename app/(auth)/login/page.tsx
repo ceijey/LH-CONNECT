@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import styles from './login.module.css';
 
 interface FormData {
@@ -48,8 +49,11 @@ interface SignupErrors {
   acceptTerms?: string;
 }
 
+type UserType = 'resident' | 'admin';
+
 export default function LoginPage() {
   const router = useRouter();
+  const [userType, setUserType] = useState<UserType>('resident');
   const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -79,8 +83,8 @@ export default function LoginPage() {
     const newErrors: FormErrors = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = userType === 'admin' ? 'Admin username is required' : 'Email is required';
+    } else if (userType === 'resident' && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
 
@@ -90,7 +94,7 @@ export default function LoginPage() {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
-    if (!formData.acceptTerms) {
+    if (userType === 'resident' && !formData.acceptTerms) {
       newErrors.acceptTerms = 'You must accept the Terms and Conditions';
     }
 
@@ -309,6 +313,7 @@ export default function LoginPage() {
 
   return (
     <div className={styles.pageContainer}>
+      <AnimatedBackground />
       <Link href="/" className={styles.backToHome}>
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
           <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -343,25 +348,48 @@ export default function LoginPage() {
              <Image src="/lhhoa-logo.png" alt="LHHOA Logo" width={60} height={60} className={styles.mobileLogo} priority />
           </div>
 
+          <div className={styles.userTypeTabs}>
+            <button
+              type="button"
+              className={userType === 'resident' ? styles.userTypeTabActive : styles.userTypeTab}
+              onClick={() => { setUserType('resident'); setIsSignUp(false); setLoginError(''); }}
+            >
+              Resident
+            </button>
+            <button
+              type="button"
+              className={userType === 'admin' ? styles.userTypeTabActive : styles.userTypeTab}
+              onClick={() => { setUserType('admin'); setIsSignUp(false); setLoginError(''); }}
+            >
+              Admin
+            </button>
+          </div>
+
           {!isSignUp ? (
             <>
               {/* LOGIN FORM */}
               <div className={styles.header}>
-                <h2 className={styles.title}>Welcome back</h2>
-                <p className={styles.subtitle}>Please enter your details to sign in.</p>
+                <h2 className={styles.title}>{userType === 'admin' ? 'Admin Portal' : 'Welcome back'}</h2>
+                <p className={styles.subtitle}>
+                  {userType === 'admin'
+                    ? 'Sign in with your admin credentials.'
+                    : 'Please enter your details to sign in.'}
+                </p>
               </div>
 
               <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.inputGroup}>
-                  <label htmlFor="email" className={styles.label}>Email Address</label>
+                  <label htmlFor="email" className={styles.label}>
+                    {userType === 'admin' ? 'Admin username' : 'Email Address'}
+                  </label>
                   <input
-                    type="email"
+                    type="text"
                     id="email"
                     name="email"
                     className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="name@example.com"
+                    placeholder={userType === 'admin' ? 'admin username' : 'name@example.com'}
                     disabled={isLoading}
                   />
                   {errors.email && <p className={styles.errorMessage}>{errors.email}</p>}
@@ -423,26 +451,30 @@ export default function LoginPage() {
                   {errors.password && <p className={styles.errorMessage}>{errors.password}</p>}
                 </div>
 
-                <div className={styles.termsGroup}>
-                  <input
-                    type="checkbox"
-                    name="acceptTerms"
-                    id="loginAcceptTerms"
-                    checked={formData.acceptTerms}
-                    onChange={handleChange}
-                    className={styles.termsCheckbox}
-                    disabled={isLoading}
-                  />
-                  <div className={styles.termsLabel}>
-                    <label htmlFor="loginAcceptTerms" className={styles.termsText}>
-                      I accept the{' '}
-                    </label>
-                    <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
-                      Terms and Conditions
-                    </button>
-                  </div>
-                </div>
-                {errors.acceptTerms && <p className={styles.errorMessage}>{errors.acceptTerms}</p>}
+                {userType === 'resident' && (
+                  <>
+                    <div className={styles.termsGroup}>
+                      <input
+                        type="checkbox"
+                        name="acceptTerms"
+                        id="loginAcceptTerms"
+                        checked={formData.acceptTerms}
+                        onChange={handleChange}
+                        className={styles.termsCheckbox}
+                        disabled={isLoading}
+                      />
+                      <div className={styles.termsLabel}>
+                        <label htmlFor="loginAcceptTerms" className={styles.termsText}>
+                          I accept the{' '}
+                        </label>
+                        <button type="button" onClick={() => setShowTermsModal(true)} className={styles.termsLink}>
+                          Terms and Conditions
+                        </button>
+                      </div>
+                    </div>
+                    {errors.acceptTerms && <p className={styles.errorMessage}>{errors.acceptTerms}</p>}
+                  </>
+                )}
 
                 {loginError && <p className={styles.errorMessage} style={{ textAlign: 'center' }}>{loginError}</p>}
 
@@ -450,16 +482,16 @@ export default function LoginPage() {
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </button>
 
-                <div className={styles.forgotPassword}>
-                  <Link href="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
-                </div>
-
-                <div className={styles.signupPrompt}>
-                  Don't have an account?
-                  <button type="button" onClick={() => setIsSignUp(true)} className={styles.signupLink}>
-                    Sign up
-                  </button>
-                </div>
+                {userType === 'resident' ? (
+                  <>
+                    <div className={styles.linkRow}>
+                      <Link href="/forgot-password" className={styles.forgotLink}>Forgot password?</Link>
+                      <Link href="/data-privacy" className={styles.privacyLink}>Privacy Policy</Link>
+                    </div>
+                  </>
+                ) : (
+                  <p className={styles.adminHint}>Use your admin username and password to access the dashboard.</p>
+                )}
               </form>
             </>
           ) : (

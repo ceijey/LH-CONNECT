@@ -244,7 +244,7 @@
   background-image:
     radial-gradient(at 0% 0%, rgba(243, 244, 246, 0.5) 0, transparent 50%),
     radial-gradient(at 50% 0%, rgba(219, 234, 254, 0.3) 0, transparent 50%);
-  max-height: calc(100vh - 250px); /* Ensure chat area is scrollable */
+  min-height: 0; /* Ensures proper scrolling inside grid without overlapping composer */
 }
 
 .messageStream::-webkit-scrollbar {
@@ -452,16 +452,21 @@
 
 @media (max-width: 640px) {
   .sidebarHeader,
-  .conversationHeader,
+  .conversationHeader {
+    padding: 1rem 1.25rem;
+  }
+
   .composer {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
+    padding: 1rem 1.25rem;
+  }
+  
+  .composerInput {
+    min-height: 50px;
   }
 
   .threadList,
   .messageStream {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding: 1rem;
   }
 
   .bubble {
