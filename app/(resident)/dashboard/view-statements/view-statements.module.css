@@ -1,7 +1,7 @@
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8faff 0%, #ffffff 50%, #f8faff 100%);
-  color: #1B2A4A;
+  background: linear-gradient(135deg, #F8F9FC 0%, #ffffff 50%, #F8F9FC 100%);
+  color: #1E2A3A;
 }
 
 /* Loading State */
@@ -29,13 +29,14 @@
 
 /* Header Styles */
 .header {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(18px);
   padding: 1.25rem 2rem;
-  border-bottom: 1px solid rgba(27, 42, 74, 0.1);
+  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
 }
 
 .headerContent {
@@ -53,7 +54,7 @@
 }
 
 .backBtn {
-  color: #1B2A4A;
+  color: #1E2A3A;
   text-decoration: none;
   font-weight: 500;
   display: flex;
@@ -61,11 +62,12 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .backBtn:hover {
-  background: rgba(27, 42, 74, 0.05);
+  background: rgba(45, 62, 111, 0.05);
+  color: #3B8B8C;
 }
 
 .headerBrand {
@@ -78,6 +80,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
+  color: #1E2A3A;
 }
 
 .headerSubtitle {
@@ -88,16 +91,17 @@
 
 .logoutBtn {
   background: transparent;
-  border: 1px solid rgba(27, 42, 74, 0.2);
-  color: #1B2A4A;
+  border: 1px solid rgba(45, 62, 111, 0.12);
+  color: #1E2A3A;
   padding: 0.5rem 1rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logoutBtn:hover {
-  background: #f1f5f9;
+  background: rgba(45, 62, 111, 0.05);
+  color: #3B8B8C;
 }
 
 /* Main Content */
@@ -120,7 +124,7 @@
   font-size: 2rem;
   font-weight: 800;
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(90deg, #1B2A4A, #3b82f6);
+  background: linear-gradient(90deg, #1E2A3A, #3B8B8C);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   white-space: nowrap;
@@ -138,9 +142,10 @@
   background: white;
   padding: 1.25rem;
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
+  border: 1px solid rgba(45, 62, 111, 0.12);
   align-items: flex-end;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .controlGroup {
@@ -161,21 +166,21 @@
   padding: 0.625rem 1rem;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  background: #f8fafc;
-  color: #1B2A4A;
+  background: #F8F9FC;
+  color: #1E2A3A;
   font-weight: 500;
   cursor: pointer;
 }
 
 .downloadReportBtn {
-  background: #1B2A4A;
+  background: #2D3E6F;
   color: white;
   border: none;
   padding: 0.625rem 1.25rem;
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   height: 42px;
   white-space: nowrap;
   display: inline-flex;
@@ -186,8 +191,9 @@
 }
 
 .downloadReportBtn:hover:not(:disabled) {
-  background: #2c3e50;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2D3E6F 0%, #3B8B8C 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.15);
 }
 
 .downloadReportBtn:disabled {
@@ -204,8 +210,9 @@
   background: white;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-  border: 1px solid #f1f5f9;
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
+  border: 1px solid rgba(45, 62, 111, 0.12);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .auditTable {
@@ -215,21 +222,21 @@
 }
 
 .auditTable th {
-  background: #f8fafc;
+  background: #F8F9FC;
   padding: 1.25rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: #1e293b;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
 }
 
 .tableRow {
-  transition: background 0.2s;
-  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
 }
 
 .tableRow:hover {
-  background: #f8fafc;
+  background: #F8F9FC;
 }
 
 .auditTable td {
@@ -336,13 +343,13 @@
     justify-content: space-between;
     align-items: flex-end;
     margin-bottom: 2rem;
-    border-bottom: 2px solid #1B2A4A;
+    border-bottom: 2px solid #1E2A3A;
     padding-bottom: 1rem;
   }
 
   .printBrand h1 {
     margin: 0;
-    color: #1B2A4A;
+    color: #1E2A3A;
     font-size: 24pt;
   }
 
@@ -375,7 +382,7 @@
   }
 
   .auditTable th {
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
     -webkit-print-color-adjust: exact;
   }
 
@@ -400,7 +407,7 @@
   }
 
   .totalRow {
-    background-color: #f8fafc !important;
+    background-color: #F8F9FC !important;
     -webkit-print-color-adjust: exact;
   }
 

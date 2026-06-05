@@ -7,8 +7,8 @@
   justify-content: center;
   padding: 16px;
   margin: 0;
-  background: #f4f7fa;
-  color: #1B2A4A;
+  background: #F8F9FC;
+  color: #1E2A3A;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
@@ -114,10 +114,11 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 24px;
-  background: #f8fafc;
+  background: #F8F9FC;
   padding: 16px;
   border-radius: 12px;
   text-align: left;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .step {
@@ -172,12 +173,12 @@
   border: none;
   border-radius: 10px;
   padding: 12px;
-  background: #1B2A4A;
+  background: #2D3E6F;
   color: #ffffff;
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,7 +186,9 @@
 }
 
 .primaryButton:hover {
-  background: #2C3E6B;
+  background: linear-gradient(135deg, #2D3E6F 0%, #3B8B8C 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.15);
 }
 
 .secondaryButton {
@@ -193,14 +196,15 @@
   border-radius: 10px;
   padding: 10px;
   background: transparent;
-  color: #64748b;
+  color: #7A8CA3;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .secondaryButton:hover {
-  background: #f8fafc;
-  color: #1B2A4A;
+  background: #F8F9FC;
+  color: #1E2A3A;
+  border-color: #2D3E6F;
 }

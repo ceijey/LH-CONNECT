@@ -1,18 +1,19 @@
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8faff 0%, #ffffff 50%, #f8faff 100%);
-  color: #1B2A4A;
+  background: linear-gradient(135deg, #F8F9FC 0%, #ffffff 50%, #F8F9FC 100%);
+  color: #1E2A3A;
 }
 
 /* Header Styles */
 .header {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(18px);
   padding: 1.25rem 2rem;
-  border-bottom: 1px solid rgba(27, 42, 74, 0.1);
+  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
 }
 
 .headerContent {
@@ -30,7 +31,7 @@
 }
 
 .backBtn {
-  color: #1B2A4A;
+  color: #1E2A3A;
   text-decoration: none;
   font-weight: 500;
   display: flex;
@@ -38,11 +39,12 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .backBtn:hover {
-  background: rgba(27, 42, 74, 0.05);
+  background: rgba(45, 62, 111, 0.05);
+  color: #3B8B8C;
 }
 
 .headerBrand {
@@ -55,6 +57,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
+  color: #1E2A3A;
 }
 
 .headerSubtitle {
@@ -65,16 +68,17 @@
 
 .logoutBtn {
   background: transparent;
-  border: 1px solid rgba(27, 42, 74, 0.2);
-  color: #1B2A4A;
+  border: 1px solid rgba(45, 62, 111, 0.12);
+  color: #1E2A3A;
   padding: 0.5rem 1rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logoutBtn:hover {
-  background: #f1f5f9;
+  background: rgba(45, 62, 111, 0.05);
+  color: #3B8B8C;
 }
 
 /* Main Content */
@@ -106,7 +110,7 @@
   font-size: 2.2rem;
   font-weight: 800;
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(90deg, #1B2A4A, #3b82f6);
+  background: linear-gradient(90deg, #1E2A3A, #3B8B8C);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.02em;
@@ -120,7 +124,7 @@
 }
 
 .printBtn {
-  background: linear-gradient(135deg, #1B2A4A 0%, #2a3c61 100%);
+  background: linear-gradient(135deg, #1E2A3A 0%, #2D3E6F 100%);
   color: white;
   border: none;
   padding: 0.8rem 1.6rem;
@@ -128,14 +132,14 @@
   font-weight: 700;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 14px rgba(27, 42, 74, 0.15);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.15);
   white-space: nowrap;
 }
 
 .printBtn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(27, 42, 74, 0.25);
+  box-shadow: 0 12px 30px rgba(45, 62, 111, 0.2);
 }
 
 .printBtn:disabled {
@@ -180,11 +184,11 @@
 }
 
 .billCardAccent {
-  border-left-color: #ef4444;
+  border-left-color: #D9534F;
 }
 
 .payCardAccent {
-  border-left-color: #10b981;
+  border-left-color: #2E9C7A;
 }
 
 .timelineCard:hover {
@@ -216,13 +220,13 @@
 }
 
 .billBadge {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(217, 83, 79, 0.15);
+  color: #D9534F;
 }
 
 .payBadge {
-  background: #dcfce7;
-  color: #15803d;
+  background: rgba(46, 156, 122, 0.15);
+  color: #2E9C7A;
 }
 
 .statusBadge {
@@ -261,7 +265,7 @@
 
 .activityDate {
   font-size: 0.85rem;
-  color: #64748b;
+  color: #7A8CA3;
   margin: 0;
   font-weight: 500;
 }
@@ -279,22 +283,23 @@
 }
 
 .billAmount {
-  color: #dc2626;
+  color: #D9534F;
 }
 
 .payAmount {
-  color: #15803d;
+  color: #2E9C7A;
 }
 
 /* Empty State */
 .emptyState {
   background: white;
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed rgba(45, 62, 111, 0.2);
   border-radius: 24px;
   padding: 5rem 2rem;
   text-align: center;
-  color: #64748b;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+  color: #7A8CA3;
+  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.05);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .emptyIcon {
