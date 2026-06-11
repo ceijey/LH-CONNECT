@@ -92,28 +92,16 @@ export async function GET(request: NextRequest) {
 
     // Decrypt message bodies and replies where encrypted
     for (const m of rawMessages) {
-      try {
-        if (m.message) {
-          try {
-            m.message = decrypt(String(m.message));
-          } catch (err) {
-            // If decrypt fails, leave as-is
-          }
-        }
+      if (m.message) {
+        m.message = decrypt(String(m.message)) ?? m.message;
+      }
 
-        if (Array.isArray(m.replies)) {
-          for (const r of m.replies) {
-            if (r.message) {
-              try {
-                r.message = decrypt(String(r.message));
-              } catch (err) {
-                // ignore
-              }
-            }
+      if (Array.isArray(m.replies)) {
+        for (const r of m.replies) {
+          if (r.message) {
+            r.message = decrypt(String(r.message)) ?? r.message;
           }
         }
-      } catch (err) {
-        // ignore per-message failures
       }
     }
 

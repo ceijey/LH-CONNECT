@@ -37,26 +37,36 @@ export function encrypt(plaintext: string): string {
   return out.toString('base64');
 }
 
-export function decrypt(payload: string): string {
-  const key = getKey();
-  const buf = Buffer.from(payload, 'base64');
-  if (buf.length < IV_LENGTH + TAG_LENGTH) throw new Error('Invalid encrypted payload');
+export function decrypt(payload: string): string | null {
+  try {
+    const key = getKey();
+    const buf = Buffer.from(payload, 'base64');
+    if (buf.length < IV_LENGTH + TAG_LENGTH) return null;
 
-  const iv = buf.slice(0, IV_LENGTH);
-  const tag = buf.slice(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
-  const ciphertext = buf.slice(IV_LENGTH + TAG_LENGTH);
+    const iv = buf.slice(0, IV_LENGTH);
+    const tag = buf.slice(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
+    const ciphertext = buf.slice(IV_LENGTH + TAG_LENGTH);
 
-  const decipher = crypto.createDecipheriv(ALGO, key, iv);
-  decipher.setAuthTag(tag);
-  const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return plaintext.toString('utf8');
+    const decipher = crypto.createDecipheriv(ALGO, key, iv);
+    decipher.setAuthTag(tag);
+    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return plaintext.toString('utf8');
+  } catch (err) {
+    return null;
+  }
 }
 
 export function encryptJSON(obj: unknown): string {
   return encrypt(JSON.stringify(obj));
 }
 
-export function decryptJSON<T = any>(payload: string): T {
+export function decryptJSON<T = any>(payload: string): T | null {
   const raw = decrypt(payload);
-  return JSON.parse(raw) as T;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch (_) {
+    return null;
+  }
 }
+

@@ -48,10 +48,11 @@ export async function GET(request: NextRequest) {
     const userData = userDoc.data() ?? {};
     // Decrypt phone if present (stored as phoneEncrypted)
     if (userData.phoneEncrypted) {
-      try {
-        userData.phone = decrypt(String(userData.phoneEncrypted));
-      } catch (err) {
-        console.error('Failed to decrypt phone for profile GET:', err);
+      const decryptedPhone = decrypt(String(userData.phoneEncrypted));
+      if (decryptedPhone) {
+        userData.phone = decryptedPhone;
+      } else {
+        console.warn(`[Profile API] Could not decrypt phone number for user ${uid}. The encryption key may have changed.`);
         userData.phone = undefined;
       }
     }
@@ -168,11 +169,8 @@ export async function POST(request: NextRequest) {
     // Return decrypted phone to the authenticated client only
     const responseUser = { ...userProfile };
     if (userProfile.phoneEncrypted) {
-      try {
-        responseUser.phone = decrypt(String(userProfile.phoneEncrypted));
-      } catch (err) {
-        responseUser.phone = undefined;
-      }
+      const decryptedPhone = decrypt(String(userProfile.phoneEncrypted));
+      responseUser.phone = decryptedPhone ?? undefined;
     }
 
     return NextResponse.json({ message: 'Profile saved successfully', user: responseUser });

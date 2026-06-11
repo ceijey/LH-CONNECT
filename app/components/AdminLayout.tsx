@@ -64,18 +64,23 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const navItems = [
+  const navItemsWorkspace = [
     { href: '/admin/dashboard', icon: '📊', label: 'Dashboard', id: 'dashboard' },
     { href: '/admin/residents', icon: '👥', label: 'Residents', id: 'residents' },
     { href: '/admin/payments', icon: '💳', label: 'Payments', id: 'payments' },
-    { href: '/admin/qr-scanner', icon: '📱', label: 'QR Scanner', id: 'qr-scanner' },
     { href: '/admin/messages', icon: '💬', label: 'Messages', id: 'messages' },
     { href: '/admin/announcements', icon: '📢', label: 'Announcements', id: 'announcements' },
+  ];
+
+  const navItemsUtilities = [
+    { href: '/admin/qr-scanner', icon: '📱', label: 'QR Scanner', id: 'qr-scanner' },
     { href: '/admin/reports', icon: '📑', label: 'Reports', id: 'reports' },
     { href: '/admin/billing', icon: '🧾', label: 'Billing', id: 'billing' },
     { href: '/admin/payments/manual', icon: '💵', label: 'Manual Payment', id: 'manual-payment' },
     { href: '/admin/audit-logs', icon: '📝', label: 'Audit Log', id: 'audit-logs' },
   ];
+
+  const navItems = [...navItemsWorkspace, ...navItemsUtilities];
 
   const getActiveTitle = () => {
     if (pageTitle) return pageTitle;
@@ -93,7 +98,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
       <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''} no-print`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
-            <span className={styles.logoIcon}>🏠</span>
+            <img src="/lhhoa-logo.png" alt="LH-Connect Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '50%', backgroundColor: '#ffffff' }} />
             <div>
               <div className={styles.logoText}>LH-Connect</div>
               <div className={styles.logoSubtext}>Admin Panel</div>
@@ -103,23 +108,47 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             ✕
           </button>
         </div>
-        
-        <nav className={styles.nav}>
-          {navItems.map((item) => (
-            <Link 
-              key={item.href}
-              href={item.href} 
-              className={`${styles.navItem} ${pathname === item.href ? styles.active : ''}`}
-            >
-              <span className={styles.icon}>{item.icon}</span>
-              <span className={styles.navLabel}>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        
-        <button className={styles.logoutBtn} onClick={handleLogout}>
-          <span>🚪</span> <span className={styles.navLabel}>Logout</span>
-        </button>
+
+        <div className={styles.scrollableNav}>
+          <nav className={styles.nav}>
+            <div className={styles.sectionHeader}>WORKSPACE</div>
+            {navItemsWorkspace.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${styles.navItem} ${pathname === item.href ? styles.active : ''}`}
+              >
+                <span className={styles.icon}>{item.icon}</span>
+                <span className={styles.navLabel}>{item.label}</span>
+              </Link>
+            ))}
+
+            <div className={styles.sectionHeader} style={{ marginTop: '16px' }}>SYSTEM UTILITIES</div>
+            {navItemsUtilities.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${styles.navItem} ${pathname === item.href ? styles.active : ''}`}
+              >
+                <span className={styles.icon}>{item.icon}</span>
+                <span className={styles.navLabel}>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className={styles.userSection}>
+          <div className={styles.userInfo}>
+            <div className={styles.userAvatarSidebar}>A</div>
+            <div className={styles.userNameBlock}>
+              <span className={styles.userName}>Administrator Account</span>
+              <span className={styles.userRole}>System Operator</span>
+            </div>
+          </div>
+          <button className={styles.logoutBtn} onClick={handleLogout}>
+            <span></span> <span className={styles.navLabel}>Log Out</span>
+          </button>
+        </div>
         <ConfirmationModal
           isOpen={isLogoutModalOpen}
           title="Logout Confirmation"
@@ -142,11 +171,9 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
           </div>
           <div className={styles.headerRight}>
             <AdminNotifications />
-            <span className={styles.userLabel}>{userName}</span>
-            <div className={styles.userAvatar}>👤</div>
           </div>
         </header>
-        
+
         <div className={styles.content}>
           {children}
         </div>

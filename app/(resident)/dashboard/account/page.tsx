@@ -81,7 +81,7 @@ export default function AccountPage() {
       if (base64) {
         setProfile((current) => {
           const updated = { ...current, profileImage: base64 };
-          
+
           void (async () => {
             try {
               setIsSaving(true);
@@ -107,7 +107,7 @@ export default function AccountPage() {
               setIsSaving(false);
             }
           })();
-          
+
           return updated;
         });
       }
@@ -136,7 +136,7 @@ export default function AccountPage() {
         body: JSON.stringify(profile),
       });
 
-       const savedUser = (payload.user ?? profile) as ProfileForm;
+      const savedUser = (payload.user ?? profile) as ProfileForm;
       setProfile({
         fullName: savedUser.fullName ?? profile.fullName,
         email: savedUser.email ?? profile.email,
@@ -172,6 +172,7 @@ export default function AccountPage() {
         onClose={() => setToast(null)}
       />
 
+      {/* ── Header ── */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.headerLeft}>
@@ -182,8 +183,8 @@ export default function AccountPage() {
               <Image
                 src="/lhhoa-logo.png"
                 alt="LHHOA Logo"
-                width={50}
-                height={50}
+                width={38}
+                height={38}
                 className={styles.headerIcon}
                 priority
               />
@@ -195,9 +196,7 @@ export default function AccountPage() {
           </div>
           <button
             className={styles.logoutBtn}
-            onClick={async () => {
-              await logoutAndRedirect(router, '/login');
-            }}
+            onClick={async () => { await logoutAndRedirect(router, '/login'); }}
           >
             ⬅ Logout
           </button>
@@ -205,109 +204,116 @@ export default function AccountPage() {
       </header>
 
       <main className={styles.main}>
-        <section className={styles.hero}>
-          <div>
-            <p className={styles.kicker}>Resident record</p>
-            <h2 className={styles.heroTitle}>Keep your contact details current</h2>
-            <p className={styles.heroCopy}>
-              The HOA uses this profile for billing, follow-ups, and resident verification.
-            </p>
-          </div>
-          <aside className={styles.heroCard} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', justifyContent: 'center', padding: '2rem' }}>
-            <div style={{ position: 'relative', marginBottom: '1.25rem', cursor: 'pointer' }} title="Change profile photo">
-              {profile.profileImage ? (
-                <img 
-                  src={profile.profileImage} 
-                  alt="Profile Photo" 
-                  style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #4caf50', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
-                />
-              ) : (
-                <div style={{ width: '90px', height: '90px', borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.15)', color: '#ffffff', fontSize: '2.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed rgba(255, 255, 255, 0.4)' }}>
-                  {(profile.fullName || 'R').charAt(0).toUpperCase()}
-                </div>
-              )}
-              <label htmlFor="profile-image-upload" style={{ position: 'absolute', bottom: '0', right: '0', backgroundColor: '#4caf50', color: 'white', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', fontSize: '0.8rem' }}>
-                📷
-              </label>
-              <input 
-                id="profile-image-upload" 
-                type="file" 
-                accept="image/*" 
-                onChange={handleImageChange} 
-                style={{ display: 'none' }} 
-              />
-            </div>
-            <span className={styles.heroLabel} style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255, 255, 255, 0.7)' }}>Account summary</span>
-            <strong className={styles.heroValue} style={{ margin: '0.25rem 0 0.5rem', fontSize: '1.2rem', color: '#ffffff', display: 'block' }}>{profile.fullName || 'Resident'}</strong>
-            <span className={styles.heroMeta} style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', display: 'block' }}>{addressLabel || 'Address not set'}</span>
-            <span className={styles.heroMeta} style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', display: 'block', marginTop: '0.2rem' }}>{profile.email || 'No email on file'}</span>
-          </aside>
-        </section>
 
-        <section className={styles.contentGrid}>
+        {/* ── Profile Banner ── */}
+        <div className={styles.profileBanner}>
+          <div className={styles.avatarWrap}>
+            {profile.profileImage ? (
+              <img
+                src={profile.profileImage}
+                alt="Profile"
+                className={styles.avatarImg}
+              />
+            ) : (
+              <div className={styles.avatarInitial}>
+                {(profile.fullName || 'R').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <label htmlFor="profile-image-upload" className={styles.avatarEditLabel} title="Change photo">
+              📷
+            </label>
+            <input
+              id="profile-image-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              style={{ display: 'none' }}
+            />
+          </div>
+
+          <div className={styles.bannerInfo}>
+            <p className={styles.bannerTag}>Account Summary</p>
+            <h2 className={styles.bannerName}>{profile.fullName || 'Resident'}</h2>
+            <p className={styles.bannerAddress}>{addressLabel || 'Address not set'}</p>
+            <p className={styles.bannerEmail}>{profile.email || 'No email on file'}</p>
+          </div>
+
+          <span className={styles.bannerBadge}>
+            {profile.role === 'admin' ? '🛡 Admin' : '🏠 Resident'}
+          </span>
+        </div>
+
+        {/* ── Content Grid ── */}
+        <div className={styles.contentGrid}>
+
+          {/* Form Card */}
           <form className={styles.formCard} onSubmit={handleSubmit}>
             <div className={styles.sectionHeader}>
               <h3>Profile details</h3>
-              <p>Fields marked here are required by the current profile API.</p>
+              <p>All fields are required by the profile API. Keep your information accurate and up to date.</p>
             </div>
 
             <div className={styles.formGrid}>
               <label className={styles.field}>
                 <span>Full name</span>
-                <input name="fullName" value={profile.fullName} onChange={handleChange} className={styles.input} />
+                <input name="fullName" value={profile.fullName} onChange={handleChange} className={styles.input} placeholder="e.g. Juan Dela Cruz" />
               </label>
               <label className={styles.field}>
                 <span>Email address</span>
-                <input name="email" type="email" value={profile.email} onChange={handleChange} className={styles.input} />
+                <input name="email" type="email" value={profile.email} onChange={handleChange} className={styles.input} placeholder="you@example.com" />
               </label>
               <label className={styles.field}>
                 <span>Phase</span>
-                <input name="phase" value={profile.phase} onChange={handleChange} className={styles.input} />
+                <input name="phase" value={profile.phase} onChange={handleChange} className={styles.input} placeholder="e.g. Phase 1" />
               </label>
               <label className={styles.field}>
                 <span>Block</span>
-                <input name="block" value={profile.block} onChange={handleChange} className={styles.input} />
+                <input name="block" value={profile.block} onChange={handleChange} className={styles.input} placeholder="e.g. 3" />
               </label>
               <label className={styles.field}>
                 <span>Lot</span>
-                <input name="lot" value={profile.lot} onChange={handleChange} className={styles.input} />
+                <input name="lot" value={profile.lot} onChange={handleChange} className={styles.input} placeholder="e.g. 12" />
               </label>
               <label className={styles.field}>
                 <span>Phone number</span>
-                <input name="phone" value={profile.phone} onChange={handleChange} className={styles.input} />
+                <input name="phone" value={profile.phone} onChange={handleChange} className={styles.input} placeholder="e.g. 09XX XXX XXXX" />
               </label>
             </div>
 
             <div className={styles.actionsRow}>
               <button type="submit" className={styles.saveBtn} disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Save Profile'}
+                {isSaving ? '⏳ Saving...' : '💾 Save Profile'}
               </button>
               <Link href="/dashboard/contact-hoa" className={styles.secondaryBtn}>
-                Update with HOA
+                💬 Update with HOA
               </Link>
             </div>
           </form>
 
+          {/* Side Card */}
           <aside className={styles.sideCard}>
-            <div className={styles.sectionHeader}>
-              <h3>Why this matters</h3>
-              <p>Keeping your profile updated improves billing and message delivery.</p>
-            </div>
+            <div className={styles.whyCard}>
+              <h3 className={styles.whyTitle}>Why this matters</h3>
+              <p className={styles.whyDesc}>
+                Keeping your profile updated ensures accurate billing, proper communication, and smooth HOA service delivery.
+              </p>
 
-            <div className={styles.sideStat}>
-              <span className={styles.statLabel}>Resident type</span>
-              <strong className={styles.statValue}>{profile.role === 'admin' ? 'Admin' : 'Resident'}</strong>
-            </div>
-            <div className={styles.sideStat}>
-              <span className={styles.statLabel}>Address</span>
-              <strong className={styles.statValue}>{addressLabel || 'Not set yet'}</strong>
-            </div>
-            <div className={styles.sideStat}>
-              <span className={styles.statLabel}>Primary contact</span>
-              <strong className={styles.statValue}>{profile.phone || 'No phone number set'}</strong>
+              <div className={styles.sideStat}>
+                <span className={styles.statLabel}>Resident type</span>
+                <strong className={styles.statValue}>{profile.role === 'admin' ? 'Admin' : 'Resident'}</strong>
+              </div>
+              <div className={styles.sideStat} style={{ marginTop: '0.75rem' }}>
+                <span className={styles.statLabel}>Address</span>
+                <strong className={styles.statValue}>{addressLabel || 'Not set yet'}</strong>
+              </div>
+              <div className={styles.sideStat} style={{ marginTop: '0.75rem' }}>
+                <span className={styles.statLabel}>Primary contact</span>
+                <strong className={styles.statValue}>{profile.phone || 'No phone number set'}</strong>
+              </div>
             </div>
           </aside>
-        </section>
+
+        </div>
       </main>
     </div>
   );

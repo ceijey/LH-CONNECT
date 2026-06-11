@@ -437,20 +437,26 @@ export default function DashboardPage() {
         <div className={styles.actionGrid}>
           <Link href="/dashboard/submit-payment" className={styles.actionCard}>
             <div className={styles.actionIcon}>💳</div>
-            <h3 className={styles.actionTitle}>Submit Payment</h3>
-            <p className={styles.actionDesc}>Upload proof of payment</p>
+            <div>
+              <h3 className={styles.actionTitle}>Submit Payment</h3>
+              <p className={styles.actionDesc}>Upload proof of payment</p>
+            </div>
           </Link>
 
           <Link href="/dashboard/contact-hoa" className={styles.actionCard}>
             <div className={styles.actionIcon}>💬</div>
-            <h3 className={styles.actionTitle}>Contact HOA</h3>
-            <p className={styles.actionDesc}>Send a message</p>
+            <div>
+              <h3 className={styles.actionTitle}>Contact HOA</h3>
+              <p className={styles.actionDesc}>Send a message</p>
+            </div>
           </Link>
 
           <Link href="/dashboard/view-statements" className={styles.actionCard}>
             <div className={styles.actionIcon}>📋</div>
-            <h3 className={styles.actionTitle}>View Statements</h3>
-            <p className={styles.actionDesc}>Download billing history</p>
+            <div>
+              <h3 className={styles.actionTitle}>View Statements</h3>
+              <p className={styles.actionDesc}>Download billing history</p>
+            </div>
           </Link>
         </div>
 

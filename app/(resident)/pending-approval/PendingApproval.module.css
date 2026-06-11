@@ -116,9 +116,9 @@
   margin-bottom: 24px;
   background: #F8F9FC;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 14px;
   text-align: left;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .step {
@@ -171,14 +171,14 @@
 
 .primaryButton {
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px;
   background: #2D3E6F;
   color: #ffffff;
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,14 +193,14 @@
 
 .secondaryButton {
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px;
   background: transparent;
   color: #7A8CA3;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .secondaryButton:hover {

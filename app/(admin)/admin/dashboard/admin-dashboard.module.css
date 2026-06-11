@@ -1,60 +1,141 @@
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+/* ── Dashboard Wrapper ─────────────────────────────────── */
+.dashboardWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
 }
 
-@media (max-width: 768px) {
-  .statsGrid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
-  }
+/* ── Welcome Banner ────────────────────────────────────── */
+.welcomeBanner {
+  background: linear-gradient(135deg, #1B2A4A 0%, #2d4a80 60%, #1e3a6e 100%);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcomeBanner::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+}
+
+.welcomeBanner::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  right: 80px;
+  width: 160px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 50%;
+}
+
+.welcomeText h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: white;
+}
+
+.welcomeText p {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.welcomeDate {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ── Stats Grid ─────────────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
 }
 
 .statCard {
   background: white;
-  padding: 1.75rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-top: 4px solid #1B2A4A;
-  transition: all 0.3s;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  border: 1px solid #f0f2f5;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .statCard:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.statCardAccent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
 }
 
 .statHeader {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
   margin-bottom: 1rem;
 }
 
-.statIcon {
-  font-size: 1.75rem;
+.statIconWrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
 }
 
 .statTitle {
-  color: #1B2A4A;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.4rem;
 }
 
 .statValue {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1B2A4A;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #1a202c;
   margin-bottom: 0.75rem;
+  line-height: 1;
 }
 
 .statChange {
-  font-size: 0.9rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  display: inline-block;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
 }
 
 .statChange.positive {
@@ -63,72 +144,181 @@
 }
 
 .statChange.negative {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.statChange.neutral {
   background: #fff3e0;
   color: #e65100;
 }
 
-/* Charts Grid */
+.statChange.neutral {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* ── Charts Row ─────────────────────────────────────────── */
 .chartsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
 }
 
 .chartCard {
   background: white;
+  border-radius: 16px;
   padding: 1.5rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  border: 1px solid #f0f2f5;
 }
 
-@media (max-width: 768px) {
+.chartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.chartTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.chartSubtitle {
+  font-size: 0.8rem;
+  color: #718096;
+  margin: 2px 0 0;
+}
+
+.chartBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* ── Bottom Row ─────────────────────────────────────────── */
+.bottomRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+/* ── Allocation Legend ──────────────────────────────────── */
+.allocationList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.allocationItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.allocationDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.allocationLabel {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.allocationValue {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+/* ── Quick Actions ──────────────────────────────────────── */
+.quickActions {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  border: 1px solid #f0f2f5;
+}
+
+.quickActionsTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 1.25rem;
+}
+
+.quickActionsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quickActionBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: #4a5568;
+}
+
+.quickActionBtn:hover {
+  background: #1B2A4A;
+  color: white;
+  border-color: #1B2A4A;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(27, 42, 74, 0.2);
+}
+
+.quickActionIcon {
+  font-size: 1.4rem;
+}
+
+.quickActionLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 1024px) {
   .statsGrid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
   }
-
-  .chartCard {
-    padding: 1rem;
+  .chartsGrid {
+    grid-template-columns: 1fr;
   }
-
-  .statValue {
-    font-size: 1.5rem;
+  .bottomRow {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
   .statsGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
   }
-
-  .chartsGrid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .statCard {
-    padding: 1.25rem;
-  }
-
-  .statTitle {
-    font-size: 0.8rem;
-  }
-
   .statValue {
-    font-size: 1.25rem;
+    font-size: 1.4rem;
   }
-}
-
-.chartTitle {
-  color: #1B2A4A;
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
+  .welcomeBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .quickActionsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
 }

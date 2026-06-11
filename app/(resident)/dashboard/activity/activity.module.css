@@ -1,145 +1,158 @@
+/* ─── Base Layout ─────────────────────────────────────── */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #F8F9FC 0%, #ffffff 50%, #F8F9FC 100%);
-  color: #1E2A3A;
+  background: #f4f6fb;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: #1a202c;
+  position: relative;
 }
 
-/* Header Styles */
+/* ─── Header ──────────────────────────────────────────── */
 .header {
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(18px);
-  padding: 1.25rem 2rem;
-  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
+  background: #ffffff;
+  border-bottom: 1px solid #e8edf5;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 
 .headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
   max-width: 1000px;
   margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  width: 100%;
+  padding: 0 2rem;
 }
 
 .headerLefty {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 16px;
 }
 
 .backBtn {
-  color: #1E2A3A;
+  color: #4a5568;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 700;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 8px;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f4f6fb;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
 }
 
 .backBtn:hover {
-  background: rgba(45, 62, 111, 0.05);
-  color: #3B8B8C;
+  background: #edf2f7;
+  border-color: #cbd5e0;
+  color: #1B2A4A;
 }
 
 .headerBrand {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .headerTitle {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
-  color: #1E2A3A;
+  letter-spacing: -0.3px;
 }
 
 .headerSubtitle {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: 0.7rem;
+  color: #718096;
   margin: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .logoutBtn {
-  background: transparent;
-  border: 1px solid rgba(45, 62, 111, 0.12);
-  color: #1E2A3A;
-  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 8px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
 }
 
 .logoutBtn:hover {
-  background: rgba(45, 62, 111, 0.05);
-  color: #3B8B8C;
+  background: #ebf4ff;
+  border-color: #90cdf4;
+  color: #2b6cb0;
 }
 
-/* Main Content */
+/* ─── Main Content ────────────────────────────────────── */
 .main {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 3.5rem 2rem;
+  padding: 2.5rem 2rem;
+  width: 100%;
 }
 
 .heroSection {
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .heroHeader {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1.5rem;
 }
 
-@media (max-width: 768px) {
-  .heroHeader {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
 .pageTitle {
-  font-size: 2.2rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  margin: 0 0 0.5rem 0;
-  background: linear-gradient(90deg, #1E2A3A, #3B8B8C);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.02em;
+  color: #1B2A4A;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.5px;
 }
 
 .pageSubtitle {
-  color: #475569;
-  font-size: 1.05rem;
-  max-width: 600px;
-  line-height: 1.5;
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .printBtn {
-  background: linear-gradient(135deg, #1E2A3A 0%, #2D3E6F 100%);
+  background: linear-gradient(135deg, #1B2A4A, #2d4a80);
   color: white;
   border: none;
-  padding: 0.8rem 1.6rem;
-  font-size: 0.9rem;
+  padding: 10px 20px;
+  font-size: 0.85rem;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.15);
-  white-space: nowrap;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(27, 42, 74, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .printBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(45, 62, 111, 0.2);
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(27, 42, 74, 0.3);
 }
 
 .printBtn:disabled {
@@ -150,15 +163,17 @@
 }
 
 .errorBanner {
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-  padding: 1rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
+  background: #ffebee;
+  border: 1px solid rgba(198, 40, 40, 0.12);
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
 }
 
-/* Timeline Cards */
+/* ─── Timeline Section ────────────────────────────────── */
 .timelineSection {
   width: 100%;
 }
@@ -166,106 +181,107 @@
 .timelineList {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 12px;
 }
 
 .timelineCard {
   background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
-  border: 1px solid #f1f5f9;
-  border-left: 6px solid #e2e8f0;
-  padding: 1.75rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  border-left: 5px solid #cbd5e0;
+  padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 2rem;
-  transition: all 0.25s ease;
+  transition: all 0.2s;
 }
 
 .billCardAccent {
-  border-left-color: #D9534F;
+  border-left-color: #c62828;
 }
 
 .payCardAccent {
-  border-left-color: #2E9C7A;
+  border-left-color: #2e7d32;
 }
 
 .timelineCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 35px rgba(27, 42, 74, 0.06);
-  border-color: rgba(59, 130, 246, 0.15);
-  border-left-width: 8px;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.08);
 }
 
 .cardInfo {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 6px;
 }
 
 .activityHeader {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
 .typeBadge {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 800;
-  padding: 0.25rem 0.65rem;
-  border-radius: 6px;
-  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
 .billBadge {
-  background: rgba(217, 83, 79, 0.15);
-  color: #D9534F;
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid rgba(198, 40, 40, 0.12);
 }
 
 .payBadge {
-  background: rgba(46, 156, 122, 0.15);
-  color: #2E9C7A;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.12);
 }
 
 .statusBadge {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  padding: 0.25rem 0.65rem;
-  border-radius: 6px;
-  text-transform: capitalize;
-  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
 }
 
-/* Status Colors */
 .statusBadge.paid,
 .statusBadge.verified {
-  background: #ecfdf5;
-  color: #047857;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.12);
 }
 
 .statusBadge.pending {
-  background: #fffbeb;
-  color: #b45309;
+  background: #fff8e1;
+  color: #f57f17;
+  border: 1px solid rgba(245, 127, 23, 0.12);
 }
 
 .statusBadge.rejected {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid rgba(198, 40, 40, 0.12);
 }
 
 .activityTitle {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #1B2A4A;
   margin: 0;
   line-height: 1.3;
 }
 
 .activityDate {
-  font-size: 0.85rem;
-  color: #7A8CA3;
+  font-size: 0.8rem;
+  color: #718096;
   margin: 0;
   font-weight: 500;
 }
@@ -277,62 +293,81 @@
 }
 
 .amountText {
-  font-size: 1.6rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
 .billAmount {
-  color: #D9534F;
+  color: #c62828;
 }
 
 .payAmount {
-  color: #2E9C7A;
+  color: #2e7d32;
 }
 
-/* Empty State */
+/* ─── Empty State ─────────────────────────────────────── */
 .emptyState {
   background: white;
-  border: 2px dashed rgba(45, 62, 111, 0.2);
-  border-radius: 24px;
-  padding: 5rem 2rem;
+  border: 1px dashed #cbd5e0;
+  border-radius: 16px;
+  padding: 4rem 2rem;
   text-align: center;
-  color: #7A8CA3;
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.05);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #718096;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
 }
 
 .emptyIcon {
   font-size: 3rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 12px;
 }
 
 .emptyTitle {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
+  color: #1B2A4A;
+  margin-bottom: 4px;
 }
 
 .emptyText {
-  font-size: 0.95rem;
-  max-width: 360px;
+  font-size: 0.88rem;
+  max-width: 320px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.4;
+}
+
+/* ─── Responsive ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  .main {
+    padding: 1.25rem 1rem;
+  }
+  .header {
+    padding: 0 1rem;
+  }
+  .headerSubtitle {
+    display: none;
+  }
+  .heroHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .printBtn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
   .timelineCard {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.25rem;
-    padding: 1.5rem;
+    gap: 12px;
+    padding: 1.25rem;
   }
-  
   .cardAmount {
     width: 100%;
-    border-top: 1px solid #f1f5f9;
-    padding-top: 0.85rem;
+    border-top: 1px solid #edf2f7;
+    padding-top: 10px;
     justify-content: flex-end;
   }
 }

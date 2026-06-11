@@ -1,134 +1,129 @@
+/* ─── Base Layout ─────────────────────────────────────── */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #F8F9FC 0%, #ffffff 50%, #F8F9FC 100%);
-  padding: 0;
+  background: #f4f6fb;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: #1a202c;
   position: relative;
 }
 
-.container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 50%, rgba(45, 62, 111, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(45, 62, 111, 0.03) 0%, transparent 50%);
-  pointer-events: none;
-}
-
+/* ─── Header ──────────────────────────────────────────── */
 .header {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
-  padding: 1.5rem 2rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e8edf5;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 
 .headerContent {
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 2rem;
 }
 
 .headerLefty {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 16px;
 }
 
 .backBtn {
-  background: transparent;
-  border: 2px solid rgba(45, 62, 111, 0.12);
-  color: #1E2A3A;
-  font-size: 1rem;
-  cursor: pointer;
+  color: #4a5568;
   text-decoration: none;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #f4f6fb;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
 }
 
 .backBtn:hover {
-  background: rgba(45, 62, 111, 0.05);
-  border-color: #1E2A3A;
-  color: #3B8B8C;
-  box-shadow: 0 4px 12px rgba(45, 62, 111, 0.1);
+  background: #edf2f7;
+  border-color: #cbd5e0;
+  color: #1B2A4A;
 }
 
 .headerBrand {
   display: flex;
   align-items: center;
-  gap: 1rem;
-}
-
-.headerIcon {
-  font-size: 2rem;
+  gap: 12px;
 }
 
 .headerTitle {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1E2A3A;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
+  letter-spacing: -0.3px;
 }
 
 .headerSubtitle {
-  font-size: 0.75rem;
-  color: #546e7a;
+  font-size: 0.7rem;
+  color: #718096;
   margin: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   background: transparent;
-  border: 2px solid rgba(45, 62, 111, 0.12);
-  color: #1E2A3A;
-  font-size: 1rem;
+  border: 1px solid #e2e8f0;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .logoutBtn:hover {
-  background: rgba(45, 62, 111, 0.05);
-  border-color: #1E2A3A;
-  color: #3B8B8C;
-  box-shadow: 0 4px 12px rgba(45, 62, 111, 0.1);
+  background: #ebf4ff;
+  border-color: #90cdf4;
+  color: #2b6cb0;
 }
 
-/* Main Content */
+/* ─── Main Content ────────────────────────────────────── */
 .main {
-  max-width: 1400px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
+  width: 100%;
 }
 
 .contentWrapper {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 2rem;
+  gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
-/* Sidebar - Messages List */
+/* ─── Sidebar - Messages List ─────────────────────────── */
 .sidebar {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
-  border: 1px solid rgba(45, 62, 111, 0.12);
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
   height: fit-content;
   position: sticky;
-  top: 100px;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  top: 80px;
 }
 
 .messagesHeader {
@@ -140,55 +135,52 @@
 }
 
 .messagesTitle {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #2D3E6F;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
+  letter-spacing: -0.2px;
 }
-
-
 
 .messagesList {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
 .emptyState {
-  padding: 2rem;
+  padding: 1.5rem;
   text-align: center;
-  color: #4A5568;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  background: #F8F9FC;
+  color: #718096;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  background: #f8fafc;
   border-radius: 8px;
-  border: 1px dashed rgba(45, 62, 111, 0.2);
+  border: 1px dashed #cbd5e0;
   margin-bottom: 1rem;
 }
 
 .messageItem {
-  padding: 1rem;
-  background: #F8F9FC;
+  padding: 12px;
+  background: #f8fafc;
   border-radius: 8px;
-  border: 2px solid transparent;
+  border: 1px solid #edf2f7;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .messageItem:hover {
-  background: #FFFFFF;
-  border-color: #3B8B8C;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
+  background: #edf2f7;
+  border-color: #cbd5e0;
 }
 
 .messageItem.active {
-  background: rgba(59, 139, 140, 0.14);
-  border-color: #3B8B8C;
+  background: rgba(27, 42, 74, 0.05);
+  border-color: #1B2A4A;
 }
 
 .messageContent {
@@ -197,81 +189,83 @@
 }
 
 .messageTitle {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #2D3E6F;
-  margin: 0 0 0.25rem 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1B2A4A;
+  margin: 0 0 2px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .messageDate {
-  font-size: 0.8rem;
-  color: #7A8CA3;
+  font-size: 0.72rem;
+  color: #718096;
   margin: 0;
 }
 
 .badge {
-  padding: 0.35rem 0.6rem;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
+  text-transform: uppercase;
 }
 
 .replied {
-  background: rgba(46, 156, 122, 0.15);
-  color: #2E9C7A;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.12);
 }
 
 .new {
-  background: rgba(45, 62, 111, 0.15);
-  color: #2D3E6F;
+  background: rgba(27, 42, 74, 0.08);
+  color: #1B2A4A;
+  border: 1px solid rgba(27, 42, 74, 0.12);
 }
 
-/* Conversation Section */
+/* ─── Conversation Section ────────────────────────────── */
 .conversationSection {
-  background: #ffffff;
-  border-radius: 12px;
+  background: white;
+  border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
-  border: 1px solid rgba(45, 62, 111, 0.12);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .conversationHeader {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(45, 62, 111, 0.12);
+  border-bottom: 1px solid #edf2f7;
 }
 
 .conversationTitle {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #2D3E6F;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
 }
 
 .conversationDate {
-  font-size: 0.85rem;
-  color: #3B8B8C;
-  margin: 0.25rem 0 0 0;
+  font-size: 0.8rem;
+  color: #718096;
+  margin: 4px 0 0 0;
 }
 
-/* Messages Thread */
+/* ─── Messages Thread ─────────────────────────────────── */
 .messagesThread {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
   flex: 1;
-  max-height: 400px;
+  max-height: 420px;
   overflow-y: auto;
-  padding-right: 0.5rem;
+  padding-right: 8px;
 }
 
 .messagesThread::-webkit-scrollbar {
@@ -279,23 +273,23 @@
 }
 
 .messagesThread::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f8fafc;
   border-radius: 10px;
 }
 
 .messagesThread::-webkit-scrollbar-thumb {
-  background: #3B8B8C;
+  background: #cbd5e0;
   border-radius: 10px;
 }
 
 .messagesThread::-webkit-scrollbar-thumb:hover {
-  background: #2D3E6F;
+  background: #a0aec0;
 }
 
 .messageThread {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 4px;
 }
 
 .userMessage {
@@ -303,9 +297,10 @@
 }
 
 .userMessage .messageBody {
-  background: rgba(45, 62, 111, 0.14);
-  color: #2D3E6F;
-  max-width: 70%;
+  background: #1B2A4A;
+  color: white;
+  border-radius: 12px 12px 2px 12px;
+  max-width: 75%;
 }
 
 .adminMessage {
@@ -313,478 +308,169 @@
 }
 
 .adminMessage .messageBody {
-  background: #F8F9FC;
-  color: #4A5568;
-  border: 1px solid rgba(45, 62, 111, 0.12);
-  max-width: 70%;
+  background: #f8fafc;
+  color: #2d3748;
+  border: 1px solid #edf2f7;
+  border-radius: 12px 12px 12px 2px;
+  max-width: 75%;
 }
 
 .senderInfo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: 6px;
+  font-size: 0.78rem;
 }
 
 .senderName {
-  color: #2D3E6F;
-  font-weight: 600;
+  color: #4a5568;
+  font-weight: 700;
 }
 
 .timestamp {
-  color: #7A8CA3;
-  font-size: 0.75rem;
+  color: #718096;
+  font-size: 0.72rem;
 }
 
 .messageBody {
-  padding: 1rem;
-  border-radius: 8px;
-  line-height: 1.5;
+  padding: 10px 14px;
+  line-height: 1.4;
   word-wrap: break-word;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.88rem;
 }
 
-/* Reply Section */
+/* ─── Reply Section ───────────────────────────────────── */
 .replySection {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: #F8F9FC;
-  border-radius: 8px;
-  border: 1px solid rgba(45, 62, 111, 0.12);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 12px;
+  padding: 1.25rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #edf2f7;
 }
 
 .replyTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2D3E6F;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .replyInput {
-  padding: 1rem;
-  border: 2px solid rgba(45, 62, 111, 0.12);
+  padding: 10px 14px;
+  border: 1px solid #cbd5e0;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-family: inherit;
   resize: vertical;
-  color: #2D3E6F;
-  background: #ffffff;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #1B2A4A;
+  background: white;
+  transition: all 0.2s;
+  min-height: 80px;
 }
 
 .replyInput:focus {
   outline: none;
-  border-color: #3B8B8C;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(59, 139, 140, 0.2);
+  border-color: #1B2A4A;
+  box-shadow: 0 0 0 3px rgba(27, 42, 74, 0.1);
 }
 
 .replyInput::placeholder {
-  color: rgba(45, 62, 111, 0.5);
+  color: #a0aec0;
 }
 
 .sendBtn {
-  background: #2D3E6F;
-  color: #ffffff;
+  background: linear-gradient(135deg, #1B2A4A, #2d4a80);
+  color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 8px 18px;
   border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
   align-self: flex-start;
+  box-shadow: 0 4px 12px rgba(27, 42, 74, 0.2);
 }
 
 .sendBtn:hover {
-  background: linear-gradient(135deg, #2D3E6F 0%, #3B8B8C 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.15);
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(27, 42, 74, 0.3);
 }
 
-/* Information Box */
+/* ─── Information Box ─────────────────────────────────── */
 .infoBox {
-  background: rgba(45, 62, 111, 0.14);
+  background: rgba(27, 42, 74, 0.04);
   border-radius: 12px;
-  padding: 1.5rem;
-  border-left: 4px solid #2D3E6F;
+  padding: 1.25rem;
+  border-left: 4px solid #1B2A4A;
   display: flex;
-  gap: 1.5rem;
+  gap: 12px;
   align-items: flex-start;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .infoIcon {
-  font-size: 2rem;
+  font-size: 1.8rem;
   flex-shrink: 0;
 }
 
 .infoContent {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 4px;
 }
 
 .infoTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2D3E6F;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
 }
 
 .infoText {
-  color: #3B8B8C;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  color: #718096;
+  font-size: 0.82rem;
+  line-height: 1.4;
   margin: 0;
 }
 
-/* Responsive */
-
-/* Tablet (768px - 1024px) */
+/* ─── Responsive ──────────────────────────────────────── */
 @media (max-width: 1024px) {
   .contentWrapper {
-    grid-template-columns: 250px 1fr;
-    gap: 1.5rem;
-  }
-
-  .sidebar {
-    padding: 1rem;
-  }
-
-  .conversationSection {
-    padding: 1.5rem;
+    grid-template-columns: 240px 1fr;
+    gap: 1.25rem;
   }
 }
 
-/* Small Tablets (481px - 768px) */
 @media (max-width: 768px) {
   .main {
-    padding: 1rem;
+    padding: 1.25rem 1rem;
   }
-
   .header {
-    padding: 1rem 1.5rem;
+    padding: 0 1rem;
   }
-
-  .headerContent {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .headerLefty {
-    gap: 1rem;
-  }
-
-  .headerTitle {
-    font-size: 1.2rem;
-  }
-
-  .contentWrapper {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .sidebar {
-    position: relative;
-    top: 0;
-    padding: 1rem;
-  }
-
-  .messagesHeader {
-    margin-bottom: 0.75rem;
-  }
-
-  .messagesTitle {
-    font-size: 1rem;
-  }
-
-  
-
-  .messagesList {
-    gap: 0.5rem;
-  }
-
-  .messageItem {
-    padding: 0.75rem;
-  }
-
-  .messageTitle {
-    font-size: 0.9rem;
-  }
-
-  .messageDate {
-    font-size: 0.75rem;
-  }
-
-  .badge {
-    font-size: 0.65rem;
-    padding: 0.25rem 0.5rem;
-  }
-
-  .conversationSection {
-    padding: 1rem;
-  }
-
-  .messagesThread {
-    max-height: 250px;
-  }
-
-  .conversationTitle {
-    font-size: 1.1rem;
-  }
-
-  .conversationDate {
-    font-size: 0.8rem;
-  }
-
-  .messageBody {
-    font-size: 0.85rem;
-    padding: 0.75rem;
-  }
-
-  .userMessage .messageBody,
-  .adminMessage .messageBody {
-    max-width: 80%;
-  }
-
-  .replySection {
-    padding: 1rem;
-  }
-
-  .replyTitle {
-    font-size: 0.95rem;
-  }
-
-  .replyInput {
-    padding: 0.75rem;
-    font-size: 0.85rem;
-  }
-
-  .sendBtn {
-    padding: 0.65rem 1.25rem;
-    font-size: 0.85rem;
-  }
-
-  .infoBox {
-    padding: 1rem;
-    gap: 1rem;
-  }
-
-  .infoIcon {
-    font-size: 1.5rem;
-  }
-}
-
-/* Extra Small Devices (320px - 480px) */
-@media (max-width: 480px) {
-  .container {
-    min-height: 100vh;
-  }
-
-  .header {
-    padding: 0.75rem 1rem;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .headerContent {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .headerLefty {
-    width: auto;
-    gap: 0.5rem;
-  }
-
-  .backBtn {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
-  }
-
-  .headerBrand {
-    gap: 0.4rem;
-  }
-
-  .headerIcon {
-    font-size: 1.25rem;
-  }
-
-  .headerTitle {
-    font-size: 0.95rem;
-  }
-
   .headerSubtitle {
     display: none;
   }
-
-  .logoutBtn {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
-  }
-
-  .main {
-    max-width: 100%;
-    padding: 0.75rem;
-  }
-
   .contentWrapper {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
   }
-
   .sidebar {
-    padding: 0.75rem;
-    border-radius: 8px;
-    max-height: 200px;
-    overflow-y: auto;
+    position: relative;
+    top: 0;
   }
+}
 
-  .messagesHeader {
-    gap: 0.4rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .messagesTitle {
-    font-size: 0.9rem;
-  }
-
-  
-
-  .messagesList {
-    gap: 0.35rem;
-  }
-
-  .messageItem {
-    padding: 0.6rem;
-    gap: 0.35rem;
-  }
-
-  .messageTitle {
-    font-size: 0.8rem;
-  }
-
-  .messageDate {
-    font-size: 0.7rem;
-  }
-
-  .badge {
-    font-size: 0.6rem;
-    padding: 0.2rem 0.4rem;
-  }
-
+@media (max-width: 480px) {
   .conversationSection {
-    padding: 0.75rem;
-    border-radius: 8px;
+    padding: 1.25rem;
+    border-radius: 12px;
   }
-
-  .conversationHeader {
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .conversationTitle {
-    font-size: 1rem;
-  }
-
-  .conversationDate {
-    font-size: 0.75rem;
-  }
-
-  .messagesThread {
-    max-height: 150px;
-    margin-bottom: 1rem;
-    gap: 0.75rem;
-  }
-
-  .messageThread {
-    gap: 0.35rem;
-  }
-
-  .senderInfo {
-    gap: 0.35rem;
-    font-size: 0.75rem;
-  }
-
-  .senderName {
-    font-size: 0.75rem;
-  }
-
-  .timestamp {
-    font-size: 0.65rem;
-  }
-
-  .messageBody {
-    padding: 0.6rem;
-    font-size: 0.8rem;
-    line-height: 1.4;
-  }
-
-  .userMessage .messageBody,
-  .adminMessage .messageBody {
-    max-width: 85%;
-  }
-
-  .replySection {
-    padding: 0.75rem;
-    border-radius: 6px;
-  }
-
-  .replyTitle {
-    font-size: 0.85rem;
-    margin: 0 0 0.6rem 0;
-  }
-
-  .replyInput {
-    padding: 0.6rem;
-    font-size: 0.8rem;
-    min-height: 60px;
-    border-radius: 4px;
-    margin-bottom: 0.6rem;
-  }
-
-  .replyInput::placeholder {
-    color: #90caf9;
-    font-size: 0.75rem;
-  }
-
   .sendBtn {
-    padding: 0.8rem;
-    font-size: 0.9rem;
-    border-radius: 6px;
     width: 100%;
-    text-align: center;
-  }
-
-  .infoBox {
-    padding: 0.75rem;
-    gap: 0.75rem;
-    border-radius: 8px;
-    border-left-width: 3px;
-  }
-
-  .infoIcon {
-    font-size: 1.25rem;
-  }
-
-  .infoContent {
-    gap: 0.4rem;
-  }
-
-  .infoTitle {
-    font-size: 0.85rem;
-  }
-
-  .infoText {
-    font-size: 0.75rem;
-    line-height: 1.4;
   }
 }

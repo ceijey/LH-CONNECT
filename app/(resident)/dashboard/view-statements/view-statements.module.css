@@ -1,218 +1,242 @@
+/* ─── Base Layout ─────────────────────────────────────── */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #F8F9FC 0%, #ffffff 50%, #F8F9FC 100%);
-  color: #1E2A3A;
+  background: #f4f6fb;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: #1a202c;
 }
 
-/* Loading State */
+/* ─── Loading State ───────────────────────────────────── */
 .loadingState {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(27, 42, 74, 0.1);
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
   border-top-color: #1B2A4A;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Header Styles */
+/* ─── Header ──────────────────────────────────────────── */
 .header {
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(18px);
-  padding: 1.25rem 2rem;
-  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
+  background: #ffffff;
+  border-bottom: 1px solid #e8edf5;
+  padding: 0 2rem;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 
 .headerContent {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .headerLefty {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 16px;
 }
 
 .backBtn {
-  color: #1E2A3A;
+  color: #4a5568;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 700;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 8px;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f4f6fb;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
 }
 
 .backBtn:hover {
-  background: rgba(45, 62, 111, 0.05);
-  color: #3B8B8C;
+  background: #edf2f7;
+  border-color: #cbd5e0;
+  color: #1B2A4A;
 }
 
 .headerBrand {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .headerTitle {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
-  color: #1E2A3A;
+  letter-spacing: -0.3px;
 }
 
 .headerSubtitle {
-  font-size: 0.75rem;
-  color: #1e293b;
+  font-size: 0.7rem;
+  color: #718096;
   margin: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .logoutBtn {
-  background: transparent;
-  border: 1px solid rgba(45, 62, 111, 0.12);
-  color: #1E2A3A;
-  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 8px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
 }
 
 .logoutBtn:hover {
-  background: rgba(45, 62, 111, 0.05);
-  color: #3B8B8C;
+  background: #ebf4ff;
+  border-color: #90cdf4;
+  color: #2b6cb0;
 }
 
-/* Main Content */
+/* ─── Main Content ────────────────────────────────────── */
 .main {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 3rem 2rem;
+  padding: 2rem;
+  width: 100%;
 }
 
-/* Hero Section */
+/* ─── Hero Section & Controls ─────────────────────────── */
 .heroSection {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 3rem;
+  align-items: center;
+  margin-bottom: 2rem;
   gap: 2rem;
 }
 
 .pageTitle {
-  font-size: 2rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  margin: 0 0 0.5rem 0;
-  background: linear-gradient(90deg, #1E2A3A, #3B8B8C);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  white-space: nowrap;
+  color: #1B2A4A;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.5px;
 }
 
 .pageSubtitle {
-  color: #1e293b;
-  font-size: 1.1rem;
-  max-width: 600px;
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .reportControls {
   display: flex;
-  gap: 1rem;
+  gap: 12px;
   background: white;
-  padding: 1.25rem;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
-  border: 1px solid rgba(45, 62, 111, 0.12);
+  padding: 1rem;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
   align-items: flex-end;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .controlGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 6px;
 }
 
 .controlGroup label {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.68rem;
+  font-weight: 700;
   text-transform: uppercase;
-  color: #1e293b;
-  letter-spacing: 0.05em;
+  color: #718096;
+  letter-spacing: 0.5px;
 }
 
 .controlGroup select {
-  padding: 0.625rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #F8F9FC;
-  color: #1E2A3A;
-  font-weight: 500;
+  padding: 8px 14px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1B2A4A;
+  font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
+  outline: none;
+  min-width: 120px;
+  transition: border-color 0.15s;
+}
+
+.controlGroup select:focus {
+  border-color: #1B2A4A;
 }
 
 .downloadReportBtn {
-  background: #2D3E6F;
+  background: linear-gradient(135deg, #1B2A4A, #2d4a80);
   color: white;
   border: none;
-  padding: 0.625rem 1.25rem;
-  border-radius: 10px;
-  font-weight: 600;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  height: 42px;
-  white-space: nowrap;
+  transition: all 0.2s;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(27, 42, 74, 0.2);
 }
 
 .downloadReportBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2D3E6F 0%, #3B8B8C 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.15);
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(27, 42, 74, 0.3);
 }
 
 .downloadReportBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-/* Table Section */
+/* ─── Table Section ───────────────────────────────────── */
 .tableSection {
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .tableCard {
   background: white;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(45, 62, 111, 0.1);
-  border: 1px solid rgba(45, 62, 111, 0.12);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
 }
 
 .auditTable {
@@ -222,195 +246,162 @@
 }
 
 .auditTable th {
-  background: #F8F9FC;
-  padding: 1.25rem 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #1e293b;
-  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
+  background: #f8fafc;
+  padding: 14px 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid #edf2f7;
 }
 
 .tableRow {
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  border-bottom: 1px solid rgba(45, 62, 111, 0.12);
+  transition: background 0.15s;
+  border-bottom: 1px solid #edf2f7;
 }
 
 .tableRow:hover {
-  background: #F8F9FC;
+  background: #f8fafc;
 }
 
 .auditTable td {
-  padding: 1.25rem 1.5rem;
+  padding: 16px 20px;
   vertical-align: middle;
+  font-size: 0.9rem;
 }
 
 .dateCell {
+  color: #4a5568;
   font-weight: 500;
-  color: #1e293b;
 }
 
 .descCell {
-  font-weight: 600;
+  font-weight: 700;
+  color: #1a202c;
 }
 
 .typeBadge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
 }
 
 .typeBadge.bill {
-  background: #fee2e2;
-  color: #ef4444;
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid rgba(198, 40, 40, 0.12);
 }
 
 .typeBadge.payment {
-  background: #dcfce7;
-  color: #22c55e;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.12);
 }
 
 .amountCell {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 800;
+  font-size: 0.95rem;
 }
 
 .billAmount {
-  color: #ef4444;
+  color: #c62828;
 }
 
 .payAmount {
-  color: #22c55e;
+  color: #2e7d32;
 }
 
 .statusBadge {
-  padding: 0.25rem 0.75rem;
+  padding: 4px 10px;
   border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-block;
 }
 
-.statusBadge.paid, .statusBadge.confirmed {
-  background: #dcfce7;
-  color: #16a34a;
+.statusBadge.paid, 
+.statusBadge.confirmed {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.12);
 }
 
 .statusBadge.pendingverification {
-  background: #fef9c3;
-  color: #ca8a04;
+  background: #fff8e1;
+  color: #f57f17;
+  border: 1px solid rgba(245, 127, 23, 0.12);
 }
 
 .statusBadge.pending {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid rgba(198, 40, 40, 0.12);
 }
 
 .noData {
   text-align: center;
-  padding: 4rem !important;
-  color: #1e293b;
-  font-style: italic;
+  padding: 4rem 2rem !important;
+  color: #a0aec0;
+  font-size: 0.9rem;
 }
 
-/* PRINT ONLY STYLES - HIDDEN BY DEFAULT */
-.printOnlyHeader, .printOnlyFooter {
+/* ─── Print Sections (Hidden in UI) ───────────────────── */
+.printOnlyHeader, 
+.printOnlyFooter {
   display: none;
 }
 
+/* ─── Print Media Styles ──────────────────────────────── */
 @media print {
-  @page {
-    margin: 2cm;
+  body {
+    background: white !important;
   }
-
-  /* Hide UI Elements */
-  .header, .heroSection, .actionButtons, .backBtn, .logoutBtn, .reportControls {
+  .header, 
+  .heroSection, 
+  .reportControls {
     display: none !important;
   }
-
   .main {
     padding: 0;
   }
-
-  .container {
-    background: white !important;
+  .tableCard {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e0;
   }
-
-  /* Show Print Sections */
   .printOnlyHeader {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     margin-bottom: 2rem;
-    border-bottom: 2px solid #1E2A3A;
+    border-bottom: 2px solid #1B2A4A;
     padding-bottom: 1rem;
   }
-
   .printBrand h1 {
     margin: 0;
-    color: #1E2A3A;
-    font-size: 24pt;
+    color: #1B2A4A;
+    font-size: 20pt;
+    font-weight: 800;
   }
-
   .printBrand p {
-    margin: 5pt 0 0 0;
-    color: #666;
-    font-size: 10pt;
+    margin: 4px 0 0 0;
+    color: #4a5568;
+    font-size: 9pt;
   }
-
-  .printTitle {
-    text-align: right;
-  }
-
   .printTitle h2 {
     margin: 0;
-    font-size: 14pt;
-    color: #334155;
+    font-size: 12pt;
+    color: #2d3748;
   }
-
   .printTitle p {
-    margin: 2pt 0 0 0;
-    font-size: 9pt;
-    color: #94a3b8;
+    margin: 2px 0 0 0;
+    font-size: 8pt;
+    color: #718096;
   }
-
-  /* Optimize Table for Print */
-  .tableCard {
-    box-shadow: none !important;
-    border: 1px solid #e2e8f0;
-  }
-
-  .auditTable th {
-    background: #f8fafc !important;
-    -webkit-print-color-adjust: exact;
-  }
-
-  .typeBadge.bill {
-    background: #fee2e2 !important;
-    color: #ef4444 !important;
-    -webkit-print-color-adjust: exact;
-  }
-
-  .typeBadge.payment {
-    background: #dcfce7 !important;
-    color: #22c55e !important;
-    -webkit-print-color-adjust: exact;
-  }
-
-  /* Summary Table */
-  .summaryTableCard {
-    box-shadow: none !important;
-    border: 1px solid #e2e8f0;
-    max-width: 100%;
-    margin-top: 3rem;
-  }
-
-  .totalRow {
-    background-color: #F8F9FC !important;
-    -webkit-print-color-adjust: exact;
-  }
-
   .printOnlyFooter {
     display: block;
     position: fixed;
@@ -420,89 +411,46 @@
     border-top: 1px solid #e2e8f0;
     padding-top: 1rem;
     font-size: 8pt;
-    color: #94a3b8;
+    color: #a0aec0;
   }
 }
 
-/* Responsive fixes */
+/* ─── Responsive ──────────────────────────────────────── */
 @media (max-width: 1024px) {
   .heroSection {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.5rem;
-  }
-  .pageTitle {
-    white-space: normal;
+    gap: 1.25rem;
   }
 }
 
-@media (max-width: 640px) {
-  .actionButtons {
-    flex-direction: column;
+@media (max-width: 768px) {
+  .main {
+    padding: 1.25rem 1rem;
   }
-  .pageTitle {
-    font-size: 1.75rem;
+  .header {
+    padding: 0 1rem;
   }
   .reportControls {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
   }
+  .downloadReportBtn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
-  .header {
-    padding: 0.75rem 1rem;
-  }
-  
-  .headerContent {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .headerLefty {
-    width: auto;
-    gap: 0.5rem;
-  }
-  
-  .headerBrand {
-    gap: 0.4rem;
-  }
-  
-  .headerTitle {
-    font-size: 0.95rem;
-  }
-  
   .headerSubtitle {
     display: none;
   }
-  
-  .backBtn {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
-  }
-  
-  .logoutBtn {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
-  }
-  
-  .main {
-    padding: 1.5rem 1rem;
-  }
-  
-  .pageTitle {
-    font-size: 1.5rem;
-  }
-  
   .tableCard {
     border-radius: 12px;
-    overflow-x: auto;
   }
-  
-  .auditTable th, .auditTable td {
-    padding: 1rem 0.75rem;
+  .auditTable th, 
+  .auditTable td {
+    padding: 12px 14px;
     font-size: 0.8rem;
   }
 }

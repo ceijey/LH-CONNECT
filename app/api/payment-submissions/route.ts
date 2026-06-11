@@ -28,12 +28,8 @@ type PaymentSubmission = {
 async function resolveFileUrl(data: any): Promise<string | undefined> {
   // If file stored encrypted (inline Base64 was encrypted), decrypt and return it
   if (data.fileEncrypted) {
-    try {
-      const decrypted = decrypt(String(data.fileEncrypted));
-      if (decrypted && String(decrypted).startsWith('data:')) return decrypted;
-    } catch (err) {
-      console.error('Failed to decrypt fileEncrypted:', err);
-    }
+    const decrypted = decrypt(String(data.fileEncrypted));
+    if (decrypted && String(decrypted).startsWith('data:')) return decrypted;
   }
 
   // If it's a Base64 string, don't return it in the list to avoid payload size limits on Vercel
@@ -108,9 +104,7 @@ async function toSubmission(doc: any): Promise<PaymentSubmission> {
     paymentMethod: data.paymentMethod ?? 'Unknown',
     referenceNumber: data.referenceNumber ?? '',
     // Decrypt notes if stored encrypted
-    notes: data.notesEncrypted ? (() => {
-      try { return decrypt(String(data.notesEncrypted)); } catch (err) { return data.notes ?? null; }
-    })() : data.notes,
+    notes: data.notesEncrypted ? (decrypt(String(data.notesEncrypted)) ?? data.notes ?? null) : data.notes,
     fileName: data.fileName,
     fileUrl,
     filePath: data.filePath,

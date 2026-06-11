@@ -15,7 +15,7 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #1B2A4A 0%, #2D3E6F 100%);
   color: #ffffff;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -52,11 +52,11 @@
   height: 1.75rem;
   padding: 0 0.5rem;
   border-radius: 999px;
-  background: #2563eb;
+  background: #3B8B8C;
   color: #ffffff;
   font-weight: 800;
   font-size: 0.8rem;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 139, 140, 0.3);
 }
 
 .threadList {
@@ -105,12 +105,12 @@
 }
 
 .threadItemUnread {
-  background: rgba(37, 99, 235, 0.08);
-  border-left: 3px solid #3b82f6 !important;
+  background: rgba(59, 139, 140, 0.15);
+  border-left: 3px solid #3B8B8C !important;
 }
 
 .threadItemUnread .threadTitle {
-  color: #3b82f6;
+  color: #3B8B8C;
   font-weight: 800;
 }
 
@@ -169,7 +169,7 @@
 }
 
 .threadItemActive .statusPill {
-  background: #2563eb;
+  background: #3B8B8C;
   color: #ffffff;
 }
 
@@ -281,10 +281,10 @@
 }
 
 .bubbleMine {
-  background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #2D3E6F 0%, #3B8B8C 100%);
   color: #ffffff;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 10px 25px rgba(29, 78, 216, 0.15);
+  box-shadow: 0 10px 25px rgba(59, 139, 140, 0.15);
 }
 
 .bubbleTheirs {
@@ -340,15 +340,15 @@
 
 .composerInput {
   width: 100%;
-  resize: none;
+  resize: vertical;
   border: 1px solid #cbd5e1;
-  border-radius: 16px;
-  padding: 1rem;
-  min-height: 80px;
+  border-radius: 20px;
+  padding: 0.85rem 1.25rem;
+  min-height: 52px;
   background: #f8fafc;
   color: #0f172a;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 500;
   line-height: 1.45;
   transition: all 0.2s ease;
@@ -356,9 +356,9 @@
 
 .composerInput:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: #3B8B8C;
   background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 4px rgba(59, 139, 140, 0.1);
 }
 
 .composerFooter {
@@ -380,22 +380,22 @@
   border: 0;
   border-radius: 999px;
   padding: 0.65rem 1.5rem;
-  background: #2563eb;
+  background: linear-gradient(135deg, #2D3E6F 0%, #3B8B8C 100%);
   color: #ffffff;
   font-weight: 800;
   font-size: 0.88rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 12px rgba(45, 62, 111, 0.25);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .sendButton:hover:not(:disabled) {
-  background: #1d4ed8;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.35);
+  box-shadow: 0 6px 16px rgba(45, 62, 111, 0.35);
+  filter: brightness(1.1);
 }
 
 .sendButton:disabled {

@@ -220,7 +220,7 @@ export default function ChatBox({
             value={replyValue}
             onChange={(event) => onReplyChange(event.target.value)}
             onKeyDown={handleKeyDown}
-            rows={4}
+            rows={1}
           />
           <div className={styles.composerFooter}>
             <p className={styles.composerHint}>Enter sends, Shift+Enter adds a new line.</p>

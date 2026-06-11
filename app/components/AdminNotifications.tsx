@@ -216,41 +216,30 @@ export default function AdminNotifications() {
                   <div 
                     key={notification.id} 
                     className={`${styles.notificationItem} ${!notification.read ? styles.unread : ''}`}
-                    style={{ position: 'relative' }}
                     onClick={() => !notification.read && markAsRead(notification.id)}
                   >
-                    <div className={`${styles.accentBar} ${
-                      notification.type === 'resident_registration' ? styles.accentResident :
-                      notification.type === 'payment_submission' ? styles.accentPayment :
-                      notification.type === 'new_message' ? styles.accentMessage :
-                      styles.accentAction
-                    }`} />
-
-                    <div className={styles.notificationHeader}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span className={`${styles.typeBadge} ${
-                          notification.type === 'resident_registration' ? styles.badgeResident :
-                          notification.type === 'payment_submission' ? styles.badgePayment :
-                          notification.type === 'new_message' ? styles.badgeMessage :
-                          styles.badgeAction
-                        }`}>
-                          {notification.type === 'resident_registration' ? 'Resident' :
-                           notification.type === 'payment_submission' ? 'Payment' :
-                           notification.type === 'new_message' ? 'Message' :
-                           'Action'}
-                        </span>
-                        <span className={styles.notificationTitle}>
-                          {getIcon(notification.type)} {notification.title}
-                        </span>
-                      </div>
-                      <span className={styles.notificationTime}>
-                        {formatTime(notification.createdAt)}
-                      </span>
+                    <div className={`${styles.iconCircle} ${
+                      notification.type === 'resident_registration' ? styles.badgeResident :
+                      notification.type === 'payment_submission' ? styles.badgePayment :
+                      notification.type === 'new_message' ? styles.badgeMessage :
+                      styles.badgeAction
+                    }`}>
+                      {getIcon(notification.type)}
                     </div>
                     
-                    <div className={styles.notificationMessage}>
-                      {notification.message}
-                    </div>
+                    <div className={styles.notificationBody}>
+                      <div className={styles.notificationHeaderRow}>
+                        <span className={styles.notificationTitle}>
+                          {notification.title}
+                        </span>
+                        <span className={styles.notificationTime}>
+                          {formatTime(notification.createdAt)}
+                        </span>
+                      </div>
+                      
+                      <div className={styles.notificationMessage}>
+                        {notification.message}
+                      </div>
 
                     {notification.type === 'resident_registration' && notification.details && (
                       <div className={styles.residentDetails} style={{ marginTop: '4px' }}>
@@ -294,12 +283,14 @@ export default function AdminNotifications() {
                     <Link 
                       href={getLink(notification)}
                       className={styles.residentDetails}
-                      style={{ marginTop: '4px', display: 'block', textDecoration: 'underline' }}
+                      style={{ marginTop: '4px', display: 'inline-block', fontWeight: 500, textDecoration: 'none', color: '#2196f3' }}
                       onClick={() => setIsOpen(false)}
                     >
-                      View Details
+                      View Details →
                     </Link>
                   </div>
+                  {!notification.read && <div className={styles.unreadDot} />}
+                </div>
                 ))
               )}
               {nextCursor && (
