@@ -183,17 +183,20 @@ export default function QRScannerPage() {
           <div className={styles.scannerSection}>
             {!isScanning && !scannedResident && (
               <div className={styles.scanPrompt}>
-                <div className={styles.promptIcon}>📷</div>
-                <h2 className={styles.promptTitle}>Ready to Scan</h2>
+                <div className={styles.promptIconWrapper}>
+                  <div className={styles.promptIcon}>📷</div>
+                </div>
+                <h2 className={styles.promptTitle}>Scan Resident QR Code</h2>
                 <p className={styles.promptText}>
-                  Click the button below to start scanning resident QR codes
+                  Point your camera at a resident's QR code to instantly pull up their profile and billing information.
                 </p>
                 <button
                   onClick={handleStartScan}
                   className={styles.scanBtn}
                   disabled={permissionDenied || isLoadingResidents}
                 >
-                  {isLoadingResidents ? '⏳ Loading residents...' : '🔍 Start Scanning'}
+                  <span className={styles.btnIcon}>🔍</span>
+                  {isLoadingResidents ? 'Initializing...' : 'Tap to Start Scanning'}
                 </button>
                 {permissionDenied && (
                   <p className={styles.errorText}>
@@ -269,7 +272,9 @@ export default function QRScannerPage() {
                         boxShadow: `0 4px 10px ${scannedResident.balance && scannedResident.balance > 0 ? 'rgba(239, 83, 80, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`
                       }}
                     >
-                      {scannedResident.balance && scannedResident.balance > 0 ? 'Delinquent' : 'PAID'}
+                      {scannedResident.balance && scannedResident.balance > 0 
+                        ? `DELINQUENT - ${Math.floor(scannedResident.balance / 400)} Month${Math.floor(scannedResident.balance / 400) > 1 ? 's' : ''} Delayed`
+                        : `PAID - ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`}
                     </span>
                   </div>
 
@@ -304,7 +309,7 @@ export default function QRScannerPage() {
                         </div>
                         <div className={styles.fullAddress}>
                           <span className={styles.label}>Full Address</span>
-                          <span className={styles.value}>Lincoln Heights, Phase {scannedResident.phase}, Blk {scannedResident.block}, Lot {scannedResident.lot}</span>
+                          <span className={styles.value}>Lincoln Heights, {scannedResident.phase}, Blk {scannedResident.block}, Lot {scannedResident.lot}</span>
                         </div>
                       </div>
                     </div>
@@ -320,7 +325,25 @@ export default function QRScannerPage() {
                           ₱{(scannedResident.balance || 0).toLocaleString()}
                         </div>
                         <div className={styles.balanceFooter}>
-                          Last updated: {new Date().toLocaleDateString()}
+                          <span>Last updated: {new Date().toLocaleDateString()}</span>
+                          {scannedResident.balance && scannedResident.balance > 0 ? (
+                            <span style={{ 
+                              padding: '4px 12px', 
+                              background: '#fee2e2', 
+                              color: '#b91c1c', 
+                              borderRadius: '20px',
+                              fontSize: '0.75rem', 
+                              fontWeight: 700 
+                            }}>
+                              Unpaid: {
+                                Array.from({ length: Math.floor(scannedResident.balance / 400) }).map((_, i) => {
+                                  const d = new Date();
+                                  d.setMonth(d.getMonth() - i);
+                                  return d.toLocaleString('default', { month: 'short' });
+                                }).reverse().join(', ')
+                              }
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -331,10 +354,7 @@ export default function QRScannerPage() {
                     <button onClick={handleRescan} className={styles.primaryAction}>
                       🔄 Scan Another
                     </button>
-                    <Link href={`/admin/residents/${scannedResident.id}`} className={styles.secondaryAction}>
-                      👤 View Full Profile
-                    </Link>
-                    <button onClick={handleCopyResidentId} className={styles.textAction}>
+                    <button onClick={handleCopyResidentId} className={styles.secondaryAction}>
                       📋 Copy ID
                     </button>
                   </div>
@@ -343,38 +363,6 @@ export default function QRScannerPage() {
             )}
           </div>
 
-          {/* Info Sidebar */}
-          <aside className={styles.infoSidebar}>
-            <div className={styles.infoCard}>
-              <h3 className={styles.infoCardTitle}>How to Use</h3>
-              <ol className={styles.instructionsList}>
-                <li>Click "Start Scanning" button</li>
-                <li>Point camera at resident's QR code</li>
-                <li>Wait for automatic detection</li>
-                <li>Resident information displays instantly</li>
-                <li>Click "Scan Another" to repeat</li>
-              </ol>
-            </div>
-
-            <div className={styles.infoCard}>
-              <h3 className={styles.infoCardTitle}>Test QR Codes</h3>
-              <p className={styles.testText}>Use resident IDs to test scanning</p>
-              <p className={styles.testNote}>
-                Each resident's QR code encodes their Firebase user ID for lookup
-              </p>
-            </div>
-
-            <div className={styles.infoCard}>
-              <h3 className={styles.infoCardTitle}>Features</h3>
-              <ul className={styles.featureList}>
-                <li>✓ Instant resident lookup</li>
-                <li>✓ Complete billing info</li>
-                <li>✓ Real-time scanning</li>
-                <li>✓ Camera permission handling</li>
-                <li>✓ Live database sync</li>
-              </ul>
-            </div>
-          </aside>
       </div>
     </>
   );

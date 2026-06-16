@@ -1,22 +1,19 @@
 .contentWrapper {
-  display: grid;
-  grid-template-columns: 1fr 350px;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
-}
-
-@media (max-width: 1200px) {
-  .contentWrapper {
-    grid-template-columns: 1fr;
-  }
+  padding-bottom: 3rem;
 }
 
 /* Scanner Section */
 .scannerSection {
   background: #ffffff;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(13, 71, 161, 0.06);
-  border: 1px solid #e3f2fd;
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  box-shadow: 0 10px 40px rgba(27, 42, 74, 0.08);
+  border: 1px solid #eef2f6;
 }
 
 .scanPrompt {
@@ -24,50 +21,71 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 2rem;
   text-align: center;
   gap: 1.5rem;
 }
 
+.promptIconWrapper {
+  width: 90px;
+  height: 90px;
+  background: linear-gradient(135deg, #f0f4f8, #e2e8f0);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 12px rgba(0,0,0,0.05);
+}
+
 .promptIcon {
-  font-size: 4rem;
+  font-size: 2.5rem;
 }
 
 .promptTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #0d47a1;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1B2A4A;
   margin: 0;
+  letter-spacing: -0.5px;
 }
 
 .promptText {
-  color: #546e7a;
-  font-size: 1rem;
+  color: #64748b;
+  font-size: 1.05rem;
   margin: 0;
+  max-width: 450px;
+  line-height: 1.6;
 }
 
 .scanBtn {
-  background: #1B2A4A;
+  background: linear-gradient(135deg, #1B2A4A, #2d4a80);
   color: white;
   border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
+  padding: 1.1rem 2.5rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1.05rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(27, 42, 74, 0.25);
 }
 
 .scanBtn:hover:not(:disabled) {
-  background: #2C3E6B;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(27, 42, 74, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(27, 42, 74, 0.35);
 }
 
 .scanBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btnIcon {
+  font-size: 1.2rem;
 }
 
 .errorText {
@@ -296,8 +314,8 @@
   padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e3f2fd;
+  align-items: flex-start;
+  border-bottom: 1px solid #eef2f6;
 }
 
 .nameSection {
@@ -406,43 +424,52 @@
 
 /* Sidebar & Balance */
 .balanceSidebar {
-  background: #fcfdfe;
+  background: #f8faff;
   padding: 2rem;
-  border-left: 1px solid #e3f2fd;
   display: flex;
   align-items: center;
+  justify-content: center;
+  border-left: 1px solid #eef2f6;
 }
 
 .balanceCard {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #e3f2fd;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  background: white;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 8px 30px rgba(27,42,74,0.06);
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .balanceLabel {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #90a4ae;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #8898aa;
   text-align: center;
+  letter-spacing: 0.5px;
 }
 
 .balanceValue {
-  font-size: 2.25rem;
+  font-size: 2.5rem;
   font-weight: 800;
   text-align: center;
+  margin: 0.25rem 0;
 }
 
 .balanceFooter {
   font-size: 0.7rem;
-  color: #b0bec5;
+  color: #94a3b8;
   text-align: center;
   margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Actions */
@@ -451,8 +478,9 @@
   padding: 1.5rem 2rem;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 1.25rem;
-  border-top: 1px solid #e3f2fd;
+  border-top: 1px solid #eef2f6;
 }
 
 .primaryAction {
@@ -506,127 +534,11 @@
   background: #e3f2fd;
 }
 
-/* Info Sidebar */
-.infoSidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
 
-.infoCard {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(13, 71, 161, 0.06);
-  border: 1px solid #e3f2fd;
-}
-
-.infoCardTitle {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #0d47a1;
-  margin: 0 0 1rem 0;
-}
-
-.instructionsList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  counter-reset: item;
-}
-
-.instructionsList li {
-  color: #546e7a;
-  font-size: 0.9rem;
-  padding-left: 2.5rem;
-  position: relative;
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-}
-
-.instructionsList li::before {
-  content: counter(item);
-  counter-increment: item;
-  position: absolute;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: #e3f2fd;
-  border-radius: 50%;
-  color: #0d47a1;
-  font-weight: 600;
-  font-size: 0.75rem;
-}
-
-.testText {
-  color: #546e7a;
-  font-size: 0.85rem;
-  margin: 0 0 0.75rem 0;
-  font-weight: 500;
-}
-
-.testList {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.testList li {
-  color: #1976d2;
-  font-size: 0.85rem;
-  padding-left: 1.5rem;
-  position: relative;
-}
-
-.testList li::before {
-  content: '▸';
-  position: absolute;
-  left: 0;
-  color: #1976d2;
-}
-
-.testNote {
-  color: #546e7a;
-  font-size: 0.8rem;
-  margin: 0;
-  font-style: italic;
-}
-
-.featureList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.featureList li {
-  color: #2e7d32;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 
 /* Responsive */
 
-@media (max-width: 1024px) {
-  .contentWrapper {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-}
+
 
 @media (max-width: 768px) {
   .scannerSection {
@@ -713,9 +625,5 @@
   .value {
     font-size: 0.85rem;
     word-break: break-word;
-  }
-
-  .infoSidebar {
-    margin-top: 1rem;
   }
 }

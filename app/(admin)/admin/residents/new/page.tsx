@@ -52,12 +52,6 @@ export default function NewResidentPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => router.back()}>
-          ← Back
-        </button>
-        <h1 className={styles.title}>Add New Resident</h1>
-      </div>
 
       <form className={styles.formCard} onSubmit={handleSubmit}>
         {error && <div className={styles.error}>{error}</div>}
@@ -149,16 +143,16 @@ export default function NewResidentPage() {
         </div>
 
         <div className={styles.actions}>
-          <button 
-            type="button" 
-            className={styles.cancelBtn} 
+          <button
+            type="button"
+            className={styles.cancelBtn}
             onClick={() => router.back()}
             disabled={isSaving}
           >
             Cancel
           </button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.submitBtn}
             disabled={isSaving}
           >

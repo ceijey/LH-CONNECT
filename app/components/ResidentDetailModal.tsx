@@ -26,7 +26,7 @@ interface Resident {
   phase: string;
   block: string;
   lot: string;
-  status: 'Active' | 'Inactive' | 'Delinquent';
+  status: 'Good Standing' | 'Inactive' | 'Delinquent';
   approvalStatus?: 'Pending' | 'Approved' | 'Rejected';
   balance: number;
   createdAt?: string;
@@ -155,7 +155,7 @@ export default function ResidentDetailModal({
                   </div>
                   <div className={styles.badgesContainer}>
                     <div
-                      className={`${styles.badge} ${styles[resident.status.toLowerCase()]}`}
+                      className={`${styles.badge} ${styles[resident.status.toLowerCase().replace(/\s+/g, '')]}`}
                     >
                       {resident.status}
                     </div>

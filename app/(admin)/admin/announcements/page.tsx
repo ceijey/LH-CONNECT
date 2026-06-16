@@ -30,9 +30,27 @@ export default function AdminAnnouncementsPage() {
   const [attendees, setAttendees] = useState<any[]>([]);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'attendance' | 'viewers'>('attendance');
+  const [viewers, setViewers] = useState<any[]>([]);
+
+  const handleViewReaders = async (ann: Announcement) => {
+    setSelectedEvent(ann);
+    setModalType('viewers');
+    setShowModal(true);
+    setLoadingAttendees(true);
+    try {
+      const data = await apiCall(`/api/announcements/${ann.id}/views`);
+      setViewers(data.viewers || []);
+    } catch (err: any) {
+      console.error('Failed to load viewers:', err);
+    } finally {
+      setLoadingAttendees(false);
+    }
+  };
 
   const handleViewAttendance = async (event: Announcement) => {
     setSelectedEvent(event);
+    setModalType('attendance');
     setShowModal(true);
     setLoadingAttendees(true);
     try {
@@ -296,7 +314,7 @@ export default function AdminAnnouncementsPage() {
                 <p className={styles.announcementContent}>{ann.content}</p>
                 
                 {ann.severity === 'event' && (
-                  <div className={styles.adminActionRow}>
+                  <div style={{ marginBottom: '1rem', marginTop: '0.75rem' }}>
                     <button 
                       className={styles.viewAttendanceBtn}
                       onClick={() => handleViewAttendance(ann)}
@@ -306,8 +324,9 @@ export default function AdminAnnouncementsPage() {
                   </div>
                 )}
 
-                <div className={styles.announcementFooter}>
+                <div className={styles.announcementFooter} style={{ justifyContent: 'flex-start', gap: '8px', flexWrap: 'wrap', marginTop: ann.severity !== 'event' ? '1rem' : '0' }}>
                   <span className={styles.author}>👤 Posted by: {ann.createdBy}</span>
+                  <span>-</span>
                   <span>
                     📅 {new Date(ann.createdAt).toLocaleDateString(undefined, {
                       month: 'short',
@@ -317,6 +336,24 @@ export default function AdminAnnouncementsPage() {
                       minute: '2-digit',
                     })}
                   </span>
+                  <span>-</span>
+                  <button 
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#475569', 
+                      fontSize: 'inherit',
+                      fontWeight: '600',
+                      padding: '0', 
+                      cursor: 'pointer',
+                      textDecoration: 'none'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; e.currentTarget.style.color = '#1B2A4A'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; e.currentTarget.style.color = '#475569'; }}
+                    onClick={() => handleViewReaders(ann)}
+                  >
+                    views
+                  </button>
                 </div>
               </div>
             ))}
@@ -330,64 +367,107 @@ export default function AdminAnnouncementsPage() {
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
               <div>
-                <h3 className={styles.modalTitle}>📅 Event Attendance</h3>
+                <h3 className={styles.modalTitle}>
+                  {modalType === 'attendance' ? '📅 Event Attendance' : '👁️ Post Viewers'}
+                </h3>
                 <p className={styles.modalSubtitle}>{selectedEvent.title}</p>
               </div>
               <button className={styles.closeBtn} onClick={() => setShowModal(false)}>✕</button>
             </div>
             
-            <div className={styles.modalActions}>
-              <button 
-                className={styles.printBtn} 
-                onClick={handlePrint}
-                disabled={attendees.length === 0}
-              >
-                🖨️ Print Attendance Sheet
-              </button>
-            </div>
+            {modalType === 'attendance' && (
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.printBtn} 
+                  onClick={handlePrint}
+                  disabled={attendees.length === 0}
+                >
+                  🖨️ Print Attendance Sheet
+                </button>
+              </div>
+            )}
 
             <div className={styles.modalBody}>
               {loadingAttendees ? (
-                <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>Loading attendance list...</div>
-              ) : attendees.length === 0 ? (
-                <div className={styles.emptyAttendees}>
-                  <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>👥</div>
-                  <h4>No Attendees Registered</h4>
-                  <p>No residents have registered to attend this event yet.</p>
+                <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>
+                  {modalType === 'attendance' ? 'Loading attendance list...' : 'Loading viewers...'}
                 </div>
-              ) : (
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Resident Name</th>
-                        <th>Email</th>
-                        <th>Phase</th>
-                        <th>Block</th>
-                        <th>Lot</th>
-                        <th>RSVP Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attendees.map((att) => (
-                        <tr key={att.id}>
-                          <td style={{ fontWeight: '700', color: '#0f172a' }}>{att.userName}</td>
-                          <td>{att.email}</td>
-                          <td>{att.phase || 'N/A'}</td>
-                          <td>{att.block ? `Block ${att.block}` : 'N/A'}</td>
-                          <td>{att.lot ? `Lot ${att.lot}` : 'N/A'}</td>
-                          <td>
-                            {new Date(att.joinedAt).toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </td>
+              ) : modalType === 'attendance' ? (
+                attendees.length === 0 ? (
+                  <div className={styles.emptyAttendees}>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>👥</div>
+                    <h4>No Attendees Registered</h4>
+                    <p>No residents have registered to attend this event yet.</p>
+                  </div>
+                ) : (
+                  <div className={styles.tableWrapper}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Resident Name</th>
+                          <th>Email</th>
+                          <th>Phase</th>
+                          <th>Block</th>
+                          <th>Lot</th>
+                          <th>RSVP Date</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {attendees.map((att) => (
+                          <tr key={att.id}>
+                            <td style={{ fontWeight: '700', color: '#0f172a' }}>{att.userName}</td>
+                            <td>{att.email}</td>
+                            <td>{att.phase || 'N/A'}</td>
+                            <td>{att.block ? `Block ${att.block}` : 'N/A'}</td>
+                            <td>{att.lot ? `Lot ${att.lot}` : 'N/A'}</td>
+                            <td>
+                              {new Date(att.joinedAt).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              ) : (
+                viewers.length === 0 ? (
+                  <div className={styles.emptyAttendees}>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>👁️</div>
+                    <h4>No Views Yet</h4>
+                    <p>No residents have viewed this announcement yet.</p>
+                  </div>
+                ) : (
+                  <div className={styles.tableWrapper}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Resident Name</th>
+                          <th>Viewed At</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewers.map((v) => (
+                          <tr key={v.userId}>
+                            <td style={{ fontWeight: '700', color: '#0f172a' }}>{v.userName}</td>
+                            <td>
+                              {new Date(v.viewedAt).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
               )}
             </div>
           </div>

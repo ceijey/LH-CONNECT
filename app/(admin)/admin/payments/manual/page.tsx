@@ -31,12 +31,7 @@ export default function ManualPaymentPage() {
   const [tin, setTin] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
   const [lineItems, setLineItems] = useState([
-    { natureOfService: 'Monthly Dues', quantity: '1', unitPrice: '400' },
-    { natureOfService: '', quantity: '', unitPrice: '' },
-    { natureOfService: '', quantity: '', unitPrice: '' },
-    { natureOfService: '', quantity: '', unitPrice: '' },
-    { natureOfService: '', quantity: '', unitPrice: '' },
-    { natureOfService: '', quantity: '', unitPrice: '' }
+    { natureOfService: 'Monthly Dues', quantity: '1', unitPrice: '400' }
   ]);
   const [month, setMonth] = useState('');
   const [notes, setNotes] = useState('');

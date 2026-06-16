@@ -98,7 +98,35 @@ export async function GET(request: NextRequest) {
       // Automatically generate monthly statements & sync balances (updates array in-place)
       await ensureMonthlyStatementsForResidents(residents);
 
-      return NextResponse.json({ residents, user: decoded });
+      // Fetch all statements for the current year
+      const currentYear = new Date().getFullYear();
+      const allStatementsQuery = await adminDb.collection('statements')
+        .where('year', '==', currentYear)
+        .get();
+      
+      const statementsByResident: Record<string, any[]> = {};
+      allStatementsQuery.docs.forEach((doc: any) => {
+        const data = doc.data();
+        if (!statementsByResident[data.residentId]) {
+          statementsByResident[data.residentId] = [];
+        }
+        statementsByResident[data.residentId].push({
+          id: doc.id,
+          month: data.month,
+          status: data.status,
+          balance: data.balance,
+          totalDues: data.totalDues,
+          amountPaid: data.amountPaid
+        });
+      });
+
+      // Attach to residents
+      const residentsWithStatements = residents.map((r: any) => ({
+        ...r,
+        statements: statementsByResident[r.id] || []
+      }));
+
+      return NextResponse.json({ residents: residentsWithStatements, user: decoded });
     } else if (userRole === 'resident') {
       // Return current resident's profile from users collection.
       return NextResponse.json({ resident: userData, user: decoded });
@@ -117,7 +145,7 @@ export async function GET(request: NextRequest) {
       lot: `${(i % 10) + 1}`,
       role: 'resident',
       approvalStatus: 'Approved',
-      status: 'Active',
+      status: 'Good Standing',
       balance: i % 3 === 0 ? 400 : 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -186,7 +214,7 @@ export async function POST(request: NextRequest) {
       lot: lot || '',
       role: 'resident',
       approvalStatus: 'Approved',
-      status: 'Active',
+      status: 'Good Standing',
       balance: 0,
       createdAt: now,
       updatedAt: now,
