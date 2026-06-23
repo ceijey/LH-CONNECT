@@ -95,12 +95,12 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
     const year = parseInt(yearStr, 10);
     let hour = hourStr ? parseInt(hourStr, 10) : 12;
     const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
-    
+
     if (ampm) {
       if (ampm.toLowerCase() === 'pm' && hour < 12) hour += 12;
       if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
     }
-    
+
     const dateObj = new Date(year, month, day, hour, minute);
     if (!isNaN(dateObj.getTime())) {
       return formatToDateTimeLocal(dateObj);
@@ -117,12 +117,12 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
     const year = parseInt(yearStr, 10);
     let hour = hourStr ? parseInt(hourStr, 10) : 12;
     const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
-    
+
     if (ampm) {
       if (ampm.toLowerCase() === 'pm' && hour < 12) hour += 12;
       if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
     }
-    
+
     const dateObj = new Date(year, month, day, hour, minute);
     if (!isNaN(dateObj.getTime())) {
       return formatToDateTimeLocal(dateObj);
@@ -153,7 +153,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
     }
     let hour = hourStr ? parseInt(hourStr, 10) : 12;
     const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
-    
+
     if (ampm) {
       if (ampm.toLowerCase() === 'pm' && hour < 12) hour += 12;
       if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
@@ -192,6 +192,7 @@ export default function SubmitPaymentPage() {
   const [recentLoading, setRecentLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
 
   const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: any | null }>({
     isOpen: false,
@@ -204,35 +205,35 @@ export default function SubmitPaymentPage() {
   }, []);
 
   useEffect(() => {
-      const loadResidentProfile = async () => {
-        try {
-          const profilePayload = await apiCall('/api/auth/profile');
-          const userProfile = (profilePayload.user ?? {}) as UserProfile;
-        
-          // Prefill form with resident information
-          if (isMounted) {
-            setFormData(prev => ({
-              ...prev,
-              residentName: userProfile.fullName ?? '',
-              blockLot: userProfile.block && userProfile.lot 
-                ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
-                : '',
-              paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
-              paymentDateTime: '',
-              receiptAmount: '',
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to load resident profile:', error);
-        } finally {
-          if (isMounted) {
-            setIsLoading(false);
-          }
-        }
-      };
+    const loadResidentProfile = async () => {
+      try {
+        const profilePayload = await apiCall('/api/auth/profile');
+        const userProfile = (profilePayload.user ?? {}) as UserProfile;
 
-      loadResidentProfile();
-    }, [isMounted]);
+        // Prefill form with resident information
+        if (isMounted) {
+          setFormData(prev => ({
+            ...prev,
+            residentName: userProfile.fullName ?? '',
+            blockLot: userProfile.block && userProfile.lot
+              ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
+              : '',
+            paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
+            paymentDateTime: '',
+            receiptAmount: '',
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load resident profile:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadResidentProfile();
+  }, [isMounted]);
 
   useEffect(() => {
     const loadRecentSubmissions = async () => {
@@ -256,7 +257,7 @@ export default function SubmitPaymentPage() {
                 console.error('Failed to parse submission date:', submission.submittedDate);
               }
             }
-            
+
             return {
               ...submission,
               month: month || 'Unknown Date',
@@ -293,20 +294,20 @@ export default function SubmitPaymentPage() {
       }
 
       const { data: { text } } = await window.Tesseract.recognize(file, 'eng');
-      
+
       console.log('Extracted text:', text);
 
       const lowerText = text.toLowerCase();
       const isValidReceipt = [
         'gcash', 'maya', 'paymaya', 'instapay', 'pesonet', 'ref', 'reference', 'transaction',
-        'trans.no', 'ref.no', 'ref no', 'trans no', 'amount', 'payment', 'successful', 'sent', 
+        'trans.no', 'ref.no', 'ref no', 'trans no', 'amount', 'payment', 'successful', 'sent',
         'received', 'bank', 'bdo', 'bpi', 'metrobank', 'unionbank', 'landbank', 'security bank'
       ].some(keyword => lowerText.includes(keyword));
 
       if (!isValidReceipt) {
-        setToast({ 
-          message: 'This is not a receipt from the supported e-wallets like Maya and GCash.', 
-          type: 'error' 
+        setToast({
+          message: 'This is not a receipt from the supported e-wallets like Maya and GCash.',
+          type: 'error'
         });
         // Reset file input and preview
         setFormData(prev => ({
@@ -335,11 +336,11 @@ export default function SubmitPaymentPage() {
         const alphanumericRef = /\b[A-Z0-9]{8,16}\b/g;
         const alphaMatches = text.match(alphanumericRef);
         if (alphaMatches && alphaMatches.length > 0) {
-           // Basic heuristic: check if it contains at least one digit and one letter
-           const likelyRef = alphaMatches.find((m: string) => /\d/.test(m) && /[A-Z]/.test(m));
-           if (likelyRef) {
-             foundRef = likelyRef;
-           }
+          // Basic heuristic: check if it contains at least one digit and one letter
+          const likelyRef = alphaMatches.find((m: string) => /\d/.test(m) && /[A-Z]/.test(m));
+          if (likelyRef) {
+            foundRef = likelyRef;
+          }
         }
       }
 
@@ -348,13 +349,13 @@ export default function SubmitPaymentPage() {
       const amountRegex = /(?:PHP|P|₱|Amount|Amt)\s*[:.-]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i;
       const amountMatch = text.match(amountRegex);
       if (amountMatch) {
-         foundAmount = amountMatch[1].replace(/,/g, '');
+        foundAmount = amountMatch[1].replace(/,/g, '');
       } else {
-         const fallbackRegex = /\b(\d{1,3}(?:,\d{3})*\.\d{2})\b/;
-         const fallbackMatch = text.match(fallbackRegex);
-         if (fallbackMatch) {
-            foundAmount = fallbackMatch[1].replace(/,/g, '');
-         }
+        const fallbackRegex = /\b(\d{1,3}(?:,\d{3})*\.\d{2})\b/;
+        const fallbackMatch = text.match(fallbackRegex);
+        if (fallbackMatch) {
+          foundAmount = fallbackMatch[1].replace(/,/g, '');
+        }
       }
 
       const detectedDate = parseAndFormatDateTime(text);
@@ -383,6 +384,14 @@ export default function SubmitPaymentPage() {
         return update;
       });
 
+      if (lowerText.includes('gcash')) {
+        setPaymentMethod('gcash');
+      } else if (lowerText.includes('maya') || lowerText.includes('paymaya')) {
+        setPaymentMethod('maya');
+      } else if (['bdo', 'bpi', 'metrobank', 'unionbank', 'landbank', 'security bank'].some(bank => lowerText.includes(bank))) {
+        setPaymentMethod('bank');
+      }
+
       let toastMsg = 'Automatically detected:';
       if (foundRef) toastMsg += ` Ref: ${foundRef}`;
       if (foundAmount) toastMsg += ` | Amount: ${detectedAmountNice}`;
@@ -406,12 +415,12 @@ export default function SubmitPaymentPage() {
         setToast({ message: 'File size must be less than 10MB', type: 'error' });
         return;
       }
-      
+
       if (isMounted) {
         setFormData({ ...formData, file });
         setFileName(file.name);
       }
-      
+
       // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -493,7 +502,7 @@ export default function SubmitPaymentPage() {
 
     try {
       let fileBase64 = '';
-      
+
       // If there's a file, compress it and convert to Base64
       if (formData.file) {
         fileBase64 = await new Promise<string>((resolve, reject) => {
@@ -504,7 +513,7 @@ export default function SubmitPaymentPage() {
               const canvas = document.createElement('canvas');
               let width = img.width;
               let height = img.height;
-              
+
               // Max dimension 800px for reasonably small Base64
               const maxDim = 800;
               if (width > height) {
@@ -518,12 +527,12 @@ export default function SubmitPaymentPage() {
                   height = maxDim;
                 }
               }
-              
+
               canvas.width = width;
               canvas.height = height;
               const ctx = canvas.getContext('2d');
               ctx?.drawImage(img, 0, 0, width, height);
-              
+
               // Compress to JPEG with 0.6 quality to keep it well under 1MB
               const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
               resolve(dataUrl);
@@ -545,7 +554,7 @@ export default function SubmitPaymentPage() {
       payload.append('notes', formData.notes.trim());
       payload.append('paymentDateTime', formData.paymentDateTime);
       payload.append('receiptAmount', formData.receiptAmount.trim());
-      
+
       if (fileBase64) {
         payload.append('fileBase64', fileBase64);
         payload.append('fileName', formData.file.name);
@@ -568,7 +577,7 @@ export default function SubmitPaymentPage() {
       });
 
       console.log('Submission Response Status:', response.status);
-      
+
       const responseText = await response.text();
       let data: any = {};
       try {
@@ -595,7 +604,7 @@ export default function SubmitPaymentPage() {
         } else {
           errorMessage = `Server error: ${response.status} ${response.statusText || 'Bad Request'}`;
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -617,7 +626,7 @@ export default function SubmitPaymentPage() {
       ]);
 
       setToast({ message: 'Payment proof submitted successfully!', type: 'success' });
-      
+
       // Open receipt modal automatically
       setReceiptModal({
         isOpen: true,
@@ -705,156 +714,10 @@ export default function SubmitPaymentPage() {
               </p>
 
               <form onSubmit={handleSubmit} className={styles.form}>
-                {/* Resident Name */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Resident Name</label>
-                  <input
-                    type="text"
-                    name="residentName"
-                    value={formData.residentName}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                  />
-                </div>
-
-                {/* Block/Lot */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Block/Lot</label>
-                  <input
-                    type="text"
-                    name="blockLot"
-                    value={formData.blockLot}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                  />
-                </div>
-
-                {/* Payment Amount */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Payment Amount</label>
-                  <input
-                    type="text"
-                    name="paymentAmount"
-                    value={`₱${formData.paymentAmount}`}
-                    readOnly
-                    className={styles.input}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Select Payment Method</label>
-                  <div className={styles.methodGrid}>
-                    <div 
-                      className={`${styles.methodCard} ${paymentMethod === 'gcash' ? styles.activeCard : ''}`}
-                      onClick={() => setPaymentMethod('gcash')}
-                    >
-                      <div className={styles.methodIcon}>💸</div>
-                      <div className={styles.methodName}>GCash</div>
-                    </div>
-                    <div 
-                      className={`${styles.methodCard} ${paymentMethod === 'maya' ? styles.activeCard : ''}`}
-                      onClick={() => setPaymentMethod('maya')}
-                    >
-                      <div className={styles.methodIcon}>💳</div>
-                      <div className={styles.methodName}>Maya</div>
-                    </div>
-                    <div 
-                      className={`${styles.methodCard} ${paymentMethod === 'bank' ? styles.activeCard : ''}`}
-                      onClick={() => setPaymentMethod('bank')}
-                    >
-                      <div className={styles.methodIcon}>🏦</div>
-                      <div className={styles.methodName}>Bank</div>
-                    </div>
-                  </div>
-                  
-                  {['gcash', 'maya'].includes(paymentMethod) && (
-                    <a
-                      href={paymentMethod === 'gcash' ? 'https://m.gcash.com/' : 'https://www.maya.ph/login'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.appRedirectBtn}
-                    >
-                      🚀 Open {paymentMethod === 'gcash' ? 'GCash' : 'Maya'}
-                    </a>
-                  )}
-                </div>
-
-                {/* Bank Selection */}
-                {paymentMethod === 'bank' && (
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Select Your Bank</label>
-                    <select
-                      className={styles.select}
-                      value={selectedBank}
-                      onChange={(e) => setSelectedBank(e.target.value)}
-                    >
-                      <option value="BDO">BDO (Banco de Oro)</option>
-                      <option value="BPI">BPI (Bank of the Philippine Islands)</option>
-                      <option value="Metrobank">Metrobank</option>
-                      <option value="UnionBank">UnionBank of the Philippines</option>
-                      <option value="Landbank">Landbank of the Philippines</option>
-                      <option value="Security Bank">Security Bank</option>
-                      <option value="PNB">PNB (Philippine National Bank)</option>
-                      <option value="Chinabank">Chinabank</option>
-                      <option value="RCBC">RCBC</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Reference Number */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Reference Number 
-                    {isOCRProcessing && <span className={styles.ocrStatus}> (Detecting...)</span>}
-                  </label>
-                  <input
-                    type="text"
-                    name="referenceNumber"
-                    value={formData.referenceNumber}
-                    onChange={handleInputChange}
-                    placeholder="Enter payment reference number"
-                    className={styles.input}
-                  />
-                </div>
-
-                {/* Date and Time of Payment */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Date and Time of Payment
-                    {isOCRProcessing && <span className={styles.ocrStatus}> (Detecting...)</span>}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    name="paymentDateTime"
-                    value={formData.paymentDateTime}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                  />
-                </div>
-
-                {/* Scanned/Detected Receipt Amount */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>
-                    Receipt Amount (Scanned from Image)
-                    {isOCRProcessing && <span className={styles.ocrStatus}> (Detecting...)</span>}
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }}>₱</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      name="receiptAmount"
-                      value={formData.receiptAmount}
-                      onChange={handleInputChange}
-                      placeholder="Amount detected from receipt"
-                      className={styles.input}
-                      style={{ paddingLeft: '28px' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Upload Payment Proof */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Upload Payment Proof</label>
+                {/* 1. Upload Payment Proof */}
+                <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
+                  <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>1. Upload Receipt (Scan & Auto-fill)</label>
+                  <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>Upload your receipt and we will automatically fill in the details below!</p>
                   <div className={styles.uploadBox}>
                     <input
                       type="file"
@@ -880,9 +743,9 @@ export default function SubmitPaymentPage() {
                   </div>
                   {preview && (
                     <div className={styles.previewContainer}>
-                      <img 
-                        src={preview} 
-                        alt="Preview" 
+                      <img
+                        src={preview}
+                        alt="Preview"
                         className={styles.previewImage}
                         onError={(e) => {
                           console.error('Preview image failed to load:', e);
@@ -893,27 +756,178 @@ export default function SubmitPaymentPage() {
                   )}
                 </div>
 
-                {/* Notes */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Notes (Optional)</label>
-                  <textarea
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleInputChange}
-                    placeholder="Add any additional information..."
-                    className={styles.textarea}
-                    rows={3}
-                  />
-                </div>
+                {formData.file && (
+                  <div style={{ marginTop: '40px', animation: 'fadeIn 0.5s ease-in' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
+                      <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
+                      <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 2: Verify & Submit</span>
+                      <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
+                    </div>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={styles.submitBtn}
-                >
-                  ⬇ {isSubmitting ? 'Submitting...' : 'Submit Payment Proof'}
-                </button>
+                    {/* Minimal Resident Summary */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Resident</div>
+                        <div style={{ fontSize: '1.15rem', color: '#111827', fontWeight: 600 }}>{formData.residentName || '—'}</div>
+                        <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{formData.blockLot || '—'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Amount Due</div>
+                        <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.paymentAmount}</div>
+                      </div>
+                    </div>
+
+                    {/* Select Payment Method */}
+                    <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '12px' }}>Select Payment Method</label>
+                      <div className={styles.methodGrid}>
+                        <div
+                          className={`${styles.methodCard} ${paymentMethod === 'gcash' ? styles.activeCard : ''}`}
+                          onClick={() => setPaymentMethod('gcash')}
+                        >
+                          <div className={styles.methodIcon}>💸</div>
+                          <div className={styles.methodName}>GCash</div>
+                        </div>
+                        <div
+                          className={`${styles.methodCard} ${paymentMethod === 'maya' ? styles.activeCard : ''}`}
+                          onClick={() => setPaymentMethod('maya')}
+                        >
+                          <div className={styles.methodIcon}>💳</div>
+                          <div className={styles.methodName}>Maya</div>
+                        </div>
+                        <div
+                          className={`${styles.methodCard} ${paymentMethod === 'bank' ? styles.activeCard : ''}`}
+                          onClick={() => setPaymentMethod('bank')}
+                        >
+                          <div className={styles.methodIcon}>🏦</div>
+                          <div className={styles.methodName}>Bank</div>
+                        </div>
+                      </div>
+
+                      {['gcash', 'maya'].includes(paymentMethod) && (
+                        <a
+                          href={paymentMethod === 'gcash' ? 'https://m.gcash.com/' : 'https://www.maya.ph/login'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.appRedirectBtn}
+                        >
+                          🚀 Open {paymentMethod === 'gcash' ? 'GCash' : 'Maya'}
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Bank Selection */}
+                    {paymentMethod === 'bank' && (
+                      <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
+                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '8px' }}>Select Your Bank</label>
+                        <select
+                          className={styles.select}
+                          value={selectedBank}
+                          onChange={(e) => setSelectedBank(e.target.value)}
+                        >
+                          <option value="BDO">BDO (Banco de Oro)</option>
+                          <option value="BPI">BPI (Bank of the Philippine Islands)</option>
+                          <option value="Metrobank">Metrobank</option>
+                          <option value="UnionBank">UnionBank of the Philippines</option>
+                          <option value="Landbank">Landbank of the Philippines</option>
+                          <option value="Security Bank">Security Bank</option>
+                          <option value="PNB">PNB (Philippine National Bank)</option>
+                          <option value="Chinabank">Chinabank</option>
+                          <option value="RCBC">RCBC</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Sleek Scanned Details */}
+                    <div style={{ marginBottom: '40px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#111827', margin: 0 }}>
+                          Receipt Details
+                          {isOCRProcessing && <span style={{ marginLeft: '8px', color: '#059669', fontSize: '0.85rem', fontWeight: 500, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>(Detecting from image...)</span>}
+                        </h4>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px' }}>
+                        {/* Reference Number */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Reference Number</label>
+                          <input
+                            type="text"
+                            name="referenceNumber"
+                            value={formData.referenceNumber}
+                            onChange={handleInputChange}
+                            placeholder="e.g. 10002930"
+                            style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
+                            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          />
+                        </div>
+
+                        {/* Date and Time */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Date & Time</label>
+                          <input
+                            type={dateInputType}
+                            name="paymentDateTime"
+                            value={
+                              dateInputType === 'datetime-local'
+                                ? formData.paymentDateTime
+                                : formData.paymentDateTime
+                                  ? (() => {
+                                      const d = new Date(formData.paymentDateTime);
+                                      if (isNaN(d.getTime())) return formData.paymentDateTime;
+                                      const pad = (n: number) => String(n).padStart(2, '0');
+                                      const dd = pad(d.getDate());
+                                      const mm = pad(d.getMonth() + 1);
+                                      const yy = String(d.getFullYear()).slice(-2);
+                                      let h = d.getHours();
+                                      const ampm = h >= 12 ? 'PM' : 'AM';
+                                      h = h % 12 || 12;
+                                      const min = pad(d.getMinutes());
+                                      return `${dd}/${mm}/${yy} ${pad(h)}:${min} ${ampm}`;
+                                    })()
+                                  : ''
+                            }
+                            placeholder="dd/mm/yy --:-- --"
+                            onChange={handleInputChange}
+                            style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
+                            onFocus={(e) => { setDateInputType('datetime-local'); e.target.style.borderColor = '#3b82f6'; }}
+                            onBlur={(e) => { setDateInputType('text'); e.target.style.borderColor = '#e5e7eb'; }}
+                          />
+                        </div>
+
+                        {/* Receipt Amount */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Receipt Amount</label>
+                          <div style={{ position: 'relative' }}>
+                            <span style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: '1.15rem' }}>₱</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              name="receiptAmount"
+                              value={formData.receiptAmount}
+                              onChange={handleInputChange}
+                              placeholder="0.00"
+                              style={{ width: '100%', padding: '8px 0 8px 20px', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
+                              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className={styles.submitBtn}
+                      style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Payment'}
+                    </button>
+                  </div>
+                )}
               </form>
             </div>
           </section>
@@ -971,7 +985,7 @@ export default function SubmitPaymentPage() {
             <div className={styles.card}>
               <h3 className={styles.cardTitle}>Submission Status</h3>
               <p className={styles.cardDescription}>Track the verification progress of your payment submissions</p>
-              
+
               {recentLoading ? (
                 <p className={styles.uploadSmall}>Loading submissions...</p>
               ) : recentSubmissions.length === 0 ? (
@@ -983,7 +997,7 @@ export default function SubmitPaymentPage() {
                 <div className={styles.submissionsList}>
                   {recentSubmissions.map((submission) => {
                     const isVerified = submission.status === 'Verified';
-                    const daysAgo = submission.submittedDate 
+                    const daysAgo = submission.submittedDate
                       ? Math.floor((Date.now() - new Date(submission.submittedDate).getTime()) / (1000 * 60 * 60 * 24))
                       : 0;
 
@@ -1058,7 +1072,7 @@ export default function SubmitPaymentPage() {
                                 Your submission is being reviewed by the HOA. This usually takes 1-2 business days.
                               </p>
                             )}
-                            <button 
+                            <button
                               className={styles.viewReceiptBtn}
                               onClick={() => setReceiptModal({
                                 isOpen: true,
