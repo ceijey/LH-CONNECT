@@ -142,7 +142,7 @@ export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             <div className={styles.userAvatarSidebar}>A</div>
             <div className={styles.userNameBlock}>
               <span className={styles.userName}>Administrator Account</span>
-              <span className={styles.userRole}>System Operator</span>
+              <span className={styles.userRole}>Admin Staff</span>
             </div>
           </div>
           <button className={styles.logoutBtn} onClick={handleLogout}>

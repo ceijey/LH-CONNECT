@@ -11,7 +11,7 @@ interface FormData {
   phase: string;
   block: string;
   lot: string;
-  status: 'Active' | 'Inactive' | 'Delinquent';
+  status: 'Good Standing' | 'Inactive' | 'Delinquent';
   approvalStatus: 'Pending' | 'Approved' | 'Rejected';
   balance: number;
 }
@@ -23,7 +23,7 @@ interface ResidentData {
   phase: string;
   block: string;
   lot: string;
-  status: 'Active' | 'Inactive' | 'Delinquent';
+  status: 'Good Standing' | 'Inactive' | 'Delinquent';
   approvalStatus?: 'Pending' | 'Approved' | 'Rejected';
   balance: number;
 }
@@ -49,7 +49,7 @@ export default function ResidentEditModal({
     phase: '',
     block: '',
     lot: '',
-    status: 'Active',
+    status: 'Good Standing',
     approvalStatus: 'Pending',
     balance: 0,
   });
@@ -71,7 +71,7 @@ export default function ResidentEditModal({
         phase: residentData.phase || '',
         block: residentData.block || '',
         lot: residentData.lot || '',
-        status: residentData.status || 'Active',
+        status: residentData.status || 'Good Standing',
         approvalStatus: residentData.approvalStatus || 'Pending',
         balance: Number(residentData.balance ?? 0),
       });
@@ -90,7 +90,7 @@ export default function ResidentEditModal({
           phase: data.phase || '',
           block: data.block || '',
           lot: data.lot || '',
-          status: data.status || 'Active',
+          status: data.status || 'Good Standing',
           approvalStatus: data.approvalStatus || 'Pending',
           balance: Number(data.balance ?? 0),
         });
@@ -340,7 +340,7 @@ export default function ResidentEditModal({
                         onChange={handleChange}
                         disabled={isSaving}
                       >
-                        <option value="Active">Active</option>
+                        <option value="Good Standing">Good Standing</option>
                         <option value="Inactive">Inactive</option>
                         <option value="Delinquent">Delinquent</option>
                       </select>

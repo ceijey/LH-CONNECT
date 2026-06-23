@@ -14,13 +14,13 @@ import styles from './admin-page.module.css';
 function formatResidentId(id: string): string {
   if (!id) return '';
   if (id.startsWith('R-')) return id;
-  
+
   const numbers = id.replace(/[^0-9]/g, '');
   const letters = id.replace(/[^a-zA-Z]/g, '');
-  
+
   const numPart = (numbers.substring(0, 4) || '0000').padEnd(4, '0');
   const letterPart = (letters.substring(0, 2) || 'XX').toUpperCase().padEnd(2, 'X');
-  
+
   return `R-${numPart}-${letterPart}`;
 }
 
@@ -32,16 +32,18 @@ interface Resident {
   lot: string;
   email: string;
   phone: string;
-  status: 'Active' | 'Inactive' | 'Delinquent';
+  status: 'Good Standing' | 'Inactive' | 'Delinquent';
   approvalStatus: 'Pending' | 'Approved' | 'Rejected';
   balance: number;
   createdAt?: string;
+  statements?: any[];
 }
 
 export default function AdminResidents() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [allResidents, setAllResidents] = useState<Resident[]>([]);
   const [filteredResidents, setFilteredResidents] = useState<Resident[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,7 +61,7 @@ export default function AdminResidents() {
   const [importModalOpen, setImportModalOpen] = useState(false);
 
   const totalResidents = allResidents.length;
-  const activeCount = allResidents.filter((resident) => resident.status === 'Active').length;
+  const activeCount = allResidents.filter((resident) => resident.status === 'Good Standing').length;
   const delinquentCount = allResidents.filter((resident) => resident.status === 'Delinquent').length;
   const pendingApprovalCount = allResidents.filter((resident) => resident.approvalStatus === 'Pending').length;
   const newThisMonth = allResidents.filter((resident) => {
@@ -86,7 +88,7 @@ export default function AdminResidents() {
             ? 'Inactive'
             : balance > 0
               ? 'Delinquent'
-              : 'Active';
+              : 'Good Standing';
 
         return {
           id: resident.id ?? `R${String(index + 1).padStart(3, '0')}`,
@@ -104,11 +106,12 @@ export default function AdminResidents() {
               : 'Pending',
           balance,
           createdAt: resident.createdAt,
+          statements: resident.statements || [],
         } as Resident;
       });
 
       setAllResidents(residents);
-      applyFiltersAndSorting(searchTerm, sortConfig, residents);
+      applyFiltersAndSorting(searchTerm, sortConfig, paymentFilter, residents);
     } catch (error) {
       console.error('Failed to load residents:', error);
       setAllResidents([]);
@@ -130,7 +133,7 @@ export default function AdminResidents() {
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     setCurrentPage(1);
-    applyFiltersAndSorting(term, sortConfig, allResidents);
+    applyFiltersAndSorting(term, sortConfig, paymentFilter, allResidents);
   };
 
   const handleSort = (key: keyof Resident) => {
@@ -141,10 +144,16 @@ export default function AdminResidents() {
     const newSortConfig = { key, direction };
     setSortConfig(newSortConfig);
     setCurrentPage(1);
-    applyFiltersAndSorting(searchTerm, newSortConfig, allResidents);
+    applyFiltersAndSorting(searchTerm, newSortConfig, paymentFilter, allResidents);
   };
 
-  const applyFiltersAndSorting = (term: string, config: typeof sortConfig, source: Resident[]) => {
+  const handlePaymentFilter = (filter: 'all' | 'paid' | 'unpaid') => {
+    setPaymentFilter(filter);
+    setCurrentPage(1);
+    applyFiltersAndSorting(searchTerm, sortConfig, filter, allResidents);
+  };
+
+  const applyFiltersAndSorting = (term: string, config: typeof sortConfig, payFilter: typeof paymentFilter, source: Resident[]) => {
     const normalizedTerm = term.toLowerCase().trim();
     let result = [...source];
 
@@ -163,6 +172,13 @@ export default function AdminResidents() {
           phone.includes(normalizedTerm)
         );
       });
+    }
+
+    // Payment Filter
+    if (payFilter === 'paid') {
+      result = result.filter(resident => resident.balance === 0);
+    } else if (payFilter === 'unpaid') {
+      result = result.filter(resident => resident.balance > 0);
     }
 
     // Sort
@@ -321,45 +337,46 @@ export default function AdminResidents() {
       />
 
       <div className={styles.statsGrid}>
-          <div className={styles.registryStat}>
-            <div className={styles.registryStatIcon}>👥</div>
-            <div className={styles.registryStatInfo}>
-              <div className={styles.registryStatLabel}>Total Residents</div>
-              <div className={styles.registryStatValue}>{totalResidents}</div>
-            </div>
-          </div>
-          <div className={styles.registryStat}>
-            <div className={styles.registryStatIcon} style={{ background: '#e8f5e9', color: '#4caf50' }}>✓</div>
-            <div className={styles.registryStatInfo}>
-              <div className={styles.registryStatLabel}>Active</div>
-              <div className={styles.registryStatValue} style={{ color: '#4caf50' }}>{activeCount}</div>
-            </div>
-          </div>
-          <div className={styles.registryStat}>
-            <div className={styles.registryStatIcon} style={{ background: '#ffebee', color: '#f44336' }}>⚠</div>
-            <div className={styles.registryStatInfo}>
-              <div className={styles.registryStatLabel}>Delinquent</div>
-              <div className={styles.registryStatValue} style={{ color: '#f44336' }}>{delinquentCount}</div>
-            </div>
-          </div>
-          <div className={styles.registryStat}>
-            <div className={styles.registryStatIcon} style={{ background: '#fff3e0', color: '#e65100' }}>⏳</div>
-            <div className={styles.registryStatInfo}>
-              <div className={styles.registryStatLabel}>Pending Approval</div>
-              <div className={styles.registryStatValue} style={{ color: '#e65100' }}>{pendingApprovalCount}</div>
-            </div>
-          </div>
-          <div className={styles.registryStat}>
-            <div className={styles.registryStatIcon} style={{ background: '#e3f2fd', color: '#2196f3' }}>🆕</div>
-            <div className={styles.registryStatInfo}>
-              <div className={styles.registryStatLabel}>New This Month</div>
-              <div className={styles.registryStatValue} style={{ color: '#2196f3' }}>{newThisMonth}</div>
-            </div>
+        <div className={styles.registryStat}>
+          <div className={styles.registryStatIcon}>👥</div>
+          <div className={styles.registryStatInfo}>
+            <div className={styles.registryStatLabel}>Total Residents</div>
+            <div className={styles.registryStatValue}>{totalResidents}</div>
           </div>
         </div>
+        <div className={styles.registryStat}>
+          <div className={styles.registryStatIcon} style={{ background: '#dcfce7', color: '#16a34a' }}>✓</div>
+          <div className={styles.registryStatInfo}>
+            <div className={styles.registryStatLabel}>Good Standing</div>
+            <div className={styles.registryStatValue}>{activeCount}</div>
+          </div>
+        </div>
+        <div className={styles.registryStat}>
+          <div className={styles.registryStatIcon} style={{ background: '#fee2e2', color: '#dc2626' }}>⚠</div>
+          <div className={styles.registryStatInfo}>
+            <div className={styles.registryStatLabel}>Delinquent</div>
+            <div className={styles.registryStatValue}>{delinquentCount}</div>
+          </div>
+        </div>
+        <div className={styles.registryStat}>
+          <div className={styles.registryStatIcon} style={{ background: '#ffedd5', color: '#ea580c' }}>⏳</div>
+          <div className={styles.registryStatInfo}>
+            <div className={styles.registryStatLabel}>Pending Approval</div>
+            <div className={styles.registryStatValue}>{pendingApprovalCount}</div>
+          </div>
+        </div>
+        <div className={styles.registryStat}>
+          <div className={styles.registryStatIcon} style={{ background: '#dbeafe', color: '#2563eb' }}>🆕</div>
+          <div className={styles.registryStatInfo}>
+            <div className={styles.registryStatLabel}>New This Month</div>
+            <div className={styles.registryStatValue}>{newThisMonth}</div>
+          </div>
+        </div>
+      </div>
 
-        <div className={styles.content}>
-          <div className={styles.searchSection}>
+      <div className={styles.content}>
+        <div className={styles.searchSection}>
+          <div style={{ display: 'flex', gap: '0.75rem', flex: 1, maxWidth: '600px' }}>
             <div className={styles.searchWrapper}>
               <span className={styles.searchIcon}>🔍</span>
               <input
@@ -370,153 +387,170 @@ export default function AdminResidents() {
                 onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button 
-                className={styles.addBtn} 
-                style={{ background: 'transparent', border: '1.5px solid #1B2A4A', color: '#1B2A4A' }}
-                onClick={() => setImportModalOpen(true)}
-              >
-                📥 Import CSV
-              </button>
-              <button className={styles.addBtn} onClick={() => router.push('/admin/residents/new')}>
-                <span>+</span> Add Resident
-              </button>
-            </div>
+            <select
+              className={styles.searchInput}
+              style={{ width: 'auto', paddingLeft: '16px', fontWeight: 600, color: '#0f172a' }}
+              value={paymentFilter}
+              onChange={(e) => handlePaymentFilter(e.target.value as 'all' | 'paid' | 'unpaid')}
+            >
+              <option value="all">All Payments</option>
+              <option value="paid">Fully Paid</option>
+              <option value="unpaid">With Balance</option>
+            </select>
           </div>
-          
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              className={styles.outlineBtn}
+              onClick={() => setImportModalOpen(true)}
+            >
+              📥 Import CSV
+            </button>
+            <button className={styles.addBtn} onClick={() => router.push('/admin/residents/new')}>
+              <span>+</span> Add Resident
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.tableWrapper}>
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Monthly Dues - Table View</h2>
+                <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>Overview of all monthly dues payments for {new Date().getFullYear()}</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#dcfce7', border: '1px solid #bbf7d0' }}></span>
+                  <span style={{ color: '#166534' }}>Paid</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#fee2e2', border: '1px solid #fecaca' }}></span>
+                  <span style={{ color: '#991b1b' }}>Unpaid</span>
+                </div>
+              </div>
+            </div>
+            <table className={styles.table} style={{ minWidth: '1000px' }}>
               <thead>
                 <tr>
-                  {renderSortHeader('ID', 'id')}
-                  {renderSortHeader('Name', 'name')}
-                  {renderSortHeader('Block/Lot', 'phase')}
-                  {renderSortHeader('Status', 'status')}
-                  {renderSortHeader('Verification', 'approvalStatus')}
-                  {renderSortHeader('Balance', 'balance')}
-                  <th>Contact</th>
-                  <th>Actions</th>
+                  <th style={{ padding: '12px 14px', background: '#f8fafc' }}>Phase</th>
+                  <th style={{ padding: '12px 14px', background: '#f8fafc' }}>Block</th>
+                  <th style={{ padding: '12px 14px', background: '#f8fafc' }}>Lot</th>
+                  <th style={{ padding: '12px 14px', background: '#f8fafc' }}>Owner</th>
+                  <th style={{ padding: '12px 14px', background: '#f8fafc', cursor: 'pointer' }} onClick={() => handleSort('balance')}>
+                    Past Due {sortConfig?.key === 'balance' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
+                  {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => (
+                    <th key={m} style={{ padding: '12px 14px', background: '#f8fafc' }}>{m.substring(0, 3)}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredResidents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((resident) => (
-                  <tr key={resident.id}>
-                    <td>
-                      <span className={styles.idBadge} title={resident.id}>
-                        {formatResidentId(resident.id)}
-                      </span>
-                    </td>
-                    <td className={styles.nameTd}>{resident.name}</td>
-                    <td>
-                      <div className={styles.blockLot}>
-                        <span className={styles.phaseBadge}>{resident.phase}</span>
-                        <span className={styles.blockLotText}>Blk {resident.block} Lot {resident.lot}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`${styles.badge} ${styles[resident.status.toLowerCase()]}`}>
-                        {resident.status}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`${styles.badge} ${styles[resident.approvalStatus.toLowerCase()]}`}>
-                        {resident.approvalStatus === 'Rejected' ? 'Declined' : resident.approvalStatus}
-                      </span>
-                    </td>
-                    <td className={`${styles.balanceTd} ${resident.balance > 0 ? styles.debit : ''}`}>
-                      ₱{resident.balance.toLocaleString()}
-                    </td>
-                    <td>{resident.phone}</td>
-                    <td className={styles.actionsTd}>
-                      <button 
-                        className={styles.iconBtn} 
-                        title="View Details"
-                        onClick={() => handleViewDetails(resident)}
-                      >
-                        📋
-                      </button>
-                      <button 
-                        className={styles.iconBtn} 
-                        title="Edit Resident"
-                        onClick={() => handleEditResident(resident)}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className={styles.iconBtn} 
-                        title="Payment History"
-                        onClick={() => handleViewHistory(resident)}
-                      >
-                        📈
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredResidents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((resident) => {
+                  const pastDue = resident.balance;
+                  return (
+                    <tr key={resident.id}>
+                      <td style={{ fontWeight: 600, color: '#0f172a' }}>{resident.phase}</td>
+                      <td style={{ fontWeight: 600, color: '#0f172a' }}>{resident.block}</td>
+                      <td style={{ fontWeight: 600, color: '#0f172a' }}>{resident.lot}</td>
+                      <td style={{ fontWeight: 500, color: '#334155' }}>{resident.name}</td>
+                      <td style={{
+                        background: pastDue > 0 ? '#fee2e2' : '#dcfce7',
+                        color: pastDue > 0 ? '#991b1b' : '#166534',
+                        fontWeight: 600,
+                        padding: '10px 14px'
+                      }}>
+                        ₱{pastDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(month => {
+                        const stmt = resident.statements?.find(s => s.month === month);
+                        if (!stmt) {
+                          return <td key={month} style={{ background: '#f8fafc', color: '#cbd5e1', textAlign: 'center' }}>-</td>;
+                        }
+
+                        const isPaid = stmt.status === 'Paid' || stmt.balance === 0;
+                        const displayAmount = stmt.totalDues || 400;
+
+                        return (
+                          <td key={month} style={{
+                            background: isPaid ? '#dcfce7' : '#fee2e2',
+                            color: isPaid ? '#166534' : '#991b1b',
+                            fontWeight: 600,
+                            padding: '10px 14px',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            ₱{Number(displayAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+        </div>
 
-          {/* Pagination Controls */}
-          {filteredResidents.length > ITEMS_PER_PAGE && (
-            <div className={styles.pagination}>
-              <span className={styles.paginationInfo}>
-                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredResidents.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredResidents.length)} of {filteredResidents.length} residents
-              </span>
-              <div className={styles.paginationControls}>
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  title="First page"
-                >
-                  «
-                </button>
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  ‹ Prev
-                </button>
-                {Array.from({ length: Math.ceil(filteredResidents.length / ITEMS_PER_PAGE) }, (_, i) => i + 1)
-                  .filter(page => page === 1 || page === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE) || Math.abs(page - currentPage) <= 1)
-                  .reduce((acc: (number | string)[], page, idx, arr) => {
-                    if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                    acc.push(page);
-                    return acc;
-                  }, [])
-                  .map((item, idx) =>
-                    item === '...' ? (
-                      <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>…</span>
-                    ) : (
-                      <button
-                        key={item}
-                        className={`${styles.pageBtn} ${currentPage === item ? styles.pageBtnActive : ''}`}
-                        onClick={() => setCurrentPage(item as number)}
-                      >
-                        {item}
-                      </button>
-                    )
+        {/* Pagination Controls */}
+        {filteredResidents.length > ITEMS_PER_PAGE && (
+          <div className={styles.pagination}>
+            <span className={styles.paginationInfo}>
+              Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredResidents.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredResidents.length)} of {filteredResidents.length} residents
+            </span>
+            <div className={styles.paginationControls}>
+              <button
+                className={styles.pageBtn}
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                title="First page"
+              >
+                «
+              </button>
+              <button
+                className={styles.pageBtn}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                ‹ Prev
+              </button>
+              {Array.from({ length: Math.ceil(filteredResidents.length / ITEMS_PER_PAGE) }, (_, i) => i + 1)
+                .filter(page => page === 1 || page === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE) || Math.abs(page - currentPage) <= 1)
+                .reduce((acc: (number | string)[], page, idx, arr) => {
+                  if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((item, idx) =>
+                  item === '...' ? (
+                    <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      className={`${styles.pageBtn} ${currentPage === item ? styles.pageBtnActive : ''}`}
+                      onClick={() => setCurrentPage(item as number)}
+                    >
+                      {item}
+                    </button>
                   )
-                }
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredResidents.length / ITEMS_PER_PAGE), p + 1))}
-                  disabled={currentPage === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE)}
-                >
-                  Next ›
-                </button>
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => setCurrentPage(Math.ceil(filteredResidents.length / ITEMS_PER_PAGE))}
-                  disabled={currentPage === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE)}
-                  title="Last page"
-                >
-                  »
-                </button>
-              </div>
+                )
+              }
+              <button
+                className={styles.pageBtn}
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredResidents.length / ITEMS_PER_PAGE), p + 1))}
+                disabled={currentPage === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE)}
+              >
+                Next ›
+              </button>
+              <button
+                className={styles.pageBtn}
+                onClick={() => setCurrentPage(Math.ceil(filteredResidents.length / ITEMS_PER_PAGE))}
+                disabled={currentPage === Math.ceil(filteredResidents.length / ITEMS_PER_PAGE)}
+                title="Last page"
+              >
+                »
+              </button>
             </div>
-          )}
+          </div>
+        )}
       </div>
 
       <ResidentDetailModal

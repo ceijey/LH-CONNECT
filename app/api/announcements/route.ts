@@ -27,9 +27,34 @@ export async function GET(request: NextRequest) {
 
     let joinedEventIds: string[] = [];
     if (tokenVerification.decoded) {
+      const userId = tokenVerification.decoded.uid;
+      const userDoc = await adminDb.collection('users').doc(userId).get();
+      const userData = userDoc.data() || {};
+
+      // If user is resident, log views for the most recent announcements
+      if (userData.role !== 'admin' && announcementsSnapshot.docs.length > 0) {
+        try {
+          const batch = adminDb.batch();
+          const now = new Date();
+          // Log views for up to 10 most recent announcements
+          const limit = Math.min(announcementsSnapshot.docs.length, 10);
+          for (let i = 0; i < limit; i++) {
+            const doc = announcementsSnapshot.docs[i];
+            const viewRef = doc.ref.collection('views').doc(userId);
+            batch.set(viewRef, {
+              userName: userData.fullName || userData.name || 'Resident',
+              viewedAt: now
+            }, { merge: true });
+          }
+          await batch.commit();
+        } catch (err) {
+          console.error('Failed to log announcement views:', err);
+        }
+      }
+
       const attendanceSnapshot = await adminDb
         .collection('event_attendance')
-        .where('userId', '==', tokenVerification.decoded.uid)
+        .where('userId', '==', userId)
         .get();
       joinedEventIds = attendanceSnapshot.docs.map((doc: any) => doc.data().announcementId);
     }
