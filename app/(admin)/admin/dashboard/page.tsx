@@ -218,7 +218,7 @@ export default function AdminDashboard() {
                 <YAxis stroke="#a0aec0" tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '13px' }}
-                  formatter={(v: number) => [`₱${v.toLocaleString()}`, 'Collected']}
+                  formatter={(value) => [`₱${Number(value ?? 0).toLocaleString()}`, 'Collected']}
                 />
                 <Area type="monotone" dataKey="value" stroke="#1B2A4A" strokeWidth={2.5} fillOpacity={1} fill="url(#colorValue)" dot={{ r: 4, fill: '#1B2A4A' }} />
               </AreaChart>
