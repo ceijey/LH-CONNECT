@@ -193,6 +193,7 @@ export default function SubmitPaymentPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
+  const isPayMongoCheckout = paymentMethod === 'paymongo';
 
   const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: any | null }>({
     isOpen: false,
@@ -483,17 +484,17 @@ export default function SubmitPaymentPage() {
       return;
     }
 
-    if (!formData.file) {
+    if (!isPayMongoCheckout && !formData.file) {
       setToast({ message: 'Please upload a payment proof', type: 'error' });
       return;
     }
 
-    if (!formData.referenceNumber.trim()) {
+    if (!isPayMongoCheckout && !formData.referenceNumber.trim()) {
       setToast({ message: 'Please enter a reference number', type: 'error' });
       return;
     }
 
-    if (!formData.paymentDateTime) {
+    if (!isPayMongoCheckout && !formData.paymentDateTime) {
       setToast({ message: 'Please enter the date and time of payment', type: 'error' });
       return;
     }
@@ -501,6 +502,46 @@ export default function SubmitPaymentPage() {
     setIsSubmitting(true);
 
     try {
+      if (isPayMongoCheckout) {
+        const response = await apiCall('/api/paymongo/checkout', {
+          method: 'POST',
+          body: JSON.stringify({
+            residentName: formData.residentName.trim(),
+            blockLot: formData.blockLot.trim(),
+            amount: Number(formData.receiptAmount.trim()),
+            notes: formData.notes.trim(),
+            paymentDateTime: formData.paymentDateTime,
+          }),
+        });
+
+        const submission = response.submission as Submission | undefined;
+
+        if (submission) {
+          setRecentSubmissions((current) => [
+            {
+              ...submission,
+              month: submission.month ?? new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+              paymentAmount: Number(submission.paymentAmount ?? (Number(formData.receiptAmount) || 0)),
+              status: submission.status ?? 'Pending',
+              submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
+              residentName: formData.residentName,
+              blockLot: formData.blockLot,
+              paymentDateTime: formData.paymentDateTime || new Date().toISOString(),
+            },
+            ...current,
+          ]);
+        }
+
+        setToast({ message: 'Redirecting to PayMongo checkout...', type: 'info' });
+
+        if (response.checkoutUrl) {
+          window.location.href = response.checkoutUrl;
+          return;
+        }
+
+        throw new Error('PayMongo checkout URL was not returned');
+      }
+
       let fileBase64 = '';
 
       // If there's a file, compress it and convert to Base64
@@ -557,9 +598,11 @@ export default function SubmitPaymentPage() {
 
       if (fileBase64) {
         payload.append('fileBase64', fileBase64);
-        payload.append('fileName', formData.file.name);
+        payload.append('fileName', formData.file?.name ?? 'proof.jpg');
       } else {
-        payload.append('file', formData.file);
+        if (formData.file) {
+          payload.append('file', formData.file);
+        }
       }
 
       const getCookieValue = (name: string) => {
@@ -710,14 +753,18 @@ export default function SubmitPaymentPage() {
             <div className={styles.formCard}>
               <h2 className={styles.formTitle}>Submit Payment</h2>
               <p className={styles.formDescription}>
-                Upload your GCash, Maya, or Bank Transfer payment screenshot for instant verification
+                Upload your GCash, Maya, PayMongo, or Bank Transfer payment screenshot for instant verification
               </p>
 
               <form onSubmit={handleSubmit} className={styles.form}>
                 {/* 1. Upload Payment Proof */}
                 <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
                   <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>1. Upload Receipt (Scan & Auto-fill)</label>
-                  <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>Upload your receipt and we will automatically fill in the details below!</p>
+                  <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>
+                    {isPayMongoCheckout
+                      ? 'PayMongo opens a secure hosted checkout, so uploading a receipt is optional.'
+                      : 'Upload your receipt and we will automatically fill in the details below!'}
+                  </p>
                   <div className={styles.uploadBox}>
                     <input
                       type="file"
@@ -802,6 +849,13 @@ export default function SubmitPaymentPage() {
                           <div className={styles.methodIcon}>🏦</div>
                           <div className={styles.methodName}>Bank</div>
                         </div>
+                        <div
+                          className={`${styles.methodCard} ${paymentMethod === 'paymongo' ? styles.activeCard : ''}`}
+                          onClick={() => setPaymentMethod('paymongo')}
+                        >
+                          <div className={styles.methodIcon}>⬢</div>
+                          <div className={styles.methodName}>PayMongo</div>
+                        </div>
                       </div>
 
                       {['gcash', 'maya'].includes(paymentMethod) && (
@@ -813,6 +867,12 @@ export default function SubmitPaymentPage() {
                         >
                           🚀 Open {paymentMethod === 'gcash' ? 'GCash' : 'Maya'}
                         </a>
+                      )}
+
+                      {isPayMongoCheckout && (
+                        <div className={styles.uploadSmall} style={{ marginTop: '12px' }}>
+                          Secure checkout will open in a PayMongo payment page after you submit.
+                        </div>
                       )}
                     </div>
 
@@ -924,7 +984,9 @@ export default function SubmitPaymentPage() {
                       className={styles.submitBtn}
                       style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
                     >
-                      {isSubmitting ? 'Submitting...' : 'Submit Payment'}
+                      {isSubmitting
+                        ? (isPayMongoCheckout ? 'Redirecting to PayMongo...' : 'Submitting...')
+                        : (isPayMongoCheckout ? 'Continue to PayMongo Checkout' : 'Submit Payment')}
                     </button>
                   </div>
                 )}
