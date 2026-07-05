@@ -186,7 +186,7 @@ export default function SubmitPaymentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOCRProcessing, setIsOCRProcessing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('gcash');
+  const [paymentMethod, setPaymentMethod] = useState('paymongo');
   const [selectedBank, setSelectedBank] = useState('BDO');
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
@@ -829,20 +829,6 @@ export default function SubmitPaymentPage() {
                       <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '12px' }}>Select Payment Method</label>
                       <div className={styles.methodGrid}>
                         <div
-                          className={`${styles.methodCard} ${paymentMethod === 'gcash' ? styles.activeCard : ''}`}
-                          onClick={() => setPaymentMethod('gcash')}
-                        >
-                          <div className={styles.methodIcon}>💸</div>
-                          <div className={styles.methodName}>GCash</div>
-                        </div>
-                        <div
-                          className={`${styles.methodCard} ${paymentMethod === 'maya' ? styles.activeCard : ''}`}
-                          onClick={() => setPaymentMethod('maya')}
-                        >
-                          <div className={styles.methodIcon}>💳</div>
-                          <div className={styles.methodName}>Maya</div>
-                        </div>
-                        <div
                           className={`${styles.methodCard} ${paymentMethod === 'bank' ? styles.activeCard : ''}`}
                           onClick={() => setPaymentMethod('bank')}
                         >
@@ -857,17 +843,6 @@ export default function SubmitPaymentPage() {
                           <div className={styles.methodName}>PayMongo</div>
                         </div>
                       </div>
-
-                      {['gcash', 'maya'].includes(paymentMethod) && (
-                        <a
-                          href={paymentMethod === 'gcash' ? 'https://m.gcash.com/' : 'https://www.maya.ph/login'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={styles.appRedirectBtn}
-                        >
-                          🚀 Open {paymentMethod === 'gcash' ? 'GCash' : 'Maya'}
-                        </a>
-                      )}
 
                       {isPayMongoCheckout && (
                         <div className={styles.uploadSmall} style={{ marginTop: '12px' }}>
