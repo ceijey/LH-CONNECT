@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
 import { logAuditAction } from '@/lib/audit-logger';
+import { allocatePaymentAcrossDues } from '@/lib/payment-allocation';
 
 export async function POST(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const amount = Number(paymentAmount);
+    const referenceNumber = `CASH-${Date.now()}`;
 
     // 1. Create payment_submissions record (Status: Verified)
     const submissionRef = await adminDb.collection('payment_submissions').add({
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
       blockLot,
       paymentAmount: amount,
       paymentMethod,
-      referenceNumber: `CASH-${Date.now()}`,
+      referenceNumber,
       notes: notes || 'Manual cash payment recorded by admin',
       status: 'Verified',
       month,
@@ -66,12 +68,14 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     });
 
-    // 2. Update resident balance
-    const currentBalance = Number(residentData.balance ?? 0);
-    const newBalance = Math.max(0, currentBalance - amount);
-    await residentRef.update({
-      balance: newBalance,
-      updatedAt: now.toISOString()
+    // 2. Allocate payment to oldest unpaid dues, then next dues for advance payments.
+    const allocation = await allocatePaymentAcrossDues(residentId, amount, now);
+    const allocatedDueMonths = allocation.allocations.map((entry) => `${entry.month} ${entry.year}`);
+
+    await adminDb.collection('payment_submissions').doc(submissionRef.id).update({
+      month: allocation.primaryDueMonthLabel,
+      appliedToMonths: allocatedDueMonths,
+      updatedAt: now,
     });
 
     // 3. Create official payment record
@@ -80,63 +84,36 @@ export async function POST(request: NextRequest) {
       residentName,
       amount: amount,
       type: 'Payment',
-      description: `Manual Payment - ${month}`,
+      description: `Manual Payment - ${allocation.primaryDueMonthLabel}`,
       paymentMethod,
-      referenceNumber: `CASH-${Date.now()}`,
+      referenceNumber,
       status: 'Paid',
       createdAt: now,
       date: now.toLocaleDateString(),
+      submissionId: submissionRef.id,
+      allocatedDueMonths,
+      source: 'manual-payment',
     });
 
-    // 4. Sync Statement record
-    try {
-      const subMonthStr = String(month || '').toLowerCase();
-      const statementsRef = adminDb.collection('statements');
-      const stmtSnapshot = await statementsRef.where('residentId', '==', residentId).get();
-
-      const targetStmt = stmtSnapshot.docs.find((doc: any) => {
-        const d = doc.data();
-        const stmtTarget = `${d.month} ${d.year}`.toLowerCase();
-        return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
-      });
-
-      if (targetStmt) {
-        const stmtData = targetStmt.data();
-        const newAmountPaid = Number(stmtData.amountPaid || 0) + amount;
-        const stmtTotalDues = Number(stmtData.totalDues || 0);
-        const newStmtBalance = Math.max(0, stmtTotalDues - newAmountPaid);
-        const newStatus = newStmtBalance === 0 ? 'Paid' : 'Pending';
-
-        await statementsRef.doc(targetStmt.id).update({
-          amountPaid: newAmountPaid,
-          balance: newStmtBalance,
-          status: newStatus,
-          updatedAt: now.toISOString()
-        });
-      }
-    } catch (stmtErr: any) {
-      console.error('[ManualPayment] Failed to sync statement:', stmtErr.message);
-    }
-
-    // 5. Notify resident
+    // 4. Notify resident
     await adminDb.collection('notifications').add({
       userId: residentId,
       title: 'Payment Received',
-      message: `Your cash payment of ₱${amount.toLocaleString()} for ${month} has been recorded by the admin.`,
+      message: `Your cash payment of ₱${amount.toLocaleString()} has been recorded for ${allocation.primaryDueMonthLabel}.`,
       type: 'success',
       read: false,
       createdAt: now,
       submissionId: submissionRef.id
     });
 
-    // 6. Send Email if possible
+    // 5. Send Email if possible
     if (residentEmail) {
       try {
         await sendPaymentVerifiedEmail({
           toEmail: residentEmail,
           residentName,
           amount: amount,
-          month: month
+          month: allocation.primaryDueMonthLabel
         });
       } catch (emailErr: any) {
         console.error('[ManualPayment] Failed to send email:', emailErr.message);

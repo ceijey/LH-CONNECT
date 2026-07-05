@@ -194,6 +194,7 @@ export default function SubmitPaymentPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
   const isPayMongoCheckout = paymentMethod === 'paymongo';
+  const shouldShowPaymentDetails = Boolean(formData.file) || paymentMethod === 'paymongo' || paymentMethod === 'bank';
 
   const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: any | null }>({
     isOpen: false,
@@ -803,7 +804,7 @@ export default function SubmitPaymentPage() {
                   )}
                 </div>
 
-                {formData.file && (
+                {shouldShowPaymentDetails && (
                   <div style={{ marginTop: '40px', animation: 'fadeIn 0.5s ease-in' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>

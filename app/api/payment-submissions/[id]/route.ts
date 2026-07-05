@@ -4,6 +4,7 @@ import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { sendPaymentStatusEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
 import { logAuditAction } from '@/lib/audit-logger';
+import { allocatePaymentAcrossDues } from '@/lib/payment-allocation';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,6 +45,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const paymentAmount = Number(submissionData.paymentAmount ?? 0);
     const month = submissionData.month || 'Current';
     const residentName = submissionData.residentName || 'Resident';
+    let appliedMonthForMessage = month;
+
+    if (status === 'Verified' && submissionData.status === 'Verified') {
+      return NextResponse.json({ submission: { id, ...submissionData }, alreadyVerified: true });
+    }
 
     let residentEmail: string | undefined;
     if (residentId) {
@@ -71,60 +77,36 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updatePayload.verifiedDate = now.toLocaleString();
       updatePayload.rejectionReason = null; // Clear any previous reason
 
-      // Update resident balance
       if (residentId) {
-        const residentRef = adminDb.collection('users').doc(residentId);
-        const residentDoc = await residentRef.get();
-        if (residentDoc.exists) {
-          const currentBalance = Number(residentDoc.data()?.balance ?? 0);
-          await residentRef.update({
-            balance: Math.max(0, currentBalance - paymentAmount),
-            updatedAt: now.toISOString()
-          });
+        const allocation = await allocatePaymentAcrossDues(residentId, paymentAmount, now);
+        const allocatedDueMonths = allocation.allocations.map((entry) => `${entry.month} ${entry.year}`);
+        updatePayload.appliedToMonths = allocatedDueMonths;
+        appliedMonthForMessage = allocation.primaryDueMonthLabel;
+        updatePayload.month = appliedMonthForMessage;
 
-          // Create official payment record
+        const existingPaymentBySubmission = await adminDb
+          .collection('payments')
+          .where('submissionId', '==', id)
+          .limit(1)
+          .get();
+
+        if (existingPaymentBySubmission.empty) {
           await adminDb.collection('payments').add({
             residentId,
             residentName,
             amount: paymentAmount,
             type: 'Payment',
-            description: `Monthly Dues - ${month}`,
+            description: `Monthly Dues - ${allocation.primaryDueMonthLabel}`,
             paymentMethod: submissionData.paymentMethod,
             referenceNumber: submissionData.referenceNumber,
             fileUrl: submissionData.fileUrl || null,
             status: 'Paid',
             createdAt: now,
             date: now.toLocaleDateString(),
+            submissionId: id,
+            allocatedDueMonths,
+            source: 'submission-approval',
           });
-
-          // Automation: Sync Statement record status
-          try {
-            const subMonthStr = String(submissionData.month || '').toLowerCase();
-            const statementsRef = adminDb.collection('statements');
-            const stmtSnapshot = await statementsRef.where('residentId', '==', residentId).get();
-
-            const targetStmt = stmtSnapshot.docs.find((doc: any) => {
-              const d = doc.data();
-              const stmtTarget = `${d.month} ${d.year}`.toLowerCase();
-              return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
-            });
-
-            if (targetStmt) {
-              const stmtData = targetStmt.data();
-              const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
-              const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
-              const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
-
-              await statementsRef.doc(targetStmt.id).update({
-                amountPaid: newAmountPaid,
-                balance: newBalance,
-                status: newStatus,
-                updatedAt: now.toISOString()
-              });
-            }
-          } catch (stmtErr: any) {
-            console.error('[Automation] Failed to sync statement on payment:', stmtErr.message);
-          }
         }
       }
     } else if (status === 'Rejected') {
@@ -138,7 +120,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Create a notification for the resident
     if (residentId) {
       const notificationMessage = status === 'Verified' 
-        ? `Your payment of ₱${paymentAmount} has been approved.` 
+        ? `Your payment of ₱${paymentAmount} has been approved for ${appliedMonthForMessage}.` 
         : `Your payment of ₱${paymentAmount} was rejected. Reason: ${rejectionReason || 'No reason provided'}`;
 
       await adminDb.collection('notifications').add({
@@ -157,7 +139,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             toEmail: residentEmail,
             residentName,
             amount: paymentAmount,
-            month,
+            month: appliedMonthForMessage,
             status,
             rejectionReason: status === 'Rejected' ? (rejectionReason || 'No reason provided') : undefined,
           });

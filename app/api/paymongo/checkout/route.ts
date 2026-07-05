@@ -59,6 +59,37 @@ export async function POST(request: NextRequest) {
     const currentMonth = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
     const referenceNumber = `PAYMONGO-${now.getTime()}`;
 
+    const existingPendingSnapshot = await adminDb
+      .collection('payment_submissions')
+      .where('residentId', '==', userId)
+      .limit(30)
+      .get();
+
+    const existingPending = existingPendingSnapshot.docs
+      .map((doc) => ({ id: doc.id, ...(doc.data() as any) }))
+      .filter((submission: any) => (
+        submission.status === 'Pending' &&
+        submission.paymentMethod === 'PayMongo' &&
+        Number(submission.paymentAmount ?? 0) === paymentAmount &&
+        String(submission.month ?? '') === currentMonth &&
+        ['initiated', 'pending'].includes(String(submission.paymongoStatus ?? '').toLowerCase()) &&
+        Boolean(submission.paymongoCheckoutUrl)
+      ))
+      .sort((a: any, b: any) => {
+        const aTime = a.submittedAt?.toDate?.()?.getTime?.() ?? new Date(a.submittedAt ?? 0).getTime() ?? 0;
+        const bTime = b.submittedAt?.toDate?.()?.getTime?.() ?? new Date(b.submittedAt ?? 0).getTime() ?? 0;
+        return bTime - aTime;
+      })[0];
+
+    if (existingPending) {
+      return NextResponse.json({
+        checkoutUrl: existingPending.paymongoCheckoutUrl,
+        sessionId: existingPending.paymongoCheckoutSessionId,
+        reused: true,
+        submission: existingPending,
+      });
+    }
+
     const submissionRef = adminDb.collection('payment_submissions').doc();
     const submissionData = {
       residentId: userId,

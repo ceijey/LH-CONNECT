@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
+import { allocatePaymentAcrossDues } from '@/lib/payment-allocation';
 
 function toMillis(value: any) {
   if (!value) return 0;
@@ -79,7 +80,6 @@ async function finalizeSubmission(doc: any, payload: any) {
   const residentId = data.residentId;
   const residentName = data.residentName || 'Resident';
   const blockLot = data.blockLot || '';
-  const month = data.month || new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
   const paymentAmount = Number(data.paymentAmount ?? 0);
   const now = new Date();
   const eventType = getEventType(payload);
@@ -104,60 +104,37 @@ async function finalizeSubmission(doc: any, payload: any) {
     return;
   }
 
-  const residentRef = adminDb.collection('users').doc(residentId);
-  const residentDoc = await residentRef.get();
-  if (!residentDoc.exists) {
-    return;
-  }
-
-  const residentData = residentDoc.data()!;
-  const currentBalance = Number(residentData.balance ?? 0);
-  await residentRef.update({
-    balance: Math.max(0, currentBalance - paymentAmount),
-    updatedAt: now.toISOString(),
+  const allocation = await allocatePaymentAcrossDues(residentId, paymentAmount, now);
+  const allocatedDueMonths = allocation.allocations.map((entry) => `${entry.month} ${entry.year}`);
+  await doc.ref.update({
+    appliedToMonths: allocatedDueMonths,
+    month: allocation.primaryDueMonthLabel,
+    updatedAt: new Date(),
   });
 
-  await adminDb.collection('payments').add({
-    residentId,
-    residentName,
-    amount: paymentAmount,
-    type: 'Payment',
-    description: `Monthly Dues - ${month}`,
-    paymentMethod: data.paymentMethod || 'PayMongo',
-    referenceNumber: paymentReference,
-    fileUrl: null,
-    status: 'Paid',
-    createdAt: now,
-    date: now.toLocaleDateString(),
-    source: 'paymongo',
-  });
+  const existingPaymentBySubmission = await adminDb
+    .collection('payments')
+    .where('submissionId', '==', doc.id)
+    .limit(1)
+    .get();
 
-  try {
-    const statementsRef = adminDb.collection('statements');
-    const stmtSnapshot = await statementsRef.where('residentId', '==', residentId).get();
-    const subMonthStr = String(month || '').toLowerCase();
-
-    const targetStmt = stmtSnapshot.docs.find((stmtDoc: any) => {
-      const stmtData = stmtDoc.data();
-      const stmtTarget = `${stmtData.month} ${stmtData.year}`.toLowerCase();
-      return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
+  if (existingPaymentBySubmission.empty) {
+    await adminDb.collection('payments').add({
+      residentId,
+      residentName,
+      amount: paymentAmount,
+      type: 'Payment',
+      description: `Monthly Dues - ${allocation.primaryDueMonthLabel}`,
+      paymentMethod: data.paymentMethod || 'PayMongo',
+      referenceNumber: paymentReference,
+      fileUrl: null,
+      status: 'Paid',
+      createdAt: now,
+      date: now.toLocaleDateString(),
+      source: 'paymongo',
+      submissionId: doc.id,
+      allocatedDueMonths,
     });
-
-    if (targetStmt) {
-      const stmtData = targetStmt.data();
-      const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
-      const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
-      const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
-
-      await statementsRef.doc(targetStmt.id).update({
-        amountPaid: newAmountPaid,
-        balance: newBalance,
-        status: newStatus,
-        updatedAt: now.toISOString(),
-      });
-    }
-  } catch (statementError: any) {
-    console.error('[PayMongo Webhook] Failed to sync statement:', statementError?.message ?? statementError);
   }
 
   await adminDb.collection('notifications').add({
@@ -189,7 +166,7 @@ async function finalizeSubmission(doc: any, payload: any) {
         toEmail: residentEmail,
         residentName,
         amount: paymentAmount,
-        month,
+        month: allocation.primaryDueMonthLabel,
       });
     } catch (emailError: any) {
       console.error('[PayMongo Webhook] Failed to send verification email:', emailError?.message ?? emailError);

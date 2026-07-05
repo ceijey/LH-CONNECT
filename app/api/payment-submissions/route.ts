@@ -3,6 +3,7 @@ import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware'
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import { encrypt, decrypt } from '@/lib/encryption';
 import { verifyCsrf } from '@/lib/csrf';
+import { createHash } from 'crypto';
 
 type PaymentSubmission = {
   id: string;
@@ -218,6 +219,8 @@ export async function POST(request: NextRequest) {
     let filePath = String(formData.get('filePath') ?? '').trim();
     let fileBase64 = String(formData.get('fileBase64') ?? '').trim();
     let fileName = String(formData.get('fileName') ?? '').trim();
+    let proofHash = '';
+    let uploadedBuffer: Buffer | undefined;
 
     // Detailed validation
     if (!residentName) {
@@ -248,6 +251,14 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Reference number is required', 400);
     }
 
+    if (fileBase64) {
+      const base64Payload = fileBase64.includes(',') ? fileBase64.split(',')[1] : fileBase64;
+      proofHash = createHash('sha256').update(base64Payload).digest('hex');
+    } else if (file instanceof File) {
+      uploadedBuffer = Buffer.from(await file.arrayBuffer());
+      proofHash = createHash('sha256').update(uploadedBuffer).digest('hex');
+    }
+
     // Check for duplicate reference number in payment_submissions
     const duplicateSubmissionQuery = await adminDb
       .collection('payment_submissions')
@@ -269,6 +280,19 @@ export async function POST(request: NextRequest) {
     if (!duplicatePaymentQuery.empty) {
       return createErrorResponse('This reference number has already been approved for a payment.', 400);
     }
+
+    if (proofHash) {
+      const duplicateProofQuery = await adminDb
+        .collection('payment_submissions')
+        .where('residentId', '==', userId)
+        .where('proofHash', '==', proofHash)
+        .limit(1)
+        .get();
+
+      if (!duplicateProofQuery.empty) {
+        return createErrorResponse('This payment proof image has already been submitted.', 400);
+      }
+    }
     
     // Only require file if URL or Base64 is not provided
     if (!fileUrl && !fileBase64 && !(file instanceof File)) {
@@ -288,7 +312,7 @@ export async function POST(request: NextRequest) {
     } else if (!fileUrl && file instanceof File) {
       const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       filePath = `payment-submissions/${userId}/${Date.now()}-${safeFileName}`;
-      const buffer = Buffer.from(await file.arrayBuffer());
+      const buffer = uploadedBuffer ?? Buffer.from(await file.arrayBuffer());
 
       try {
         // Upload to Firebase Storage (as fallback/alternate)
@@ -376,6 +400,7 @@ export async function POST(request: NextRequest) {
       updatedAt: submittedAt,
       paymentDateTime,
       receiptAmount,
+      proofHash: proofHash || null,
     });
 
     const submission = {
