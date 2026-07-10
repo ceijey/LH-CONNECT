@@ -177,12 +177,12 @@ export default function AdminReports() {
 
       return `
         <tr>
-          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 500;">${firstVal}</td>
-          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; font-weight: 700;">${secondVal}</td>
-          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 500;">${typeText}</td>
-          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 800; color: #1e293b; text-align: right;">${amountVal}</td>
-          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">${thirdVal}</td>
-          <td style="padding: 14px 10px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: ${statusColor}; text-align: right;">${row.status}</td>
+          <td class="col-blk">${firstVal}</td>
+          <td class="col-name">${secondVal}</td>
+          <td>${typeText}</td>
+          <td class="col-amount">${amountVal}</td>
+          <td style="font-weight: 600;">${thirdVal}</td>
+          <td class="col-status" style="color: ${statusColor};">${row.status}</td>
         </tr>
       `;
     }).join('');
@@ -193,38 +193,33 @@ export default function AdminReports() {
           <title>${selectedReportType.toUpperCase()} - ${getFormattedPeriod()}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px 40px 80px 40px; color: #1e293b; background: white; line-height: 1.5; }
-            .header { text-align: center; border-bottom: 3px double #1B2A4A; padding-bottom: 24px; margin-bottom: 30px; }
-            .logo-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
-            .logo-img { width: 44px; height: 44px; object-fit: contain; }
-            .logo-text { font-size: 28px; font-weight: 800; color: #1B2A4A; text-transform: uppercase; letter-spacing: -0.03em; }
-            .subtitle { font-size: 11px; color: #475569; margin: 0; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; font-weight: 600; }
-            .report-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 25px 0 12px 0; text-transform: uppercase; letter-spacing: -0.01em; text-align: center; }
-            .profile-info { font-size: 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; padding: 18px; border-radius: 12px; margin-bottom: 30px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; }
-            .info-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; }
-            .info-label { font-weight: 700; color: #475569; }
-            .info-value { color: #0f172a; font-weight: 600; }
-            table { width: 100%; border-collapse: collapse; margin-top: 25px; }
-            th { text-align: left; padding: 14px 10px; background: transparent; color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 2px solid #e2e8f0; }
-            td { font-size: 13px; }
-            .footer {
-              position: fixed;
-              bottom: 0;
-              left: 0;
-              right: 0;
-              font-size: 11px;
-              text-align: center;
-              color: #94a3b8;
-              border-top: 1px solid #e2e8f0;
-              padding: 12px 40px;
-              background: white;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              font-weight: 600;
-            }
+            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #1e293b; background: white; line-height: 1.5; }
+            .header { text-align: center; border-bottom: 2px solid #1B2A4A; padding-bottom: 20px; margin-bottom: 25px; }
+            .logo-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
+            .logo-img { width: 48px; height: 48px; object-fit: contain; }
+            .logo-text { font-size: 30px; font-weight: 900; color: #1B2A4A; text-transform: uppercase; letter-spacing: -0.02em; }
+            .subtitle { font-size: 11px; color: #64748b; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; font-weight: 600; }
+            .report-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.02em; text-align: center; }
+            .profile-info { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; text-align: center; }
+            .info-item { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #e2e8f0; }
+            .info-item:last-child { border-right: none; }
+            .info-label { font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+            .info-value { color: #0f172a; font-weight: 700; font-size: 16px; }
+            .rate-footer { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center; display: flex; justify-content: space-between; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { text-align: left; padding: 12px 14px; background: #1B2A4A; color: white; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border: none; }
+            td { font-size: 12px; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+            tr:nth-child(even) td { background-color: #f8fafc; }
+            .col-blk { font-weight: 600; color: #475569; }
+            .col-name { font-weight: 700; color: #0f172a; }
+            .col-amount { font-weight: 800; color: #0f172a; text-align: right; }
+            .col-status { font-weight: 700; text-align: right; }
+            .footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 10px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding: 15px 40px; background: white; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+            tr { page-break-inside: avoid; }
             @media print {
-              body { padding: 0 0 60px 0; }
+              @page { margin-bottom: 25mm; margin-top: 20mm; }
+              body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               .footer { position: fixed; bottom: 0; left: 0; right: 0; }
             }
           </style>
@@ -238,33 +233,30 @@ export default function AdminReports() {
             <div class="subtitle">LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000</div>
           </div>
           
-          <div class="report-title">${selectedReportType.toUpperCase()} — ${getFormattedPeriod().toUpperCase()} STATEMENT</div>
+          <div class="report-title">${selectedReportType.toUpperCase()} — ${getFormattedPeriod().toUpperCase()}</div>
           
           <div class="profile-info">
             <div class="info-grid">
-              <div>
-                <div class="info-item">
-                  <span class="info-label">Report Period:</span>
-                  <span class="info-value">${getFormattedPeriod()}</span>
-                </div>
-                <div class="info-item" style="margin-top: 8px;">
-                  <span class="info-label">Total Receivables:</span>
-                  <span class="info-value">₱${summary?.totalDues?.toLocaleString() || 0}</span>
-                </div>
+              <div class="info-item">
+                <span class="info-label">Report Period</span>
+                <span class="info-value">${getFormattedPeriod()}</span>
               </div>
-              <div>
-                <div class="info-item">
-                  <span class="info-label">Total Collected:</span>
-                  <span class="info-value" style="color: #059669;">₱${summary?.totalCollected?.toLocaleString() || 0}</span>
-                </div>
-                <div class="info-item" style="margin-top: 8px;">
-                  <span class="info-label">Outstanding Balance:</span>
-                  <span class="info-value" style="color: #dc2626;">₱${summary?.outstandingBalance?.toLocaleString() || 0}</span>
-                </div>
+              <div class="info-item">
+                <span class="info-label">Total Receivables</span>
+                <span class="info-value">₱${summary?.totalDues?.toLocaleString() || 0}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Total Collected</span>
+                <span class="info-value" style="color: #059669;">₱${summary?.totalCollected?.toLocaleString() || 0}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Outstanding Balance</span>
+                <span class="info-value" style="color: #dc2626;">₱${summary?.outstandingBalance?.toLocaleString() || 0}</span>
               </div>
             </div>
-            <div style="margin-top: 12px; font-size: 12px; color: #64748b; text-align: right;">
-              Collection Rate: <strong>${summary?.collectionRate || 0}%</strong> | Report Generated: <strong>${dateStr}</strong>
+            <div class="rate-footer">
+              <span>Report Generated: <strong>${dateStr}</strong></span>
+              <span>Collection Rate: <strong style="color: #0f172a; font-size: 12px;">${summary?.collectionRate || 0}%</strong></span>
             </div>
           </div>
           

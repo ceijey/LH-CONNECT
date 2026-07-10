@@ -65,29 +65,38 @@ export default function DashboardPage() {
   // Unified activity log calculation
   const recentActivity = useMemo(() => {
     const events: any[] = [];
+    const processedBills = new Set<string>();
+    const processedPays = new Set<string>();
     
     statements.forEach(stmt => {
+      const billKey = `${stmt.month}-${stmt.year}`;
       // Add Bill Event
-      events.push({
-        id: `bill-${stmt.id}`,
-        date: stmt.date || new Date().toISOString(),
-        description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
-        type: 'BILL',
-        amount: Number(stmt.totalDues || 0),
-        status: stmt.status,
-      });
+      if (!processedBills.has(billKey)) {
+        processedBills.add(billKey);
+        events.push({
+          id: `bill-${stmt.id}`,
+          date: stmt.date || new Date().toISOString(),
+          description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
+          type: 'BILL',
+          amount: Number(stmt.totalDues || 0),
+          status: stmt.status,
+        });
+      }
 
       // Add Payment Events from related submissions
       if (stmt.relatedSubmissions) {
         stmt.relatedSubmissions.forEach((sub: any) => {
-          events.push({
-            id: `pay-${sub.id}`,
-            date: sub.verifiedDate || sub.submittedDate || stmt.date,
-            description: `Payment - ${stmt.month} ${stmt.year}`,
-            type: 'PAYMENT',
-            amount: Number(sub.paymentAmount || 0),
-            status: sub.status,
-          });
+          if (!processedPays.has(sub.id)) {
+            processedPays.add(sub.id);
+            events.push({
+              id: `pay-${sub.id}`,
+              date: sub.verifiedDate || sub.submittedDate || stmt.date,
+              description: `Payment - ${stmt.month} ${stmt.year}`,
+              type: 'PAYMENT',
+              amount: Number(sub.paymentAmount || 0),
+              status: sub.status,
+            });
+          }
         });
       }
     });

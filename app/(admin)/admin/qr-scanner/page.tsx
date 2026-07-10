@@ -26,7 +26,7 @@ function isValidFirebaseUid(value: string) {
 
 export default function QRScannerPage() {
   const router = useRouter();
-  
+
   const scannerRef = useRef<any>(null);
   const [scannedResident, setScannedResident] = useState<ResidentData | null>(null);
   const [scanError, setScanError] = useState('');
@@ -95,7 +95,7 @@ export default function QRScannerPage() {
                 setScannedResident(resident);
                 setScanError('');
                 setActionMessage('');
-                
+
                 // Stop scanning
                 html5QrCode.stop().then(() => {
                   setIsScanning(false);
@@ -129,7 +129,7 @@ export default function QRScannerPage() {
 
     return () => {
       if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(() => {});
+        html5QrCode.stop().catch(() => { });
       }
     };
   }, [isScanning, residentsCache, scannedResident]);
@@ -179,189 +179,199 @@ export default function QRScannerPage() {
   return (
     <>
       <div className={styles.contentWrapper}>
-          {/* Scanner Section */}
-          <div className={styles.scannerSection}>
-            {!isScanning && !scannedResident && (
-              <div className={styles.scanPrompt}>
-                <div className={styles.promptIconWrapper}>
-                  <div className={styles.promptIcon}>📷</div>
-                </div>
-                <h2 className={styles.promptTitle}>Scan Resident QR Code</h2>
-                <p className={styles.promptText}>
-                  Point your camera at a resident's QR code to instantly pull up their profile and billing information.
+        {/* Scanner Section */}
+        <div className={styles.scannerSection}>
+          {!isScanning && !scannedResident && (
+            <div className={styles.scanPrompt}>
+              <div className={styles.promptIconWrapper}>
+                <div className={styles.promptIcon}>📷</div>
+              </div>
+              <h2 className={styles.promptTitle}>Scan Resident QR Code</h2>
+              <p className={styles.promptText}>
+                Point your camera at a resident's QR code to instantly pull up their profile and billing information.
+              </p>
+              <button
+                onClick={handleStartScan}
+                className={styles.scanBtn}
+                disabled={permissionDenied || isLoadingResidents}
+              >
+                <span className={styles.btnIcon}>🔍</span>
+                {isLoadingResidents ? 'Initializing...' : 'Tap to Start Scanning'}
+              </button>
+              {permissionDenied && (
+                <p className={styles.errorText}>
+                  Camera permission denied. Please enable camera access in your browser settings.
                 </p>
-                <button
-                  onClick={handleStartScan}
-                  className={styles.scanBtn}
-                  disabled={permissionDenied || isLoadingResidents}
-                >
-                  <span className={styles.btnIcon}>🔍</span>
-                  {isLoadingResidents ? 'Initializing...' : 'Tap to Start Scanning'}
+              )}
+            </div>
+          )}
+
+          {isScanning && (
+            <div className={styles.scannerContainer}>
+              <div className={styles.scannerHeader}>
+                <h3 className={styles.scannerTitle}>Scanning Resident QR</h3>
+                <button onClick={handleStopScan} className={styles.closeScanner}>✕</button>
+              </div>
+
+              <div className={styles.scannerFrame}>
+                <div id="qr-reader" className={styles.qrReader}></div>
+                {isCameraStarting && (
+                  <div className={styles.cameraLoading}>
+                    <div className={styles.spinner}></div>
+                    <p>Accessing Camera...</p>
+                  </div>
+                )}
+                <div className={styles.scanOverlay}>
+                  <div className={styles.scannerLaser}></div>
+                  <div className={styles.scannerCorner + ' ' + styles.topLeft}></div>
+                  <div className={styles.scannerCorner + ' ' + styles.topRight}></div>
+                  <div className={styles.scannerCorner + ' ' + styles.bottomLeft}></div>
+                  <div className={styles.scannerCorner + ' ' + styles.bottomRight}></div>
+                </div>
+              </div>
+
+              <div className={styles.scannerFooter}>
+                <p className={styles.scannerHint}>Align the QR code within the frame to scan</p>
+                <button onClick={handleStopScan} className={styles.cancelBtn}>
+                  Cancel Scanning
                 </button>
-                {permissionDenied && (
-                  <p className={styles.errorText}>
-                    Camera permission denied. Please enable camera access in your browser settings.
-                  </p>
-                )}
               </div>
-            )}
 
-            {isScanning && (
-              <div className={styles.scannerContainer}>
-                <div className={styles.scannerHeader}>
-                  <h3 className={styles.scannerTitle}>Scanning Resident QR</h3>
-                  <button onClick={handleStopScan} className={styles.closeScanner}>✕</button>
+              {scanError && (
+                <div className={styles.scanErrorBox}>
+                  <p>{scanError}</p>
+                  <button onClick={() => setScanError('')}>✕</button>
                 </div>
-                
-                <div className={styles.scannerFrame}>
-                  <div id="qr-reader" className={styles.qrReader}></div>
-                  {isCameraStarting && (
-                    <div className={styles.cameraLoading}>
-                      <div className={styles.spinner}></div>
-                      <p>Accessing Camera...</p>
-                    </div>
-                  )}
-                  <div className={styles.scanOverlay}>
-                    <div className={styles.scannerLaser}></div>
-                    <div className={styles.scannerCorner + ' ' + styles.topLeft}></div>
-                    <div className={styles.scannerCorner + ' ' + styles.topRight}></div>
-                    <div className={styles.scannerCorner + ' ' + styles.bottomLeft}></div>
-                    <div className={styles.scannerCorner + ' ' + styles.bottomRight}></div>
-                  </div>
-                </div>
+              )}
+            </div>
+          )}
 
-                <div className={styles.scannerFooter}>
-                  <p className={styles.scannerHint}>Align the QR code within the frame to scan</p>
-                  <button onClick={handleStopScan} className={styles.cancelBtn}>
-                    Cancel Scanning
-                  </button>
+          {scannedResident && (
+            <div className={styles.resultSection}>
+              <div className={styles.successMessage}>
+                <span className={styles.successIcon}>✓</span>
+                <div className={styles.successText}>
+                  <strong>Resident Found</strong>
+                  <span>Scanning completed successfully</span>
                 </div>
-
-                {scanError && (
-                  <div className={styles.scanErrorBox}>
-                    <p>{scanError}</p>
-                    <button onClick={() => setScanError('')}>✕</button>
-                  </div>
-                )}
               </div>
-            )}
 
-            {scannedResident && (
-              <div className={styles.resultSection}>
-                <div className={styles.successMessage}>
-                  ✓ Resident found! Scanning complete.
-                </div>
-
-                {actionMessage && (
-                  <div className={styles.successMessage}>
-                    {actionMessage}
+              {actionMessage && (
+                <div className={styles.successMessage} style={{marginTop: '-0.5rem', background: '#e3f2fd', borderColor: '#90caf9', color: '#1565c0'}}>
+                  <span className={styles.successIcon} style={{background: '#1565c0'}}>✓</span>
+                  <div className={styles.successText}>
+                    <strong>Action Successful</strong>
+                    <span>{actionMessage}</span>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Resident Card */}
-                <div className={styles.residentCard}>
-                  <div className={styles.cardHeader}>
-                    <div className={styles.nameSection}>
-                      <span className={styles.idLabel}>RESIDENT ID: {scannedResident.id}</span>
-                      <h2 className={styles.residentName}>{scannedResident.fullName || 'Unknown Resident'}</h2>
+              {/* Resident Card */}
+              <div className={styles.residentCard}>
+                {/* Top Profile Banner */}
+                <div className={styles.profileBanner}>
+                  <div className={styles.avatarPlaceholder}>
+                    {scannedResident.fullName ? scannedResident.fullName.charAt(0).toUpperCase() : '👤'}
+                  </div>
+                  <div className={styles.profileDetails}>
+                    <h2 className={styles.residentName}>{scannedResident.fullName || 'Unknown Resident'}</h2>
+                    <div className={styles.contactRow}>
+                      <div className={styles.contactItem}>
+                        <span className={styles.contactIcon}>✉️</span>
+                        <span>{scannedResident.email || 'No email provided'}</span>
+                      </div>
+                      <div className={styles.contactItem}>
+                        <span className={styles.contactIcon}>📞</span>
+                        <span>{scannedResident.phone || 'No phone provided'}</span>
+                      </div>
                     </div>
-                    <span
+                  </div>
+                  <div className={styles.statusContainer}>
+                    <div
                       className={styles.statusBadge}
                       style={{
-                        background: scannedResident.balance && scannedResident.balance > 0 ? '#ef5350' : '#4caf50',
-                        boxShadow: `0 4px 10px ${scannedResident.balance && scannedResident.balance > 0 ? 'rgba(239, 83, 80, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`
+                        background: scannedResident.balance && scannedResident.balance > 0 ? 'linear-gradient(135deg, #ef5350, #c62828)' : 'linear-gradient(135deg, #4caf50, #2e7d32)',
+                        boxShadow: scannedResident.balance && scannedResident.balance > 0 ? '0 4px 15px rgba(239, 83, 80, 0.3)' : '0 4px 15px rgba(76, 175, 80, 0.3)'
                       }}
                     >
-                      {scannedResident.balance && scannedResident.balance > 0 
-                        ? `DELINQUENT - ${Math.floor(scannedResident.balance / 400)} Month${Math.floor(scannedResident.balance / 400) > 1 ? 's' : ''} Delayed`
-                        : `PAID - ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`}
-                    </span>
-                  </div>
-
-                  <div className={styles.cardBody}>
-                    {/* Left Column: Personal & Location */}
-                    <div className={styles.mainInfo}>
-                      <div className={styles.infoSection}>
-                        <h3 className={styles.subTitle}>Personal Information</h3>
-                        <div className={styles.gridRow}>
-                          <div className={styles.dataGroup}>
-                            <span className={styles.label}>Email Address</span>
-                            <span className={styles.value}>{scannedResident.email || '-'}</span>
-                          </div>
-                          <div className={styles.dataGroup}>
-                            <span className={styles.label}>Phone Number</span>
-                            <span className={styles.value}>{scannedResident.phone || '-'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={styles.infoSection}>
-                        <h3 className={styles.subTitle}>Location Details</h3>
-                        <div className={styles.gridRow}>
-                          <div className={styles.dataGroup}>
-                            <span className={styles.label}>Phase</span>
-                            <span className={styles.value}>{scannedResident.phase || '-'}</span>
-                          </div>
-                          <div className={styles.dataGroup}>
-                            <span className={styles.label}>Block & Lot</span>
-                            <span className={styles.value}>Blk {scannedResident.block || '-'} Lot {scannedResident.lot || '-'}</span>
-                          </div>
-                        </div>
-                        <div className={styles.fullAddress}>
-                          <span className={styles.label}>Full Address</span>
-                          <span className={styles.value}>Lincoln Heights, {scannedResident.phase}, Blk {scannedResident.block}, Lot {scannedResident.lot}</span>
-                        </div>
-                      </div>
+                      {scannedResident.balance && scannedResident.balance > 0
+                        ? `DELINQUENT — ${Math.floor(scannedResident.balance / 400)} MONTH${Math.floor(scannedResident.balance / 400) > 1 ? 'S' : ''}`
+                        : `ACTIVE & PAID`}
                     </div>
-
-                    {/* Right Column: Balance */}
-                    <div className={styles.balanceSidebar}>
-                      <div className={styles.balanceCard}>
-                        <span className={styles.balanceLabel}>OUTSTANDING BALANCE</span>
-                        <div 
-                          className={styles.balanceValue}
-                          style={{ color: scannedResident.balance && scannedResident.balance > 0 ? '#ef5350' : '#4caf50' }}
-                        >
-                          ₱{(scannedResident.balance || 0).toLocaleString()}
-                        </div>
-                        <div className={styles.balanceFooter}>
-                          <span>Last updated: {new Date().toLocaleDateString()}</span>
-                          {scannedResident.balance && scannedResident.balance > 0 ? (
-                            <span style={{ 
-                              padding: '4px 12px', 
-                              background: '#fee2e2', 
-                              color: '#b91c1c', 
-                              borderRadius: '20px',
-                              fontSize: '0.75rem', 
-                              fontWeight: 700 
-                            }}>
-                              Unpaid: {
-                                Array.from({ length: Math.floor(scannedResident.balance / 400) }).map((_, i) => {
-                                  const d = new Date();
-                                  d.setMonth(d.getMonth() - i);
-                                  return d.toLocaleString('default', { month: 'short' });
-                                }).reverse().join(', ')
-                              }
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className={styles.cardActions}>
-                    <button onClick={handleRescan} className={styles.primaryAction}>
-                      🔄 Scan Another
-                    </button>
-                    <button onClick={handleCopyResidentId} className={styles.secondaryAction}>
-                      📋 Copy ID
-                    </button>
                   </div>
                 </div>
+
+                <div className={styles.cardBody}>
+                  <div className={styles.infoSection}>
+                    <h3 className={styles.subTitle}>
+                      <span className={styles.subTitleIcon}>🏠</span>
+                      Property Details
+                    </h3>
+                    <div className={styles.propertyGrid}>
+                      <div className={styles.propItem}>
+                        <span className={styles.propLabel}>Phase</span>
+                        <span className={styles.propValue}>{scannedResident.phase || '-'}</span>
+                      </div>
+                      <div className={styles.propItem}>
+                        <span className={styles.propLabel}>Block</span>
+                        <span className={styles.propValue}>{scannedResident.block || '-'}</span>
+                      </div>
+                      <div className={styles.propItem}>
+                        <span className={styles.propLabel}>Lot</span>
+                        <span className={styles.propValue}>{scannedResident.lot || '-'}</span>
+                      </div>
+                    </div>
+                    <div className={styles.fullAddress}>
+                      <span className={styles.addressIcon}>📍</span>
+                      <span className={styles.addressText}>
+                        Lincoln Heights, {scannedResident.phase}, Blk {scannedResident.block}, Lot {scannedResident.lot}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.balanceSection}>
+                    <h3 className={styles.subTitle}>
+                      <span className={styles.subTitleIcon}>💳</span>
+                      Financial Status
+                    </h3>
+                    <div className={styles.balanceDisplay}>
+                      <span className={styles.balanceSubtext}>Total Outstanding Balance</span>
+                      <div className={styles.balanceAmount} style={{ color: scannedResident.balance && scannedResident.balance > 0 ? '#d32f2f' : '#2e7d32' }}>
+                        ₱{(scannedResident.balance || 0).toLocaleString()}
+                      </div>
+                      
+                      {scannedResident.balance && scannedResident.balance > 0 ? (
+                        <div className={styles.unpaidMonths}>
+                          <strong>Unpaid Months:</strong> {
+                            Array.from({ length: Math.floor(scannedResident.balance / 400) }).map((_, i) => {
+                              const d = new Date();
+                              d.setMonth(d.getMonth() - i);
+                              return d.toLocaleString('default', { month: 'short' });
+                            }).reverse().join(', ')
+                          }
+                        </div>
+                      ) : (
+                        <div className={styles.paidStatus}>
+                          <span style={{marginRight: '6px'}}>✓</span> Up to date for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className={styles.cardActions}>
+                  <button onClick={handleCopyResidentId} className={styles.secondaryAction}>
+                    📋 Copy Resident ID
+                  </button>
+                  <button onClick={handleRescan} className={styles.primaryAction}>
+                    🔄 Scan Another QR
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
       </div>
     </>

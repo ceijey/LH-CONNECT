@@ -269,6 +269,22 @@ export async function POST(request: NextRequest) {
     if (!duplicatePaymentQuery.empty) {
       return createErrorResponse('This reference number has already been approved for a payment.', 400);
     }
+
+    const submittedAt = new Date();
+    const currentMonth = submittedAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+
+    // Check if resident already has a submission for the current month
+    const existingMonthSubmissionQuery = await adminDb
+      .collection('payment_submissions')
+      .where('residentId', '==', userId)
+      .where('month', '==', currentMonth)
+      .where('status', 'in', ['Pending', 'Verified'])
+      .limit(1)
+      .get();
+
+    if (!existingMonthSubmissionQuery.empty) {
+      return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+    }
     
     // Only require file if URL or Base64 is not provided
     if (!fileUrl && !fileBase64 && !(file instanceof File)) {

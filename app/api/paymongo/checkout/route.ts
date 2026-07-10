@@ -57,6 +57,20 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const currentMonth = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+
+    // Check if resident already has a submission for the current month
+    const existingMonthSubmissionQuery = await adminDb
+      .collection('payment_submissions')
+      .where('residentId', '==', userId)
+      .where('month', '==', currentMonth)
+      .where('status', 'in', ['Pending', 'Verified'])
+      .limit(1)
+      .get();
+
+    if (!existingMonthSubmissionQuery.empty) {
+      return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+    }
+
     const referenceNumber = `PAYMONGO-${now.getTime()}`;
 
     const submissionRef = adminDb.collection('payment_submissions').doc();

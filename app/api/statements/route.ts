@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         const createdAt = now.toISOString();
         // compute due date as 15th of current month/year
         const monthIndex = new Date(`${currentMonthName} 1, ${currentYear}`).getMonth();
-        const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
+        const due = new Date(Date.UTC(currentYear, monthIndex, 15, 12, 0, 0));
         const dueIso = due.toISOString();
 
         const newStmtRef = await statementsRef.add({
@@ -116,11 +116,11 @@ export async function GET(request: NextRequest) {
         if (Number(currentStatement.totalDues ?? 0) !== MONTHLY_DUES) updates.totalDues = MONTHLY_DUES;
         if (Number(currentStatement.balance ?? 0) !== normalizedBalance) updates.balance = normalizedBalance;
         if (String(currentStatement.status ?? '') !== normalizedStatus) updates.status = normalizedStatus;
-        // ensure dueDate exists and is set to 15th
-        if (!currentStatement.dueDate) {
-          const monthIndex = new Date(`${currentStatement.month} 1, ${currentStatement.year}`).getMonth();
-          const due = new Date(Number(currentStatement.year), monthIndex, 15, 23, 59, 59);
-          updates.dueDate = due.toISOString();
+        // ensure dueDate is correct and set to 15th at noon UTC
+        const monthIndex = new Date(`${currentStatement.month} 1, ${currentStatement.year}`).getMonth();
+        const correctDue = new Date(Date.UTC(Number(currentStatement.year), monthIndex, 15, 12, 0, 0)).toISOString();
+        if (currentStatement.dueDate !== correctDue) {
+          updates.dueDate = correctDue;
         }
 
         if (Object.keys(updates).length > 0) {
@@ -134,15 +134,15 @@ export async function GET(request: NextRequest) {
       // Use the in-memory array instead of re-fetching from Firestore
       statements = existingStatements.map((data: any) => {
         data.totalDues = MONTHLY_DUES;
-        // ensure dueDate exists on returned statements
-        if (!data.dueDate) {
-          try {
-            const monthIndex = new Date(`${data.month} 1, ${data.year}`).getMonth();
-            const due = new Date(Number(data.year), monthIndex, 15, 23, 59, 59);
-            data.dueDate = due.toISOString();
-          } catch (e) {
-            data.dueDate = data.date || new Date().toISOString();
+        // ensure dueDate is correct on returned statements
+        try {
+          const monthIndex = new Date(`${data.month} 1, ${data.year}`).getMonth();
+          const correctDue = new Date(Date.UTC(Number(data.year), monthIndex, 15, 12, 0, 0)).toISOString();
+          if (data.dueDate !== correctDue) {
+            data.dueDate = correctDue;
           }
+        } catch (e) {
+          if (!data.dueDate) data.dueDate = data.date || new Date().toISOString();
         }
         return data;
       });

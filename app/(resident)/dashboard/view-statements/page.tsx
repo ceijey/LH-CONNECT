@@ -87,35 +87,44 @@ export default function ViewStatementsPage() {
 
   const auditEvents = useMemo(() => {
     const events: AuditEvent[] = [];
+    const processedBills = new Set<string>();
+    const processedPays = new Set<string>();
     
     statements.forEach(stmt => {
+      const billKey = `${stmt.month}-${stmt.year}`;
       // Add Bill Event
-      events.push({
-        id: `bill-${stmt.id}`,
-        date: stmt.date,
-        description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
-        type: 'BILL',
-        amount: stmt.totalDues,
-        status: stmt.status,
-        referenceId: stmt.id
-      });
+      if (!processedBills.has(billKey)) {
+        processedBills.add(billKey);
+        events.push({
+          id: `bill-${stmt.id}`,
+          date: stmt.date,
+          description: `Monthly Dues - ${stmt.month} ${stmt.year}`,
+          type: 'BILL',
+          amount: stmt.totalDues,
+          status: stmt.status,
+          referenceId: stmt.id
+        });
+      }
 
       // Add Payment Events
       if (stmt.relatedSubmissions) {
         stmt.relatedSubmissions.forEach(sub => {
-          const subDate = (sub.status === 'Verified' && sub.verifiedDate)
-            ? sub.verifiedDate
-            : (sub.submittedDate || stmt.date);
-            
-          events.push({
-            id: `pay-${sub.id}`,
-            date: subDate,
-            description: `Payment for ${stmt.month} ${stmt.year}`,
-            type: 'PAYMENT',
-            amount: sub.paymentAmount,
-            status: sub.status === 'Verified' ? 'Confirmed' : 'Pending Verification',
-            referenceId: sub.id
-          });
+          if (!processedPays.has(sub.id)) {
+            processedPays.add(sub.id);
+            const subDate = (sub.status === 'Verified' && sub.verifiedDate)
+              ? sub.verifiedDate
+              : (sub.submittedDate || stmt.date);
+              
+            events.push({
+              id: `pay-${sub.id}`,
+              date: subDate,
+              description: `Payment for ${stmt.month} ${stmt.year}`,
+              type: 'PAYMENT',
+              amount: sub.paymentAmount,
+              status: sub.status === 'Verified' ? 'Confirmed' : 'Pending Verification',
+              referenceId: sub.id
+            });
+          }
         });
       }
     });
@@ -234,13 +243,16 @@ export default function ViewStatementsPage() {
             .info-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; }
             .info-label { font-weight: 700; color: #475569; }
             .info-value { color: #0f172a; font-weight: 600; }
-            table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 25px; margin-bottom: 80px; }
             th { text-align: left; padding: 14px 10px; background: #1B2A4A; color: white; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border: none; }
             td { font-size: 13px; }
             tr:nth-child(even) td { background: #f8fafc; }
-            .footer { margin-top: 60px; font-size: 11px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+            .footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 11px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; padding-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; background: white; }
+            tr { page-break-inside: avoid; }
             @media print {
+              @page { margin-bottom: 25mm; }
               body { padding: 0; }
+              .footer { position: fixed; bottom: 0; left: 0; right: 0; }
             }
           </style>
         </head>
@@ -356,22 +368,7 @@ export default function ViewStatementsPage() {
             </p>
           </div>
           <div className={styles.reportControls}>
-            <div className={styles.controlGroup}>
-              <label>Report Type</label>
-              <select value={reportType} onChange={(e) => setReportType(e.target.value as ReportType)}>
-                <option value="audit">Full Activity History</option>
-                <option value="daily">Daily Activity</option>
-                <option value="monthly">Monthly Summary</option>
-                <option value="annual">Annual Statement</option>
-              </select>
-            </div>
-            <div className={styles.controlGroup}>
-              <label>Year</label>
-              <select value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))}>
-                {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-                {availableYears.length === 0 && <option value={currentYear}>{currentYear}</option>}
-              </select>
-            </div>
+
             <button 
               className={styles.downloadReportBtn}
               onClick={handlePrintPDF}
@@ -383,55 +380,71 @@ export default function ViewStatementsPage() {
         </section>
 
         <section className={styles.tableSection}>
-          <div className={styles.tableCard}>
-            <table className={styles.auditTable}>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Transaction Description</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEvents.length > 0 ? (
-                  filteredEvents.map((event) => (
-                    <tr key={event.id} className={styles.tableRow}>
-                      <td className={styles.dateCell}>
-                        {new Date(event.date).toLocaleDateString(undefined, { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        })}
-                      </td>
-                      <td className={styles.descCell}>{event.description}</td>
-                      <td className={styles.typeCell}>
-                        <span className={`${styles.typeBadge} ${styles[(event.type || 'bill').toLowerCase()]}`}>
-                          {event.type}
-                        </span>
-                      </td>
-                      <td className={styles.amountCell}>
-                        <span className={event.type === 'BILL' ? styles.billAmount : styles.payAmount}>
-                          {event.type === 'BILL' ? '+' : '-'} ₱{event.amount.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className={styles.statusCell}>
-                        <span className={`${styles.statusBadge} ${styles[(event.status || 'pending').toLowerCase().replace(/\s/g, '')]}`}>
-                          {event.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+          <div className={styles.tableCard} style={{ padding: 0 }}>
+            <div style={{ overflowX: 'auto', background: 'white', borderRadius: '12px' }}>
+              <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Monthly Dues - Table View</h2>
+                  <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>Overview of all monthly dues payments for {filterYear}</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#dcfce7', border: '1px solid #bbf7d0' }}></span>
+                    <span style={{ color: '#166534' }}>Paid</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#fee2e2', border: '1px solid #fecaca' }}></span>
+                    <span style={{ color: '#991b1b' }}>Unpaid</span>
+                  </div>
+                </div>
+              </div>
+              <table style={{ minWidth: '1000px', width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
                   <tr>
-                    <td colSpan={5} className={styles.noData}>
-                      No transactions found for {filterYear}
-                    </td>
+                    <th style={{ padding: '12px 14px', background: '#f8fafc', fontSize: '12px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>PHASE</th>
+                    <th style={{ padding: '12px 14px', background: '#f8fafc', fontSize: '12px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>BLOCK</th>
+                    <th style={{ padding: '12px 14px', background: '#f8fafc', fontSize: '12px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>LOT</th>
+                    <th style={{ padding: '12px 14px', background: '#f8fafc', fontSize: '12px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>OWNER</th>
+                    <th style={{ padding: '12px 14px', background: '#f8fafc', fontSize: '12px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>PAST DUE</th>
+                    {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => (
+                      <th key={m} style={{ padding: '12px 14px', background: '#f8fafc', fontSize: '12px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>{m.substring(0, 3).toUpperCase()}</th>
+                    ))}
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '14px', fontWeight: 600, color: '#0f172a', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>{profile?.phase || '-'}</td>
+                    <td style={{ padding: '14px', fontWeight: 600, color: '#0f172a', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>{profile?.block || '-'}</td>
+                    <td style={{ padding: '14px', fontWeight: 600, color: '#0f172a', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>{profile?.lot || '-'}</td>
+                    <td style={{ padding: '14px', fontWeight: 500, color: '#334155', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>{profile?.fullName || '-'}</td>
+                    <td style={{ padding: '14px', fontWeight: 600, background: profile?.balance > 0 ? '#fee2e2' : '#dcfce7', color: profile?.balance > 0 ? '#991b1b' : '#166534', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>
+                      ₱{Number(profile?.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(month => {
+                      const stmt = statements.find(s => s.month === month && Number(s.year) === filterYear);
+                      if (!stmt) {
+                        return <td key={month} style={{ padding: '14px', background: '#f8fafc', color: '#cbd5e1', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>-</td>;
+                      }
+                      const isPaid = stmt.status === 'Paid' || stmt.balance === 0;
+                      const displayAmount = stmt.totalDues || 400;
+                      return (
+                        <td key={month} style={{
+                          padding: '14px',
+                          background: isPaid ? '#dcfce7' : '#fee2e2',
+                          color: isPaid ? '#166534' : '#991b1b',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          borderBottom: '1px solid #e2e8f0',
+                          fontSize: '13px'
+                        }}>
+                          ₱{Number(displayAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 
