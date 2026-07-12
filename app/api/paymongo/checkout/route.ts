@@ -3,6 +3,7 @@ import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware'
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyCsrf } from '@/lib/csrf';
 import { createPayMongoCheckoutSession, hasPayMongoConfig } from '@/lib/paymongo';
+import { getMonthlySubmissionId, getMonthlySubmissionMonth } from '@/lib/payment-submission';
 
 function getAppBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
@@ -56,14 +57,15 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
-    const currentMonth = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    const currentMonth = getMonthlySubmissionMonth(now);
+    const submissionId = getMonthlySubmissionId(userId, now);
+    const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
-    // Check if resident already has a submission for the current month
+    // Check for any existing submission for this resident and month, including legacy documents.
     const existingMonthSubmissionQuery = await adminDb
       .collection('payment_submissions')
       .where('residentId', '==', userId)
       .where('month', '==', currentMonth)
-      .where('status', 'in', ['Pending', 'Verified'])
       .limit(1)
       .get();
 
@@ -73,7 +75,6 @@ export async function POST(request: NextRequest) {
 
     const referenceNumber = `PAYMONGO-${now.getTime()}`;
 
-    const submissionRef = adminDb.collection('payment_submissions').doc();
     const submissionData = {
       residentId: userId,
       residentName,
@@ -95,7 +96,15 @@ export async function POST(request: NextRequest) {
       paymongoEventType: null,
     };
 
-    await submissionRef.set(submissionData);
+    try {
+      await submissionRef.create(submissionData);
+    } catch (createError: any) {
+      if (createError?.code === 6 || String(createError?.message || '').includes('already exists')) {
+        return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+      }
+
+      throw createError;
+    }
 
     try {
       const baseUrl = getAppBaseUrl(request);

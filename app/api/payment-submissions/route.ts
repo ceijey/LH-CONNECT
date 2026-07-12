@@ -3,6 +3,18 @@ import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware'
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import { encrypt, decrypt } from '@/lib/encryption';
 import { verifyCsrf } from '@/lib/csrf';
+import { getMonthlySubmissionId, getMonthlySubmissionMonth } from '@/lib/payment-submission';
+
+function isAlreadyExistsError(error: unknown): boolean {
+  if (!error) return false;
+
+  const message = error instanceof Error ? error.message : String(error);
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? Number((error as { code?: unknown }).code)
+    : undefined;
+
+  return code === 6 || message.includes('already exists');
+}
 
 type PaymentSubmission = {
   id: string;
@@ -271,14 +283,15 @@ export async function POST(request: NextRequest) {
     }
 
     const submittedAt = new Date();
-    const currentMonth = submittedAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    const currentMonth = getMonthlySubmissionMonth(submittedAt);
+    const submissionId = getMonthlySubmissionId(userId, submittedAt);
+    const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
-    // Check if resident already has a submission for the current month
+    // Check for any existing submission for this resident and month, including legacy documents.
     const existingMonthSubmissionQuery = await adminDb
       .collection('payment_submissions')
       .where('residentId', '==', userId)
       .where('month', '==', currentMonth)
-      .where('status', 'in', ['Pending', 'Verified'])
       .limit(1)
       .get();
 
@@ -295,7 +308,7 @@ export async function POST(request: NextRequest) {
       fileName = (file instanceof File) ? file.name : (filePath.split('/').pop() || 'proof');
     }
     
-    let fileUploadError: any = null;
+    let fileUploadError: string | null = null;
 
     // Use Base64 as the URL if provided
     if (fileBase64) {
@@ -331,21 +344,20 @@ export async function POST(request: NextRequest) {
         });
         fileUrl = signedUrl;
         console.log(`[POST Submission] Successfully uploaded and generated signed URL for: ${filePath}`);
-      } catch (uploadError: any) {
+      } catch (uploadError: unknown) {
+        const uploadErrorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
+        const uploadErrorStack = uploadError instanceof Error ? uploadError.stack : undefined;
         console.error(`[POST Submission] STEP FAILED: Firebase Storage operation failed`);
         console.error(`Bucket: ${process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}`);
         console.error(`FilePath: ${filePath}`);
-        console.error(`Error Message: ${uploadError.message}`);
-        console.error(`Error Stack: ${uploadError.stack}`);
+        console.error(`Error Message: ${uploadErrorMessage}`);
+        console.error(`Error Stack: ${uploadErrorStack}`);
         
         // If we have a file but upload failed, we can still try to convert to Base64 on server side
         // but client side is better. For now, we allow it to fail to encourage client-side base64.
-        return createErrorResponse(`Failed to upload payment proof: ${uploadError.message}`, 500);
+        return createErrorResponse(`Failed to upload payment proof: ${uploadErrorMessage}`, 500);
       }
     }
-
-    const submittedAt = new Date();
-    const currentMonth = submittedAt.toLocaleString(undefined, { month: 'long', year: 'numeric' });
 
     // Encrypt notes and inline file content (if any) before storing
     let notesEncrypted: string | undefined = undefined;
@@ -370,32 +382,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const docRef = await adminDb.collection('payment_submissions').add({
-      residentId: userId,
-      residentName,
-      blockLot,
-      paymentAmount,
-      paymentMethod,
-      referenceNumber,
-      notesEncrypted: notesEncrypted ?? null,
-      fileName,
-      fileUrl,
-      filePath,
-      fileEncrypted: fileEncrypted ?? null,
-      status: 'Pending',
-      month: currentMonth,
-      submittedDate: submittedAt.toLocaleString(),
-      submittedAt,
-      verifiedDate: null,
-      verifiedAt: null,
-      createdAt: submittedAt,
-      updatedAt: submittedAt,
-      paymentDateTime,
-      receiptAmount,
-    });
+    try {
+      await submissionRef.create({
+        residentId: userId,
+        residentName,
+        blockLot,
+        paymentAmount,
+        paymentMethod,
+        referenceNumber,
+        notesEncrypted: notesEncrypted ?? null,
+        fileName,
+        fileUrl,
+        filePath,
+        fileEncrypted: fileEncrypted ?? null,
+        status: 'Pending',
+        month: currentMonth,
+        submittedDate: submittedAt.toLocaleString(),
+        submittedAt,
+        verifiedDate: null,
+        verifiedAt: null,
+        createdAt: submittedAt,
+        updatedAt: submittedAt,
+        paymentDateTime,
+        receiptAmount,
+      });
+    } catch (createError: unknown) {
+      if (isAlreadyExistsError(createError)) {
+        return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+      }
+
+      throw createError;
+    }
 
     const submission = {
-      id: docRef.id,
+      id: submissionRef.id,
       residentId: userId,
       residentName,
       blockLot,
@@ -422,7 +442,7 @@ export async function POST(request: NextRequest) {
         type: 'payment_submission',
         title: 'New Payment Submitted',
         message: `${residentName} submitted a payment of ₱${paymentAmount.toFixed(2)}`,
-        submissionId: docRef.id,
+        submissionId: submissionRef.id,
         residentId: userId,
         residentName,
         blockLot,

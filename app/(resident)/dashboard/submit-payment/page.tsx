@@ -1,32 +1,25 @@
 'use client';
 
+import type { ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
-import { CSRF_COOKIE_NAME, CSRF_HEADER } from '@/lib/csrf';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
 import LoadingScreen from '@/app/components/LoadingScreen';
 import ReceiptModal from '@/app/components/ReceiptModal';
 import styles from './submit-payment.module.css';
 
-function getCookieValue(name: string) {
-  if (typeof document === 'undefined') {
-    return '';
-  }
-
-  const cookieParts = document.cookie.split(';').map((part) => part.trim());
-  const match = cookieParts.find((part) => part.startsWith(`${name}=`));
-  return match ? decodeURIComponent(match.slice(name.length + 1)) : '';
-}
-
 // Type definition for Tesseract
 declare global {
   interface Window {
-    Tesseract: any;
+    Tesseract?: {
+      // eslint-disable-next-line
+      recognize: (...args: [File | Blob | string, string?]) => Promise<{ data: { text: string } }>;
+    };
   }
 }
 
@@ -67,6 +60,46 @@ interface UserProfile {
   balance?: number;
 }
 
+type ReceiptPayment = Submission | null;
+
+type PaymentSubmissionsResponse = {
+  submissions?: Array<Partial<Submission> & {
+    submittedDate?: string;
+    paymentDateTime?: string;
+    paymentAmount?: number;
+    status?: Submission['status'] | string;
+  }>;
+};
+
+type PaymentSubmissionApiResponse = {
+  error?: string;
+  submission?: Submission;
+};
+
+function normalizeSubmission(submission: Partial<Submission> & { status?: string }): Submission {
+  return {
+    id: submission.id ?? submission.referenceNumber ?? submission.submittedDate ?? `${Date.now()}`,
+    month: submission.month ?? new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+    paymentAmount: Number(submission.paymentAmount ?? 0),
+    status: submission.status === 'Verified'
+      ? 'Verified'
+      : submission.status === 'Rejected'
+        ? 'Rejected'
+        : 'Pending',
+    submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
+    verifiedDate: submission.verifiedDate,
+    paymentMethod: submission.paymentMethod ?? 'Unknown',
+    referenceNumber: submission.referenceNumber ?? '',
+    fileName: submission.fileName,
+    fileUrl: submission.fileUrl,
+    residentName: submission.residentName ?? '',
+    blockLot: submission.blockLot ?? '',
+    notes: submission.notes,
+    paymentDateTime: submission.paymentDateTime,
+    receiptAmount: submission.receiptAmount,
+  };
+}
+
 const ESTABLISHED_PAYMENT_AMOUNT = '400';
 
 const parseAndFormatDateTime = (ocrText: string): string | null => {
@@ -89,7 +122,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   const gcashRegex = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})\b,?\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
   let match = cleanText.match(gcashRegex);
   if (match) {
-    const [_, monthStr, dayStr, yearStr, hourStr, minuteStr, ampm] = match;
+    const [, monthStr, dayStr, yearStr, hourStr, minuteStr, ampm] = match;
     const month = months[monthStr.toLowerCase()];
     const day = parseInt(dayStr, 10);
     const year = parseInt(yearStr, 10);
@@ -111,7 +144,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   const mayaRegex = /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
   match = cleanText.match(mayaRegex);
   if (match) {
-    const [_, dayStr, monthStr, yearStr, hourStr, minuteStr, ampm] = match;
+    const [, dayStr, monthStr, yearStr, hourStr, minuteStr, ampm] = match;
     const month = months[monthStr.toLowerCase()];
     const day = parseInt(dayStr, 10);
     const year = parseInt(yearStr, 10);
@@ -133,7 +166,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   const standardRegex = /\b(\d{4}|\d{1,2})[-/](\d{1,2})[-/](\d{4}|\d{1,2})(?:\s+,?\s*(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?\b/i;
   match = cleanText.match(standardRegex);
   if (match) {
-    const [_, part1, part2, part3, hourStr, minuteStr, ampm] = match;
+    const [, part1, part2, part3, hourStr, minuteStr, ampm] = match;
     let year, month, day;
     if (part1.length === 4) {
       year = parseInt(part1, 10);
@@ -171,6 +204,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
 export default function SubmitPaymentPage() {
   const router = useRouter();
   useAuthPageshow('resident');
+  const currentMonthLabel = new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' });
   const [formData, setFormData] = useState<FormData>({
     referenceNumber: '',
     notes: '',
@@ -195,10 +229,20 @@ export default function SubmitPaymentPage() {
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
   const isPayMongoCheckout = paymentMethod === 'paymongo';
 
-  const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: any | null }>({
+  const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: ReceiptPayment }>({
     isOpen: false,
     payment: null
   });
+
+  const currentMonthSubmission = recentSubmissions.find((submission) => {
+    const monthMatches = String(submission.month || '').toLowerCase() === currentMonthLabel.toLowerCase();
+    const status = String(submission.status || '').toLowerCase();
+    return monthMatches && (status === 'pending' || status === 'verified');
+  });
+  const isMonthlyPaymentLocked = Boolean(currentMonthSubmission);
+  const monthlyLockMessage = currentMonthSubmission?.status === 'Verified'
+    ? `You already paid for ${currentMonthLabel}.`
+    : `You already have a pending submission for ${currentMonthLabel}. Please wait for HOA verification before submitting another payment.`;
 
   useEffect(() => {
     setIsMounted(true);
@@ -242,7 +286,8 @@ export default function SubmitPaymentPage() {
         if (isMounted) setRecentLoading(true);
         const payload = await apiCall('/api/payment-submissions');
         if (isMounted) {
-          setRecentSubmissions((payload.submissions ?? []).map((submission: any) => {
+          const submissions = (payload as PaymentSubmissionsResponse).submissions ?? [];
+          setRecentSubmissions(submissions.map((submission) => {
             // Parse the submitted date from the string provided by the API
             let month = submission.month;
             if (!month || month === 'Invalid Date') {
@@ -254,19 +299,16 @@ export default function SubmitPaymentPage() {
                     month = dateObj.toLocaleString(undefined, { month: 'long', year: 'numeric' });
                   }
                 }
-              } catch (e) {
+              } catch {
                 console.error('Failed to parse submission date:', submission.submittedDate);
               }
             }
 
-            return {
+            return normalizeSubmission({
               ...submission,
               month: month || 'Unknown Date',
-              paymentAmount: Number(submission.paymentAmount ?? 0),
-              status: submission.status === 'Verified' ? 'Verified' : 'Pending',
-              submittedDate: submission.submittedDate || new Date().toLocaleString(),
               paymentDateTime: submission.paymentDateTime,
-            };
+            });
           }));
         }
       } catch (error) {
@@ -291,10 +333,17 @@ export default function SubmitPaymentPage() {
         script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
         script.async = true;
         document.body.appendChild(script);
-        await new Promise((resolve) => (script.onload = resolve));
+        await new Promise<void>((resolve) => {
+          script.onload = () => resolve();
+        });
       }
 
-      const { data: { text } } = await window.Tesseract.recognize(file, 'eng');
+      const tesseract = window.Tesseract;
+      if (!tesseract) {
+        throw new Error('Tesseract failed to load');
+      }
+
+      const { data: { text } } = await tesseract.recognize(file, 'eng');
 
       console.log('Extracted text:', text);
 
@@ -408,7 +457,7 @@ export default function SubmitPaymentPage() {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Check file size (max 10MB)
@@ -443,14 +492,19 @@ export default function SubmitPaymentPage() {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (isMonthlyPaymentLocked) {
+      setToast({ message: monthlyLockMessage, type: 'error' });
+      return;
+    }
 
     // Validation
     if (!formData.residentName.trim()) {
@@ -622,28 +676,31 @@ export default function SubmitPaymentPage() {
       console.log('Submission Response Status:', response.status);
 
       const responseText = await response.text();
-      let data: any = {};
+      let data: unknown = {};
       try {
         if (responseText) {
           const firstParse = JSON.parse(responseText);
           if (typeof firstParse === 'string') {
-            data = JSON.parse(firstParse);
+            data = JSON.parse(firstParse) as PaymentSubmissionApiResponse;
           } else {
-            data = firstParse;
+            data = firstParse as PaymentSubmissionApiResponse;
           }
         }
-      } catch (e) {
+      } catch {
         // Silently fall back to plain text
       }
 
       if (!response.ok) {
         let errorMessage = 'Failed to submit payment proof';
-        if (data && data.error) {
-          errorMessage = data.error;
-        } else if (typeof data === 'string' && data.trim()) {
-          errorMessage = data;
-        } else if (responseText && responseText.trim() && responseText.length < 200) {
-          errorMessage = responseText;
+        const parsedError = typeof data === 'object' && data !== null && 'error' in data && typeof (data as PaymentSubmissionApiResponse).error === 'string'
+          ? (data as PaymentSubmissionApiResponse).error
+          : null;
+        const responseMessage = responseText.trim();
+
+        if (parsedError) {
+          errorMessage = parsedError;
+        } else if (responseMessage) {
+          errorMessage = responseMessage.length < 200 ? responseMessage : `Server error: ${response.status} ${response.statusText || 'Bad Request'}`;
         } else {
           errorMessage = `Server error: ${response.status} ${response.statusText || 'Bad Request'}`;
         }
@@ -651,20 +708,22 @@ export default function SubmitPaymentPage() {
         throw new Error(errorMessage);
       }
 
-      const submission = data.submission as Submission;
+      const submission = typeof data === 'object' && data !== null && 'submission' in data
+        ? (data as PaymentSubmissionApiResponse).submission ?? null
+        : null;
+
+      if (!submission) {
+        throw new Error('Failed to parse payment submission response');
+      }
 
       // Update local list
       setRecentSubmissions((current) => [
-        {
+        normalizeSubmission({
           ...submission,
-          month: submission.month ?? new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
-          paymentAmount: Number(submission.paymentAmount ?? (Number(formData.paymentAmount) || 0)),
-          status: submission.status ?? 'Pending',
-          submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
           residentName: formData.residentName,
           blockLot: formData.blockLot,
           paymentDateTime: formData.paymentDateTime,
-        },
+        }),
         ...current,
       ]);
 
@@ -673,23 +732,24 @@ export default function SubmitPaymentPage() {
       // Open receipt modal automatically
       setReceiptModal({
         isOpen: true,
-        payment: {
+        payment: normalizeSubmission({
           ...submission,
           residentName: formData.residentName,
           blockLot: formData.blockLot,
           paymentAmount: Number(formData.paymentAmount),
-          paymentMethod: paymentMethod,
+          paymentMethod,
           status: 'Pending',
           submittedDate: new Date().toLocaleString(),
           paymentDateTime: formData.paymentDateTime,
-        }
+        })
       });
 
       setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentDateTime: '', receiptAmount: '' });
       setFileName('');
       setPreview(null);
-    } catch (error: any) {
-      setToast({ message: error.message || 'Failed to submit payment proof', type: 'error' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to submit payment proof';
+      setToast({ message, type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -756,6 +816,12 @@ export default function SubmitPaymentPage() {
                 Upload your GCash, Maya, PayMongo, or Bank Transfer payment screenshot for instant verification
               </p>
 
+              {isMonthlyPaymentLocked && (
+                <div style={{ marginBottom: '1rem', padding: '12px 14px', borderRadius: '12px', background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.4 }}>
+                  {monthlyLockMessage}
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className={styles.form}>
                 {/* 1. Upload Payment Proof */}
                 <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
@@ -790,10 +856,12 @@ export default function SubmitPaymentPage() {
                   </div>
                   {preview && (
                     <div className={styles.previewContainer}>
-                      <img
+                      <Image
                         src={preview}
                         alt="Preview"
                         className={styles.previewImage}
+                        width={800}
+                        height={260}
                         onError={(e) => {
                           console.error('Preview image failed to load:', e);
                           setPreview(null);
@@ -955,11 +1023,13 @@ export default function SubmitPaymentPage() {
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isMonthlyPaymentLocked}
                       className={styles.submitBtn}
                       style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
                     >
-                      {isSubmitting
+                      {isMonthlyPaymentLocked
+                        ? 'Already submitted for this month'
+                        : isSubmitting
                         ? (isPayMongoCheckout ? 'Redirecting to PayMongo...' : 'Submitting...')
                         : (isPayMongoCheckout ? 'Continue to PayMongo Checkout' : 'Submit Payment')}
                     </button>

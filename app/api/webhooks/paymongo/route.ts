@@ -90,57 +90,69 @@ async function finalizeSubmission(doc: any, payload: any) {
       `PAYMONGO-${doc.id}`
   );
 
-  await doc.ref.update({
-    status: 'Verified',
-    verifiedAt: now,
-    verifiedDate: now.toLocaleString(),
-    updatedAt: now,
-    paymongoStatus: 'paid',
-    paymongoEventType: eventType || 'paid',
-    paymongoReferenceNumber: paymentReference,
-  });
+  const paymentRef = adminDb.collection('payments').doc(doc.id);
+  const statementsRef = adminDb.collection('statements');
+  const subMonthStr = String(month || '').toLowerCase();
+  const targetStmt = residentId
+    ? (await statementsRef.where('residentId', '==', residentId).get()).docs.find((stmtDoc: any) => {
+        const stmtData = stmtDoc.data();
+        const stmtTarget = `${stmtData.month} ${stmtData.year}`.toLowerCase();
+        return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
+      }) ?? null
+    : null;
 
-  if (!residentId) {
-    return;
-  }
+  const finalized = await adminDb.runTransaction(async (transaction) => {
+    const freshSubmission = await transaction.get(doc.ref);
+    if (!freshSubmission.exists) {
+      throw new Error('Submission not found');
+    }
 
-  const residentRef = adminDb.collection('users').doc(residentId);
-  const residentDoc = await residentRef.get();
-  if (!residentDoc.exists) {
-    return;
-  }
+    const freshData = freshSubmission.data()!;
+    if (freshData.status === 'Verified') {
+      return false;
+    }
 
-  const residentData = residentDoc.data()!;
-  const currentBalance = Number(residentData.balance ?? 0);
-  await residentRef.update({
-    balance: Math.max(0, currentBalance - paymentAmount),
-    updatedAt: now.toISOString(),
-  });
+    transaction.update(doc.ref, {
+      status: 'Verified',
+      verifiedAt: now,
+      verifiedDate: now.toLocaleString(),
+      updatedAt: now,
+      paymongoStatus: 'paid',
+      paymongoEventType: eventType || 'paid',
+      paymongoReferenceNumber: paymentReference,
+    });
 
-  await adminDb.collection('payments').add({
-    residentId,
-    residentName,
-    amount: paymentAmount,
-    type: 'Payment',
-    description: `Monthly Dues - ${month}`,
-    paymentMethod: data.paymentMethod || 'PayMongo',
-    referenceNumber: paymentReference,
-    fileUrl: null,
-    status: 'Paid',
-    createdAt: now,
-    date: now.toLocaleDateString(),
-    source: 'paymongo',
-  });
+    if (!residentId) {
+      return true;
+    }
 
-  try {
-    const statementsRef = adminDb.collection('statements');
-    const stmtSnapshot = await statementsRef.where('residentId', '==', residentId).get();
-    const subMonthStr = String(month || '').toLowerCase();
+    const residentRef = adminDb.collection('users').doc(residentId);
+    const residentDoc = await transaction.get(residentRef);
+    if (!residentDoc.exists) {
+      throw new Error('Resident not found');
+    }
 
-    const targetStmt = stmtSnapshot.docs.find((stmtDoc: any) => {
-      const stmtData = stmtDoc.data();
-      const stmtTarget = `${stmtData.month} ${stmtData.year}`.toLowerCase();
-      return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
+    const residentData = residentDoc.data()!;
+    const currentBalance = Number(residentData.balance ?? 0);
+    transaction.update(residentRef, {
+      balance: Math.max(0, currentBalance - paymentAmount),
+      updatedAt: now.toISOString(),
+    });
+
+    transaction.create(paymentRef, {
+      residentId,
+      residentName,
+      amount: paymentAmount,
+      type: 'Payment',
+      description: `Monthly Dues - ${month}`,
+      paymentMethod: data.paymentMethod || 'PayMongo',
+      referenceNumber: paymentReference,
+      submissionId: doc.id,
+      fileUrl: null,
+      status: 'Paid',
+      createdAt: now,
+      date: now.toLocaleDateString(),
+      source: 'paymongo',
     });
 
     if (targetStmt) {
@@ -149,15 +161,19 @@ async function finalizeSubmission(doc: any, payload: any) {
       const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
       const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
 
-      await statementsRef.doc(targetStmt.id).update({
+      transaction.update(statementsRef.doc(targetStmt.id), {
         amountPaid: newAmountPaid,
         balance: newBalance,
         status: newStatus,
         updatedAt: now.toISOString(),
       });
     }
-  } catch (statementError: any) {
-    console.error('[PayMongo Webhook] Failed to sync statement:', statementError?.message ?? statementError);
+
+    return true;
+  });
+
+  if (!finalized) {
+    return;
   }
 
   await adminDb.collection('notifications').add({
@@ -174,8 +190,9 @@ async function finalizeSubmission(doc: any, payload: any) {
   try {
     const authUser = await adminAuth.getUser(residentId);
     residentEmail = authUser.email ?? undefined;
-  } catch (lookupError: any) {
-    console.warn('[PayMongo Webhook] Could not fetch resident auth user:', lookupError?.message ?? lookupError);
+  } catch (lookupError: unknown) {
+    const message = lookupError instanceof Error ? lookupError.message : String(lookupError);
+    console.warn('[PayMongo Webhook] Could not fetch resident auth user:', message);
   }
 
   if (!residentEmail) {
@@ -191,8 +208,9 @@ async function finalizeSubmission(doc: any, payload: any) {
         amount: paymentAmount,
         month,
       });
-    } catch (emailError: any) {
-      console.error('[PayMongo Webhook] Failed to send verification email:', emailError?.message ?? emailError);
+    } catch (emailError: unknown) {
+      const message = emailError instanceof Error ? emailError.message : String(emailError);
+      console.error('[PayMongo Webhook] Failed to send verification email:', message);
     }
   }
 
@@ -218,8 +236,9 @@ export async function POST(request: NextRequest) {
     await finalizeSubmission(submissionDoc, payload);
 
     return NextResponse.json({ received: true, matched: true, eventType, submissionId: submissionDoc.id });
-  } catch (error: any) {
-    console.error('[PayMongo Webhook] Failed to process payload:', error?.message ?? error);
-    return NextResponse.json({ received: false, error: error?.message ?? 'Webhook processing failed' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[PayMongo Webhook] Failed to process payload:', message);
+    return NextResponse.json({ received: false, error: message || 'Webhook processing failed' }, { status: 500 });
   }
 }

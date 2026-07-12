@@ -44,6 +44,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const paymentAmount = Number(submissionData.paymentAmount ?? 0);
     const month = submissionData.month || 'Current';
     const residentName = submissionData.residentName || 'Resident';
+    const paymentRef = adminDb.collection('payments').doc(id);
 
     let residentEmail: string | undefined;
     if (residentId) {
@@ -71,19 +72,47 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updatePayload.verifiedDate = now.toLocaleString();
       updatePayload.rejectionReason = null; // Clear any previous reason
 
-      // Update resident balance
+      const statementsRef = adminDb.collection('statements');
+      const subMonthStr = String(submissionData.month || '').toLowerCase();
+      const stmtSnapshot = residentId
+        ? await statementsRef.where('residentId', '==', residentId).get()
+        : null;
+      const targetStmt = stmtSnapshot?.docs.find((statementDoc: any) => {
+        const statementData = statementDoc.data();
+        const stmtTarget = `${statementData.month} ${statementData.year}`.toLowerCase();
+        return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
+      }) ?? null;
+
+      let verificationApplied = false;
+
       if (residentId) {
         const residentRef = adminDb.collection('users').doc(residentId);
-        const residentDoc = await residentRef.get();
-        if (residentDoc.exists) {
+
+        verificationApplied = await adminDb.runTransaction(async (transaction) => {
+          const freshSubmission = await transaction.get(docRef);
+          if (!freshSubmission.exists) {
+            throw new Error('Submission not found');
+          }
+
+          const freshSubmissionData = freshSubmission.data()!;
+          if (freshSubmissionData.status === 'Verified') {
+            return false;
+          }
+
+          const residentDoc = await transaction.get(residentRef);
+          if (!residentDoc.exists) {
+            throw new Error('Resident not found');
+          }
+
           const currentBalance = Number(residentDoc.data()?.balance ?? 0);
-          await residentRef.update({
+          transaction.update(residentRef, {
             balance: Math.max(0, currentBalance - paymentAmount),
             updatedAt: now.toISOString()
           });
 
-          // Create official payment record
-          await adminDb.collection('payments').add({
+          transaction.update(docRef, updatePayload);
+
+          transaction.create(paymentRef, {
             residentId,
             residentName,
             amount: paymentAmount,
@@ -91,41 +120,36 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             description: `Monthly Dues - ${month}`,
             paymentMethod: submissionData.paymentMethod,
             referenceNumber: submissionData.referenceNumber,
+            submissionId: id,
             fileUrl: submissionData.fileUrl || null,
             status: 'Paid',
             createdAt: now,
             date: now.toLocaleDateString(),
           });
 
-          // Automation: Sync Statement record status
-          try {
-            const subMonthStr = String(submissionData.month || '').toLowerCase();
-            const statementsRef = adminDb.collection('statements');
-            const stmtSnapshot = await statementsRef.where('residentId', '==', residentId).get();
+          if (targetStmt) {
+            const stmtData = targetStmt.data();
+            const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
+            const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
+            const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
 
-            const targetStmt = stmtSnapshot.docs.find((doc: any) => {
-              const d = doc.data();
-              const stmtTarget = `${d.month} ${d.year}`.toLowerCase();
-              return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
+            transaction.update(statementsRef.doc(targetStmt.id), {
+              amountPaid: newAmountPaid,
+              balance: newBalance,
+              status: newStatus,
+              updatedAt: now.toISOString()
             });
-
-            if (targetStmt) {
-              const stmtData = targetStmt.data();
-              const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
-              const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
-              const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
-
-              await statementsRef.doc(targetStmt.id).update({
-                amountPaid: newAmountPaid,
-                balance: newBalance,
-                status: newStatus,
-                updatedAt: now.toISOString()
-              });
-            }
-          } catch (stmtErr: any) {
-            console.error('[Automation] Failed to sync statement on payment:', stmtErr.message);
           }
-        }
+
+          return true;
+        });
+      } else {
+        await docRef.update(updatePayload);
+      }
+
+      if (!verificationApplied) {
+        const updated = (await docRef.get()).data();
+        return NextResponse.json({ submission: { id, ...updated } });
       }
     } else if (status === 'Rejected') {
       updatePayload.verifiedAt = now; // Store rejection time too
