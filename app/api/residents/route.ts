@@ -1,9 +1,17 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { verifyCsrf } from '@/lib/csrf';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { sendResidentAccountCreatedEmail } from '@/lib/mailer';
 
 export const runtime = 'nodejs';
+
+function generateTemporaryPassword(length = 12) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+  const bytes = crypto.randomBytes(length);
+  return Array.from(bytes, (byte) => chars[byte % chars.length]).join('');
+}
 
 async function ensureMonthlyStatementsForResidents(residents: any[]) {
   const now = new Date();
@@ -173,27 +181,35 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { fullName, phone, phase, block, lot } = body;
+    const { fullName, email: providedEmail, phone, phase, block, lot } = body;
 
     if (!fullName) {
       return createErrorResponse('Full name is required', 400);
     }
 
-    // Generate formatted email: lastnameblknumberlotnumber@gmail.com
-    const cleanName = fullName.trim().toLowerCase();
-    const nameParts = cleanName.split(/\s+/);
-    const lastName = nameParts[nameParts.length - 1] || 'resident';
-    const cleanLastName = lastName.replace(/[^a-z]/g, '');
-    const blkNum = (block || '').replace(/\D/g, '') || '0';
-    const lotNum = (lot || '').replace(/\D/g, '') || '0';
-    const finalEmail = `${cleanLastName}blk${blkNum}lot${lotNum}@gmail.com`;
+    if (!providedEmail) {
+      return createErrorResponse('Email is required', 400);
+    }
+
+    const residentEmail = String(providedEmail).trim().toLowerCase();
+    if (!/^[^\s@]+@gmail\.com$/i.test(residentEmail)) {
+      return createErrorResponse('Only Gmail addresses are allowed.', 400);
+    }
+
+    const existingUserSnapshot = await adminDb.collection('users').where('email', '==', residentEmail).limit(1).get();
+    if (!existingUserSnapshot.empty) {
+      return createErrorResponse('A resident with this email already exists.', 400);
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+    const loginUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000/login';
 
     // 1. Create the Auth User
     let authUser;
     try {
       authUser = await adminAuth.createUser({
-        email: finalEmail,
-        password: 'lhconnect2026', // Default password
+        email: residentEmail,
+        password: temporaryPassword,
         displayName: fullName,
         phoneNumber: phone ? (phone.startsWith('+') ? phone : `+63${phone.replace(/^0/, '')}`) : undefined,
       });
@@ -206,26 +222,40 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString();
     const newUser = {
-      email: finalEmail,
+      email: residentEmail,
       fullName,
       phone: phone || '',
       phase: phase || '',
       block: block || '',
       lot: lot || '',
       role: 'resident',
-      approvalStatus: 'Approved',
-      status: 'Good Standing',
+      approvalStatus: 'Pending',
+      status: 'Pending Approval',
       balance: 0,
       createdAt: now,
       updatedAt: now,
+      createdBy: userId,
     };
 
     // 2. Create the Firestore record using the Auth UID
     await adminDb.collection('users').doc(authUser.uid).set(newUser);
 
-    return NextResponse.json({ 
-      id: authUser.uid, 
-      message: 'Resident created successfully. Temporary password is: lhconnect2026' 
+    try {
+      await sendResidentAccountCreatedEmail({
+        toEmail: residentEmail,
+        residentName: fullName,
+        temporaryPassword,
+        loginUrl,
+      });
+    } catch (mailError: any) {
+      console.error('Failed to send resident credentials email:', mailError?.message ?? mailError);
+    }
+
+    return NextResponse.json({
+      id: authUser.uid,
+      email: residentEmail,
+      message: 'Resident account created successfully. Temporary credentials were sent to the resident.',
+      temporaryPassword,
     });
   } catch (error: any) {
     console.error('Error creating resident:', error.message);

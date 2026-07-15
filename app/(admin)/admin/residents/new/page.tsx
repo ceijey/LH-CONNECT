@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import styles from '../resident-form.module.css';
 
+function isGmailAddress(value: string) {
+  return /^[^\s@]+@gmail\.com$/i.test(value.trim());
+}
+
 export default function NewResidentPage() {
   const router = useRouter();
 
@@ -20,6 +24,7 @@ export default function NewResidentPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -33,18 +38,28 @@ export default function NewResidentPage() {
     e.preventDefault();
     setIsSaving(true);
     setError(null);
+    setSuccess(null);
+
+    const email = formData.email.trim();
+    if (!isGmailAddress(email)) {
+      setError('Please enter a valid Gmail address only.');
+      setIsSaving(false);
+      return;
+    }
 
     try {
-      // For now, we'll assume the API supports POST for new residents
-      // Note: In a real app, this would also handle user account creation
-      await apiCall('/api/residents', {
+      const response = await apiCall('/api/residents', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, email }),
       });
-      router.push('/admin/residents');
+      setSuccess(response?.message || 'Resident account created successfully.');
+      setTimeout(() => router.push('/admin/residents'), 900);
     } catch (err: any) {
       console.error('Error creating resident:', err);
-      setError(err.message || 'Failed to create resident. Please check if email already exists.');
+      const message = err?.message?.includes('already exists')
+        ? 'This email already exists. Please use a different Gmail address.'
+        : (err.message || 'Failed to create resident.');
+      setError(message);
     } finally {
       setIsSaving(false);
     }
@@ -55,6 +70,7 @@ export default function NewResidentPage() {
 
       <form className={styles.formCard} onSubmit={handleSubmit}>
         {error && <div className={styles.error}>{error}</div>}
+        {success && <div className={styles.success}>{success}</div>}
 
         <div className={styles.formSection}>
           <h2 className={styles.sectionTitle}>Account Information</h2>

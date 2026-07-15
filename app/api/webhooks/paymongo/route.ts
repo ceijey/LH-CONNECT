@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { type Transaction, type DocumentReference } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
 
@@ -101,8 +102,8 @@ async function finalizeSubmission(doc: any, payload: any) {
       }) ?? null
     : null;
 
-  const finalized = await adminDb.runTransaction(async (transaction) => {
-    const freshSubmission = await transaction.get(doc.ref);
+  const finalized = await adminDb.runTransaction(async (transaction: Transaction) => {
+    const freshSubmission = await transaction.get(doc.ref as DocumentReference);
     if (!freshSubmission.exists) {
       throw new Error('Submission not found');
     }
@@ -127,7 +128,7 @@ async function finalizeSubmission(doc: any, payload: any) {
     }
 
     const residentRef = adminDb.collection('users').doc(residentId);
-    const residentDoc = await transaction.get(residentRef);
+    const residentDoc = await transaction.get(residentRef as DocumentReference);
     if (!residentDoc.exists) {
       throw new Error('Resident not found');
     }

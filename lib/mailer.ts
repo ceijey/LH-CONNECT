@@ -105,6 +105,56 @@ export async function sendPaymentStatusEmail({
   if (error) throw new Error(`Resend error: ${error.message}`);
 }
 
+interface ResidentAccountCreatedOptions {
+  toEmail: string;
+  residentName: string;
+  temporaryPassword: string;
+  loginUrl: string;
+}
+
+export async function sendResidentAccountCreatedEmail({
+  toEmail,
+  residentName,
+  temporaryPassword,
+  loginUrl,
+}: ResidentAccountCreatedOptions): Promise<void> {
+  const resend = getResend();
+  const subject = 'Your LH-Connect resident account has been created';
+  const message = `Your resident account has been created. Please sign in with the temporary password below and change it after your first login.`;
+
+  const { error } = await resend.emails.send({
+    from: RESEND_FROM,
+    to: [toEmail],
+    subject,
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${subject}</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+        <div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">
+          <div style="background:#1B2A4A;color:#fff;padding:24px 32px;">
+            <h1 style="margin:0;font-size:24px;">LH-Connect</h1>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 16px;font-size:16px;color:#374151;">Dear <strong>${residentName}</strong>,</p>
+            <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">${message}</p>
+            <p style="margin:0 0 8px;font-size:15px;color:#374151;"><strong>Login URL:</strong> ${loginUrl}</p>
+            <p style="margin:0 0 8px;font-size:15px;color:#374151;"><strong>Temporary Password:</strong> ${temporaryPassword}</p>
+            <p style="margin:0;font-size:14px;color:#6b7280;">Please change your password after your first sign-in.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  });
+
+  if (error) throw new Error(`Resend error: ${error.message}`);
+}
+
 interface AccountStatusEmailOptions {
   toEmail: string;
   residentName: string;

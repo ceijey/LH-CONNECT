@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { type Transaction, type DocumentReference } from 'firebase-admin/firestore';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { sendPaymentStatusEmail } from '@/lib/mailer';
@@ -88,8 +89,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (residentId) {
         const residentRef = adminDb.collection('users').doc(residentId);
 
-        verificationApplied = await adminDb.runTransaction(async (transaction) => {
-          const freshSubmission = await transaction.get(docRef);
+        verificationApplied = await adminDb.runTransaction(async (transaction: Transaction) => {
+          const freshSubmission = await transaction.get(docRef as DocumentReference);
           if (!freshSubmission.exists) {
             throw new Error('Submission not found');
           }
@@ -99,7 +100,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             return false;
           }
 
-          const residentDoc = await transaction.get(residentRef);
+          const residentDoc = await transaction.get(residentRef as DocumentReference);
           if (!residentDoc.exists) {
             throw new Error('Resident not found');
           }
