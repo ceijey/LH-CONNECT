@@ -112,6 +112,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow-x: auto;
 }
 
 .analyticsTable { width: 100%; border-collapse: collapse; font-size: 0.95rem; flex-grow: 1; }
@@ -136,8 +137,8 @@
 .printAnalytics { display: none; }
 
 @media (max-width: 1024px) { .controlsRow { flex-direction: column; align-items: stretch; gap: 16px; } .analyticsGrid { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .selectGroup { flex-direction: column; gap: 12px; align-items: stretch; } .exportButtons { flex-direction: column; gap: 12px; } .statsGrid { grid-template-columns: repeat(2, 1fr); } .reportContent { padding: 1.5rem; } }
-@media (max-width: 480px) { .statsGrid { grid-template-columns: 1fr; } .exportBtn { width: 100%; justify-content: center; } }
+@media (max-width: 768px) { .selectGroup { flex-direction: column; gap: 12px; align-items: stretch; } .exportButtons { flex-direction: column; gap: 12px; } .statsGrid { grid-template-columns: repeat(2, 1fr); } .reportContent { padding: 1.5rem; } .analyticsCard { padding: 1.5rem; } }
+@media (max-width: 480px) { .statsGrid { grid-template-columns: 1fr; } .exportBtn { width: 100%; justify-content: center; } .analyticsCard { padding: 1rem; } .reportContent { padding: 1rem; } }
 
 @media print {
   .printOnly { display: block !important; }

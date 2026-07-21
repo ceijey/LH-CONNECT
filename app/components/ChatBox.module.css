@@ -439,14 +439,21 @@
 
 @media (max-width: 1024px) {
   .shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: 45% minmax(0, 1fr);
-    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    height: 85vh;
   }
 
   .sidebar {
+    height: 40%;
+    flex: none;
     border-right: 0;
     border-bottom: 1px solid #e2e8f0;
+  }
+
+  .conversationPane {
+    height: 60%;
+    flex: none;
   }
 }
 
@@ -481,6 +488,12 @@
 
   .composerHint {
     text-align: center;
+  }
+
+  .emptyState,
+  .errorState,
+  .emptyConversation {
+    padding: 1.5rem 1rem;
   }
 
   .sendButton {

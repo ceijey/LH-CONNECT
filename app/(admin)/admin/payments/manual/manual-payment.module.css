@@ -774,6 +774,23 @@
     align-items: flex-start;
   }
 
+  .invoiceHeader {
+    flex-direction: column;
+  }
+
+  .invoiceBrand {
+    max-width: 100%;
+  }
+
+  .invoiceLabel {
+    text-align: left;
+    margin-top: 0.5rem;
+  }
+
+  .invoiceTableWrapper {
+    overflow-x: auto;
+  }
+
   .actions {
     flex-direction: column;
     align-items: stretch;
