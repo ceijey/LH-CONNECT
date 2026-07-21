@@ -20,6 +20,37 @@ interface PrintableBillingProps {
 
 export const PrintableBilling = forwardRef<HTMLDivElement, PrintableBillingProps>(
   ({ bills }, ref) => {
+    const getArrearsText = (bill: BillData) => {
+      if (bill.arrears <= 0) return '—';
+      if (!bill.monthlyDueBill || bill.monthlyDueBill <= 0) return bill.arrears.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+      
+      const monthsOfArrears = Math.floor(bill.arrears / bill.monthlyDueBill);
+      if (monthsOfArrears === 0) return bill.arrears.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+      const parts = bill.periodCovered.split(' ');
+      const monthStr = parts[0];
+      const allMonths = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+      const shortMonths = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      
+      let currentMonthIdx = allMonths.indexOf(monthStr.toUpperCase());
+      if (currentMonthIdx === -1) return bill.arrears.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+      let endIdx = currentMonthIdx - 1;
+      if (endIdx < 0) endIdx += 12;
+
+      let startIdx = currentMonthIdx - monthsOfArrears;
+      while (startIdx < 0) startIdx += 12;
+
+      const endMonth = shortMonths[endIdx];
+      const startMonth = shortMonths[startIdx];
+
+      if (monthsOfArrears === 1) {
+        return `${startMonth} = ${bill.arrears}`;
+      } else {
+        return `${startMonth} — ${endMonth} = ${bill.arrears}`;
+      }
+    };
+
     const renderReceipt = (bill: BillData, index: number) => (
       <div key={index} className={styles.receiptContainer}>
         {/* Receipt Header - Logo + Org Info */}
@@ -67,7 +98,7 @@ export const PrintableBilling = forwardRef<HTMLDivElement, PrintableBillingProps
             <tr>
               <td className={styles.fieldLabel}>Arrears</td>
               <td className={styles.fieldColon}>:</td>
-              <td className={styles.fieldValue}>{bill.arrears > 0 ? bill.arrears.toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '—'}</td>
+              <td className={styles.fieldValue}>{getArrearsText(bill)}</td>
             </tr>
             <tr className={styles.totalRow}>
               <td className={styles.totalLabel}>Total Amount Due</td>

@@ -168,21 +168,38 @@ export default function AdminReports() {
     });
 
     const rowsHtml = sortedData.map(row => {
-      const firstVal = `Blk ${row.block} Lot ${row.lot}`;
-      const secondVal = row.resident;
-      const typeText = selectedReportType === 'Daily Report' ? (row as any).referenceNumber || 'N/A' : `₱${row.monthlyDues.toLocaleString()}`;
-      const amountVal = `₱${row.amountPaid.toLocaleString()}`;
-      const thirdVal = selectedReportType === 'Daily Report' ? (row as any).paymentMethod || 'Cash' : `₱${row.balance.toLocaleString()}`;
-      const statusColor = row.status === 'Paid' ? '#059669' : row.status === 'Pending' ? '#b45309' : '#dc2626';
+      if (selectedReportType === 'Daily Report' && row.amountPaid <= 0) return '';
+      if (row.amountPaid <= 0 && row.status !== 'Paid') return '';
+
+      const monthlyDue = 400;
+      let currentMonthAmount = 0;
+      let arrearsAmount = 0;
+      
+      if (row.amountPaid > monthlyDue) {
+         currentMonthAmount = monthlyDue;
+         arrearsAmount = row.amountPaid - monthlyDue;
+      } else if (row.amountPaid > 0) {
+         currentMonthAmount = row.amountPaid;
+      }
+
+      const othersAmount = 0;
+      const totalAmount = row.amountPaid;
+
+      const householdNo = `B${row.block} L${row.lot}`;
+      const name = row.resident;
+      const orNo = (row as any).referenceNumber || '—';
+      const remarks = row.paymentMethod === 'Gcash' || row.paymentMethod === 'GCash' ? 'GCASH' : (row.paymentMethod?.toUpperCase() || 'CASH');
 
       return `
         <tr>
-          <td class="col-blk">${firstVal}</td>
-          <td class="col-name">${secondVal}</td>
-          <td>${typeText}</td>
-          <td class="col-amount">${amountVal}</td>
-          <td style="font-weight: 600;">${thirdVal}</td>
-          <td class="col-status" style="color: ${statusColor};">${row.status}</td>
+          <td class="col-blk">${householdNo}</td>
+          <td class="col-name">${name}</td>
+          <td class="col-orno">${orNo}</td>
+          <td class="col-amount">${currentMonthAmount > 0 ? '₱' + currentMonthAmount.toLocaleString() : '—'}</td>
+          <td class="col-amount" style="color: #dc2626;">${arrearsAmount > 0 ? '₱' + arrearsAmount.toLocaleString() : '—'}</td>
+          <td class="col-amount" style="color: #0284c7;">${othersAmount > 0 ? '₱' + othersAmount.toLocaleString() : '—'}</td>
+          <td class="col-amount" style="font-weight: 800; color: #16a34a;">₱${totalAmount.toLocaleString()}</td>
+          <td class="col-status" style="color: ${remarks.includes('GCASH') ? '#dc2626' : '#475569'};">${remarks}</td>
         </tr>
       `;
     }).join('');
@@ -213,8 +230,9 @@ export default function AdminReports() {
             tr:nth-child(even) td { background-color: #f8fafc; }
             .col-blk { font-weight: 600; color: #475569; }
             .col-name { font-weight: 700; color: #0f172a; }
-            .col-amount { font-weight: 800; color: #0f172a; text-align: right; }
-            .col-status { font-weight: 700; text-align: right; }
+            .col-orno { color: #64748b; font-size: 11px; }
+            .col-amount { font-weight: 700; color: #0f172a; text-align: right; }
+            .col-status { font-weight: 800; text-align: right; font-size: 11px; }
             .footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 10px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding: 15px 40px; background: white; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
             tr { page-break-inside: avoid; }
             @media print {
@@ -263,12 +281,14 @@ export default function AdminReports() {
           <table>
             <thead>
               <tr>
-                <th style="width: 15%;">BLK / LOT</th>
-                <th style="width: 30%;">RESIDENT NAME</th>
-                <th style="width: 20%;">${selectedReportType === 'Daily Report' ? 'REF NUMBER' : 'MONTHLY DUES'}</th>
-                <th style="width: 15%; text-align: right;">${selectedReportType === 'Daily Report' ? 'AMOUNT' : 'AMOUNT PAID'}</th>
-                <th style="width: 10%;">${selectedReportType === 'Daily Report' ? 'METHOD' : 'BALANCE'}</th>
-                <th style="width: 10%; text-align: right;">STATUS</th>
+                <th style="width: 12%;">HOUSEHOLD</th>
+                <th style="width: 25%;">NAME</th>
+                <th style="width: 15%;">OR NO.</th>
+                <th style="width: 10%; text-align: right;">CURRENT</th>
+                <th style="width: 10%; text-align: right;">ARREARS</th>
+                <th style="width: 10%; text-align: right;">OTHERS</th>
+                <th style="width: 10%; text-align: right;">TOTAL</th>
+                <th style="width: 8%; text-align: right;">REMARKS</th>
               </tr>
             </thead>
             <tbody>
@@ -292,25 +312,243 @@ export default function AdminReports() {
     printWindow.document.close();
   };
 
-  const handleExportExcel = () => {
-    if (financialData.length === 0) return;
-    const headers = ['Block', 'Lot', 'Resident', 'Monthly Dues', 'Amount Paid', 'Balance', 'Status', 'Method'];
-    const rows = (financialData || []).map(d => [
-      d.block, d.lot, d.resident, d.monthlyDues, d.amountPaid, d.balance, d.status, d.paymentMethod || 'N/A'
-    ]);
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    const periodName = selectedReportType === 'Daily Report' ? selectedDate : selectedReportType === 'Annual Report' ? selectedYear : `${selectedMonth}_${selectedYear}`;
-    link.setAttribute("download", `LH-Connect_Report_${periodName}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    showToast('Report exported as CSV', 'success');
+  const handleExportExcel = async () => {
+    if (financialData.length === 0) {
+      showToast('No data to export', 'error');
+      return;
+    }
+
+    try {
+      const XLSX = await import('xlsx-js-style');
+      
+      const wb = XLSX.utils.book_new();
+
+      const reportDate = selectedReportType === 'Daily Report' && selectedDate 
+        ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        : getFormattedPeriod();
+
+      const wsData: any[][] = [
+        ['DAILY COLLECTION REPORT'],
+        [reportDate],
+        [
+          'HOUSEHOLD NO.', 'NAME', 'ADDRESS', 'OR NO.', 
+          'CURRENT MONTH', '', 'ARREARS', '', 'OTHERS', '', 
+          'TOTAL COLLECTION', 'REMARKS'
+        ],
+        [
+          '', '', '', '', 
+          'MONTH', 'AMOUNT', 'MONTH', 'AMOUNT', 'PARTICULAR', 'AMOUNT', 
+          '', ''
+        ]
+      ];
+
+      let currentMonthTotal = 0;
+      let arrearsTotal = 0;
+      let othersTotal = 0;
+      let grandTotal = 0;
+      let gcashTotal = 0;
+
+      const dateObj = selectedReportType === 'Daily Report' && selectedDate ? new Date(selectedDate) : new Date();
+      const currentMonthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }) + '-' + dateObj.getFullYear().toString().slice(-2);
+
+      sortedData.forEach(row => {
+        if (selectedReportType === 'Daily Report' && row.amountPaid <= 0) return;
+        if (row.amountPaid <= 0 && row.status !== 'Paid') return;
+
+        const householdNo = `B${row.block}L${row.lot}`;
+        const name = row.resident;
+        const address = `Blk. ${row.block} Lot ${row.lot}`;
+        const orNo = (row as any).referenceNumber || '';
+        
+        let currentMonthAmount = 0;
+        let currentMonthLabel = '';
+        let arrearsAmount = 0;
+        let arrearsLabel = '';
+
+        const monthlyDue = 400; 
+        if (row.amountPaid > monthlyDue) {
+           currentMonthAmount = monthlyDue;
+           currentMonthLabel = currentMonthStr;
+           arrearsAmount = row.amountPaid - monthlyDue;
+           arrearsLabel = 'ARREARS';
+        } else if (row.amountPaid > 0) {
+           currentMonthAmount = row.amountPaid;
+           currentMonthLabel = currentMonthStr;
+        }
+
+        const particular = '';
+        const othersAmount = 0;
+        const total = row.amountPaid;
+        const remarks = row.paymentMethod === 'Gcash' || row.paymentMethod === 'GCash' ? 'GCASH' : (row.paymentMethod?.toUpperCase() || '');
+
+        if (remarks === 'GCASH' || remarks.includes('GCASH')) gcashTotal += total;
+
+        currentMonthTotal += currentMonthAmount;
+        arrearsTotal += arrearsAmount;
+        othersTotal += othersAmount;
+        grandTotal += total;
+
+        wsData.push([
+          householdNo,
+          name,
+          address,
+          orNo,
+          currentMonthLabel,
+          currentMonthAmount || '',
+          arrearsLabel,
+          arrearsAmount || '',
+          particular,
+          othersAmount || '',
+          total || '',
+          remarks === 'GCASH' ? remarks : ''
+        ]);
+      });
+
+      wsData.push([
+        '', '', '', '', '', currentMonthTotal || '', '', arrearsTotal || '', '', othersTotal || '', grandTotal || '', ''
+      ]);
+      wsData.push(['', '', '', '', '', '', '', '', '', 'GCASH', gcashTotal || '', '']);
+      wsData.push(['', '', '', '', '', '', '', '', '', 'TOTAL CASH REMITTED', (grandTotal - gcashTotal) || '', '']);
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }, 
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } }, 
+        { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } }, 
+        { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } }, 
+        { s: { r: 2, c: 2 }, e: { r: 3, c: 2 } }, 
+        { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } }, 
+        { s: { r: 2, c: 4 }, e: { r: 2, c: 5 } }, 
+        { s: { r: 2, c: 6 }, e: { r: 2, c: 7 } }, 
+        { s: { r: 2, c: 8 }, e: { r: 2, c: 9 } }, 
+        { s: { r: 2, c: 10 }, e: { r: 3, c: 10 } }, 
+        { s: { r: 2, c: 11 }, e: { r: 3, c: 11 } }, 
+      ];
+
+      ws['!cols'] = [
+        { wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 15 },
+        { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 12 },
+        { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
+      ];
+
+      // APPLY STYLES
+      const range = XLSX.utils.decode_range(ws['!ref'] as string);
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+          if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+
+          const isTitle = R === 0 || R === 1;
+          const isHeader = R === 2 || R === 3;
+          
+          let style: any = {
+            font: { name: 'Arial', sz: 9 },
+            alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
+            border: {
+              top: { style: 'thin', color: { auto: 1 } },
+              bottom: { style: 'thin', color: { auto: 1 } },
+              left: { style: 'thin', color: { auto: 1 } },
+              right: { style: 'thin', color: { auto: 1 } }
+            }
+          };
+
+          if (isTitle) {
+            style.font.bold = true;
+            style.font.sz = R === 0 ? 14 : 12;
+            style.border = {}; // No borders for title
+          }
+
+          if (isHeader) {
+            style.font.bold = true;
+          }
+
+          // ARREARS red
+          if (R === 2 && C === 6) style.font.color = { rgb: "FF0000" };
+          if (R === 3 && (C === 6 || C === 7)) style.font.color = { rgb: "FF0000" };
+
+          // OTHERS blue
+          if (R === 2 && C === 8) style.font.color = { rgb: "00B0F0" };
+          if (R === 3 && (C === 8 || C === 9)) style.font.color = { rgb: "00B0F0" };
+
+          // REMARKS red (Header & Data)
+          if ((R === 2 || R > 3) && C === 11) {
+            style.font.bold = true;
+            style.font.color = { rgb: "FF0000" };
+          }
+          
+          // Data rows Name/Address alignment
+          if (R > 3 && (C === 1 || C === 2)) {
+            style.alignment.horizontal = 'left';
+          }
+
+          // Number formats
+          if (R > 3 && (C === 5 || C === 7 || C === 9 || C === 10)) {
+            ws[cellRef].z = '#,##0.00';
+            style.alignment.horizontal = 'right';
+          }
+
+          ws[cellRef].s = style;
+        }
+      }
+
+      // Format Totals Row (3 rows from bottom)
+      const lastRow = range.e.r;
+      const totalTotalsRow = lastRow - 2;
+      for (let C = 0; C <= 11; C++) {
+        const cellRef = XLSX.utils.encode_cell({ c: C, r: totalTotalsRow });
+        if (ws[cellRef]) ws[cellRef].s.font.bold = true;
+      }
+      
+      const mainTotalCell = XLSX.utils.encode_cell({ c: 10, r: totalTotalsRow });
+      if (ws[mainTotalCell]) {
+        ws[mainTotalCell].s.fill = { fgColor: { rgb: "FFFF00" } };
+        ws[mainTotalCell].s.font.color = { rgb: "FF0000" }; // red like image
+      }
+
+      const remarksTotalCell = XLSX.utils.encode_cell({ c: 11, r: totalTotalsRow });
+      if (ws[remarksTotalCell]) {
+        ws[remarksTotalCell].s.fill = { fgColor: { rgb: "FFFF00" } };
+      }
+
+      // GCASH row styling
+      const gcashRow = lastRow - 1;
+      const gcashLabel = XLSX.utils.encode_cell({ c: 9, r: gcashRow });
+      const gcashVal = XLSX.utils.encode_cell({ c: 10, r: gcashRow });
+      if(ws[gcashLabel]) {
+        ws[gcashLabel].s.font.bold = true;
+        ws[gcashLabel].s.font.color = { rgb: "FF0000" };
+        ws[gcashLabel].s.alignment.horizontal = 'right';
+      }
+      if(ws[gcashVal]) {
+        ws[gcashVal].s.font.bold = true;
+        ws[gcashVal].s.font.color = { rgb: "FF0000" };
+        ws[gcashVal].s.alignment.horizontal = 'right';
+      }
+
+      // REMITTED row styling
+      const remittedRow = lastRow;
+      const remittedLabel = XLSX.utils.encode_cell({ c: 9, r: remittedRow });
+      const remittedVal = XLSX.utils.encode_cell({ c: 10, r: remittedRow });
+      if(ws[remittedLabel]) {
+        ws[remittedLabel].s.font.bold = true;
+        ws[remittedLabel].s.alignment.horizontal = 'right';
+      }
+      if(ws[remittedVal]) {
+        ws[remittedVal].s.font.bold = true;
+        ws[remittedVal].s.alignment.horizontal = 'right';
+      }
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Daily Report');
+
+      const periodName = selectedReportType === 'Daily Report' ? selectedDate : selectedReportType === 'Annual Report' ? selectedYear : `${selectedMonth}_${selectedYear}`;
+      XLSX.writeFile(wb, `LH-Connect_Collection_Report_${periodName}.xlsx`);
+
+      showToast('Report exported to Excel successfully', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Error exporting report', 'error');
+    }
   };
 
   if (isLoading) {

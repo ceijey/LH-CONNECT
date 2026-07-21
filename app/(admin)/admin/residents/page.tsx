@@ -412,23 +412,23 @@ export default function AdminResidents() {
         </div>
 
         <div className={styles.tableWrapper}>
-          <div style={{ overflowX: 'auto' }}>
-            <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Monthly Dues - Table View</h2>
-                <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>Overview of all monthly dues payments for {new Date().getFullYear()}</p>
+          <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Monthly Dues - Table View</h2>
+              <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>Overview of all monthly dues payments for {new Date().getFullYear()}</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#dcfce7', border: '1px solid #bbf7d0' }}></span>
+                <span style={{ color: '#166534' }}>Paid</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', fontWeight: 600 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#dcfce7', border: '1px solid #bbf7d0' }}></span>
-                  <span style={{ color: '#166534' }}>Paid</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#fee2e2', border: '1px solid #fecaca' }}></span>
-                  <span style={{ color: '#991b1b' }}>Unpaid</span>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#fee2e2', border: '1px solid #fecaca' }}></span>
+                <span style={{ color: '#991b1b' }}>Unpaid</span>
               </div>
             </div>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
             <table className={styles.table} style={{ minWidth: '1000px' }}>
               <thead>
                 <tr>

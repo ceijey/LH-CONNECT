@@ -701,14 +701,6 @@ export default function ManualPaymentPage() {
         <div className={styles.actions}>
           <button
             type="button"
-            className={styles.printBtn}
-            onClick={handlePrint}
-            disabled={isSubmitting}
-          >
-            Print Invoice
-          </button>
-          <button
-            type="button"
             className={styles.cancelBtn}
             onClick={() => router.back()}
             disabled={isSubmitting}
@@ -720,7 +712,7 @@ export default function ManualPaymentPage() {
             className={styles.submitBtn}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Processing...' : '💵 Record Cash Payment'}
+            {isSubmitting ? 'Processing...' : 'Add'}
           </button>
         </div>
       </form>

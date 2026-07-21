@@ -34,6 +34,10 @@ export default function AdminBilling() {
   const [dueDate, setDueDate] = useState(''); // YYYY-MM-DD format for picker
   const [isPaid, setIsPaid] = useState(false);
 
+  // New month modal state
+  const [isMonthModalOpen, setIsMonthModalOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
   const printableRef = useRef<HTMLDivElement>(null);
 
   // Format YYYY-MM → "MAY 2026" for the printable bill
@@ -130,20 +134,31 @@ export default function AdminBilling() {
     }
   };
 
-  // Open modal for the currently selected resident(s)
-  const handleGenerateBill = () => {
-    if (selectedIds.length === 0) return;
+  // Open Month Modal when Generate Bill is clicked
+  const handleGenerateBillClick = () => {
+    setIsMonthModalOpen(true);
+  };
 
-    if (selectedIds.length === 1) {
-      const resident = allResidents.find(r => r.id === selectedIds[0]) || null;
+  const handleMonthSelect = (monthIndex: number) => {
+    const yyyy = selectedYear;
+    const mm = String(monthIndex + 1).padStart(2, '0');
+    setMonthYear(`${yyyy}-${mm}`);
+    
+    // If user already selected some, use those; otherwise select all residents
+    const idsToSelect = selectedIds.length > 0 ? selectedIds : allResidents.map(r => r.id);
+    setSelectedIds(idsToSelect);
+    
+    setIsMonthModalOpen(false);
+
+    if (idsToSelect.length === 1) {
+      const resident = allResidents.find(r => r.id === idsToSelect[0]) || null;
       setSelectedResident(resident);
       setArrears(resident && resident.balance > 0 ? String(resident.balance) : '0');
     } else {
       setSelectedResident(null);
       setArrears('0');
-      // Initialize batchArrears with individual balances
       const initialBatchArrears: Record<string, string> = {};
-      selectedIds.forEach(id => {
+      idsToSelect.forEach(id => {
         const resident = allResidents.find(r => r.id === id);
         initialBatchArrears[id] = resident && resident.balance > 0 ? String(resident.balance) : '0';
       });
@@ -196,9 +211,9 @@ export default function AdminBilling() {
             )}
             <button
               className={styles.generateBillBtn}
-              onClick={handleGenerateBill}
-              disabled={selectedIds.length === 0}
-              title={selectedIds.length === 1 ? 'Generate bill' : `Batch print ${selectedIds.length} residents`}
+              onClick={handleGenerateBillClick}
+              title="Select month to generate bill"
+              style={{ opacity: 1, cursor: 'pointer' }}
             >
               🧾 Generate Bill
             </button>
@@ -219,14 +234,7 @@ export default function AdminBilling() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th style={{ width: '40px', textAlign: 'center' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={filteredResidents.length > 0 && selectedIds.length === filteredResidents.length}
-                        onChange={handleSelectAll}
-                        style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer' }}
-                      />
-                    </th>
+
                     <th>Name</th>
                     <th>Address</th>
                     <th>Current Balance</th>
@@ -240,14 +248,7 @@ export default function AdminBilling() {
                       onClick={() => handleToggleSelect(resident.id)}
                       title="Click to select this resident"
                     >
-                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox"
-                          checked={selectedIds.includes(resident.id)}
-                          onChange={() => handleToggleSelect(resident.id)}
-                          style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer' }}
-                        />
-                      </td>
+
                       <td className={styles.nameTd}>{resident.name}</td>
                       <td>
                         <div className={styles.blockLot}>
@@ -435,6 +436,81 @@ export default function AdminBilling() {
               <button className={styles.generateBtn} onClick={handlePrint}>
                 🖨️ Print Bill
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Month Selection Modal */}
+      {isMonthModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsMonthModalOpen(false)}>
+          <div className={styles.modalContent} style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Select Billing Month</h2>
+              <button className={styles.closeBtn} onClick={() => setIsMonthModalOpen(false)}>✕</button>
+            </div>
+            <div className={styles.modalBody}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <button 
+                  onClick={() => setSelectedYear(y => y - 1)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#4b5563' }}
+                >
+                  ◀
+                </button>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1f2937' }}>{selectedYear}</h3>
+                <button 
+                  onClick={() => setSelectedYear(y => y + 1)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#4b5563' }}
+                >
+                  ▶
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {[
+                  'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'
+                ].map((month, index) => {
+                  const currentYear = new Date().getFullYear();
+                  const currentMonth = new Date().getMonth();
+                  const isDisabled = selectedYear > currentYear || (selectedYear === currentYear && index > currentMonth);
+
+                  return (
+                  <button
+                    key={month}
+                    disabled={isDisabled}
+                    onClick={() => handleMonthSelect(index)}
+                    style={{
+                      padding: '12px 8px',
+                      background: isDisabled ? '#f9fafb' : '#f3f4f6',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      fontWeight: 500,
+                      color: isDisabled ? '#9ca3af' : '#374151',
+                      opacity: isDisabled ? 0.6 : 1,
+                      filter: isDisabled ? 'blur(0.5px)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isDisabled) {
+                        e.currentTarget.style.background = '#e0e7ff';
+                        e.currentTarget.style.borderColor = '#c7d2fe';
+                        e.currentTarget.style.color = '#4338ca';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isDisabled) {
+                        e.currentTarget.style.background = '#f3f4f6';
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                        e.currentTarget.style.color = '#374151';
+                      }
+                    }}
+                  >
+                    {month}
+                  </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
