@@ -159,50 +159,103 @@ export default function AdminReports() {
       return;
     }
 
-    const dateStr = new Date().toLocaleDateString(undefined, {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const reportDate = selectedReportType === 'Daily Report' && selectedDate
+      ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+      : getFormattedPeriod();
+
+    const reportLabel = selectedReportType === 'Daily Report'
+      ? 'DAILY COLLECTION REPORT'
+      : selectedReportType === 'Monthly Report'
+        ? 'MONTHLY COLLECTION REPORT'
+        : 'ANNUAL COLLECTION REPORT';
+
+    const currentMonthLabel = selectedReportType === 'Daily Report' && selectedDate
+      ? new Date(selectedDate).toLocaleDateString('en-US', { month: 'short' }).toUpperCase() + '-' + new Date(selectedDate).getFullYear().toString().slice(-2)
+      : selectedMonth.slice(0, 3).toUpperCase() + '-' + selectedYear.slice(-2);
+
+    let currentMonthTotal = 0;
+    let arrearsTotal = 0;
+    let othersTotal = 0;
+    let grandTotal = 0;
+    let gcashTotal = 0;
 
     const rowsHtml = sortedData.map(row => {
       if (selectedReportType === 'Daily Report' && row.amountPaid <= 0) return '';
       if (row.amountPaid <= 0 && row.status !== 'Paid') return '';
 
-      const monthlyDue = 400;
+      const monthlyDue = row.monthlyDues || 400;
       let currentMonthAmount = 0;
       let arrearsAmount = 0;
-      
+      let arrearsMonth = '';
+      let otherParticular = (row as any).otherParticular || '';
+      let othersAmount = (row as any).othersAmount || 0;
+      let currentMonthMonth = currentMonthLabel;
+
       if (row.amountPaid > monthlyDue) {
-         currentMonthAmount = monthlyDue;
-         arrearsAmount = row.amountPaid - monthlyDue;
+        currentMonthAmount = monthlyDue;
+        arrearsAmount = row.amountPaid - monthlyDue;
+        arrearsMonth = currentMonthLabel;
       } else if (row.amountPaid > 0) {
-         currentMonthAmount = row.amountPaid;
+        currentMonthAmount = row.amountPaid;
       }
 
-      const othersAmount = 0;
       const totalAmount = row.amountPaid;
-
-      const householdNo = `B${row.block} L${row.lot}`;
+      const householdNo = `P${row.block}B${row.lot}`;
       const name = row.resident;
+      const address = `BLK. ${row.block} LOT ${row.lot}`;
       const orNo = (row as any).referenceNumber || '—';
-      const remarks = row.paymentMethod === 'Gcash' || row.paymentMethod === 'GCash' ? 'GCASH' : (row.paymentMethod?.toUpperCase() || 'CASH');
+      const remarks = row.paymentMethod === 'Gcash' || row.paymentMethod === 'GCash'
+        ? 'GCASH'
+        : (row.paymentMethod?.toUpperCase() || 'CASH');
+
+      currentMonthTotal += currentMonthAmount;
+      arrearsTotal += arrearsAmount;
+      othersTotal += othersAmount;
+      grandTotal += totalAmount;
+      if (remarks.includes('GCASH')) gcashTotal += totalAmount;
 
       return `
         <tr>
           <td class="col-blk">${householdNo}</td>
           <td class="col-name">${name}</td>
+          <td class="col-orno">${address}</td>
           <td class="col-orno">${orNo}</td>
+          <td class="col-small">${currentMonthMonth}</td>
           <td class="col-amount">${currentMonthAmount > 0 ? '₱' + currentMonthAmount.toLocaleString() : '—'}</td>
+          <td class="col-small">${arrearsMonth}</td>
           <td class="col-amount" style="color: #dc2626;">${arrearsAmount > 0 ? '₱' + arrearsAmount.toLocaleString() : '—'}</td>
+          <td class="col-small">${otherParticular}</td>
           <td class="col-amount" style="color: #0284c7;">${othersAmount > 0 ? '₱' + othersAmount.toLocaleString() : '—'}</td>
-          <td class="col-amount" style="font-weight: 800; color: #16a34a;">₱${totalAmount.toLocaleString()}</td>
+          <td class="col-amount" style="font-weight: 800; color: #0f172a;">₱${totalAmount.toLocaleString()}</td>
           <td class="col-status" style="color: ${remarks.includes('GCASH') ? '#dc2626' : '#475569'};">${remarks}</td>
         </tr>
       `;
     }).join('');
+
+    const totalRow = `
+      <tr class="total-row">
+        <td colspan="5"></td>
+        <td class="col-amount">₱${currentMonthTotal.toLocaleString()}</td>
+        <td></td>
+        <td class="col-amount" style="color: #dc2626;">₱${arrearsTotal.toLocaleString()}</td>
+        <td></td>
+        <td class="col-amount" style="color: #0284c7;">₱${othersTotal.toLocaleString()}</td>
+        <td class="col-amount" style="font-weight: 800; color: #0f172a;">₱${grandTotal.toLocaleString()}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td colspan="9"></td>
+        <td class="text-right" style="font-weight: 800;">GCASH</td>
+        <td class="col-amount" style="color: #dc2626;">₱${gcashTotal.toLocaleString()}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td colspan="9"></td>
+        <td class="text-right" style="font-weight: 800;">TOTAL CASH REMITTED</td>
+        <td class="col-amount" style="font-weight: 800; color: #0f172a;">₱${(grandTotal - gcashTotal).toLocaleString()}</td>
+        <td></td>
+      </tr>
+    `;
 
     printWindow.document.write(`
       <html>
@@ -210,96 +263,79 @@ export default function AdminReports() {
           <title>${selectedReportType.toUpperCase()} - ${getFormattedPeriod()}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #1e293b; background: white; line-height: 1.5; }
-            .header { text-align: center; border-bottom: 2px solid #1B2A4A; padding-bottom: 20px; margin-bottom: 25px; }
-            .logo-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
-            .logo-img { width: 48px; height: 48px; object-fit: contain; }
-            .logo-text { font-size: 30px; font-weight: 900; color: #1B2A4A; text-transform: uppercase; letter-spacing: -0.02em; }
-            .subtitle { font-size: 11px; color: #64748b; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; font-weight: 600; }
-            .report-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.02em; text-align: center; }
-            .profile-info { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; text-align: center; }
-            .info-item { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #e2e8f0; }
-            .info-item:last-child { border-right: none; }
-            .info-label { font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-            .info-value { color: #0f172a; font-weight: 700; font-size: 16px; }
-            .rate-footer { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center; display: flex; justify-content: space-between; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th { text-align: left; padding: 12px 14px; background: #1B2A4A; color: white; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border: none; }
-            td { font-size: 12px; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; color: #334155; }
-            tr:nth-child(even) td { background-color: #f8fafc; }
-            .col-blk { font-weight: 600; color: #475569; }
-            .col-name { font-weight: 700; color: #0f172a; }
-            .col-orno { color: #64748b; font-size: 11px; }
-            .col-amount { font-weight: 700; color: #0f172a; text-align: right; }
-            .col-status { font-weight: 800; text-align: right; font-size: 11px; }
-            .footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 10px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding: 15px 40px; background: white; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-            tr { page-break-inside: avoid; }
+            body { font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 12px; color: #111827; background: white; }
+            .brand-header { text-align: center; margin-bottom: 2px; }
+            .brand-logo { width: 48px; height: 48px; border-radius: 18px; background: #eef2ff; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 2px; }
+            .brand-logo img { width: auto; height: 28px; max-width: 100%; max-height: 28px; object-fit: contain; }
+            .brand-title { font-size: 18px; font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; margin: 0; color: #111827; }
+            .brand-subtitle { font-size: 10px; color: #64748b; margin: 1px 0 0; text-transform: uppercase; letter-spacing: 0.18em; line-height: 1.2; }
+            .brand-divider { width: 100%; max-width: 640px; height: 1px; background: #0f172a; margin: 2px auto 4px; }
+            .header { text-align: center; margin-bottom: 2px; }
+            .report-title { font-size: 24px; font-weight: 900; margin: 0; letter-spacing: -0.02em; }
+            .report-date { margin: 0; font-size: 12px; color: #475569; }
+            .table-wrapper { overflow-x: auto; }
+            table { width: 100%; border-collapse: collapse; border: 1px solid #1f2937; }
+            th, td { border: 1px solid #1f2937; padding: 6px 6px; font-size: 10px; }
+            th { background: #1f2937; color: white; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+            td { vertical-align: top; color: #111827; }
+            .col-amount { text-align: right; font-weight: 700; }
+            .col-status { text-align: right; font-weight: 700; }
+            .col-small { font-size: 10px; color: #475569; }
+            .total-row td { background: #f8fafc; }
+            .footer { margin-top: 10px; font-size: 10px; color: #475569; text-align: right; }
             @media print {
-              @page { margin-bottom: 25mm; margin-top: 20mm; }
-              body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              @page { margin: 16mm; }
+              body { margin: 0; }
               .footer { position: fixed; bottom: 0; left: 0; right: 0; }
             }
           </style>
         </head>
         <body>
+          <div class="brand-header">
+            <div class="brand-logo">
+              <img src="/lhhoa-logo.png" alt="LH Logo" />
+            </div>
+            <div class="brand-title">LH-CONNECT</div>
+            <div class="brand-subtitle">LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000</div>
+            <div class="brand-divider"></div>
+          </div>
+
           <div class="header">
-            <div class="logo-section">
-              <img src="/lhhoa-logo.png" alt="LH Logo" class="logo-img" />
-              <span class="logo-text">LH-CONNECT</span>
-            </div>
-            <div class="subtitle">LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000</div>
+            <div class="report-title">${reportLabel}</div>
+            <div class="report-date">${reportDate}</div>
           </div>
-          
-          <div class="report-title">${selectedReportType.toUpperCase()} — ${getFormattedPeriod().toUpperCase()}</div>
-          
-          <div class="profile-info">
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Report Period</span>
-                <span class="info-value">${getFormattedPeriod()}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Total Receivables</span>
-                <span class="info-value">₱${summary?.totalDues?.toLocaleString() || 0}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Total Collected</span>
-                <span class="info-value" style="color: #059669;">₱${summary?.totalCollected?.toLocaleString() || 0}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Outstanding Balance</span>
-                <span class="info-value" style="color: #dc2626;">₱${summary?.outstandingBalance?.toLocaleString() || 0}</span>
-              </div>
-            </div>
-            <div class="rate-footer">
-              <span>Report Generated: <strong>${dateStr}</strong></span>
-              <span>Collection Rate: <strong style="color: #0f172a; font-size: 12px;">${summary?.collectionRate || 0}%</strong></span>
-            </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th rowspan="2" style="width: 9%;">HOUSEHOLD NO.</th>
+                  <th rowspan="2" style="width: 14%;">NAME</th>
+                  <th rowspan="2" style="width: 14%;">ADDRESS</th>
+                  <th rowspan="2" style="width: 9%;">OR NO.</th>
+                  <th colspan="2" style="width: 12%;">CURRENT MONTH</th>
+                  <th colspan="2" style="width: 12%;">ARREARS</th>
+                  <th colspan="2" style="width: 12%;">OTHERS</th>
+                  <th rowspan="2" style="width: 10%;">TOTAL COLLECTION</th>
+                  <th rowspan="2" style="width: 8%;">REMARKS</th>
+                </tr>
+                <tr>
+                  <th>MONTH</th>
+                  <th>AMOUNT</th>
+                  <th>MONTH</th>
+                  <th>AMOUNT</th>
+                  <th>PARTICULAR</th>
+                  <th>AMOUNT</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+                ${totalRow}
+              </tbody>
+            </table>
           </div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 12%;">HOUSEHOLD</th>
-                <th style="width: 25%;">NAME</th>
-                <th style="width: 15%;">OR NO.</th>
-                <th style="width: 10%; text-align: right;">CURRENT</th>
-                <th style="width: 10%; text-align: right;">ARREARS</th>
-                <th style="width: 10%; text-align: right;">OTHERS</th>
-                <th style="width: 10%; text-align: right;">TOTAL</th>
-                <th style="width: 8%; text-align: right;">REMARKS</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-          
-          <div class="footer">
-            LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION © 2026. ALL RIGHTS RESERVED.
-          </div>
-          
+
+          <div class="footer">LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION © ${new Date().getFullYear()}. ALL RIGHTS RESERVED.</div>
           <script>
             window.onload = function() {
               window.print();
@@ -323,12 +359,18 @@ export default function AdminReports() {
       
       const wb = XLSX.utils.book_new();
 
+      const reportLabel = selectedReportType === 'Daily Report'
+        ? 'DAILY COLLECTION REPORT'
+        : selectedReportType === 'Monthly Report'
+          ? 'MONTHLY COLLECTION REPORT'
+          : 'ANNUAL COLLECTION REPORT';
+
       const reportDate = selectedReportType === 'Daily Report' && selectedDate 
         ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
         : getFormattedPeriod();
 
       const wsData: any[][] = [
-        ['DAILY COLLECTION REPORT'],
+        [reportLabel],
         [reportDate],
         [
           'HOUSEHOLD NO.', 'NAME', 'ADDRESS', 'OR NO.', 
@@ -577,28 +619,6 @@ export default function AdminReports() {
         onClose={() => setIsToastVisible(false)}
       />
       <div className={styles.content}>
-          {/* Print Header */}
-          <div className={reportsStyles.printOnly}>
-            <div className={reportsStyles.printHeader}>
-              <div className={reportsStyles.printLogo}>
-                <div className={reportsStyles.printLogoBrand}>
-                  <img src="/lhhoa-logo.png" alt="LH Logo" className={reportsStyles.printLogoImg} />
-                  <span className={reportsStyles.printLogoText}>LH-Connect</span>
-                </div>
-                <div className={reportsStyles.printAddressInfo}>
-                  <div>Lincoln Heights Subd., San Pablo, Dinalupihan, Bataan</div>
-                  <div>TIN: <span className={reportsStyles.printTIN}>420-968-199-000</span></div>
-                </div>
-              </div>
-              <div className={reportsStyles.printReportDetails}>
-                <h1 className={reportsStyles.printReportTitle}>{selectedReportType}</h1>
-                <div className={reportsStyles.printDate}>
-                  Period: {getFormattedPeriod()} | Generated: {new Date().toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className={`${reportsStyles.controlsRow} no-print`}>
             <div className={reportsStyles.selectGroup}>
               <select 
@@ -643,45 +663,6 @@ export default function AdminReports() {
             <div className={reportsStyles.exportButtons}>
               <button onClick={handleExportPDF} className={reportsStyles.exportBtn}>📄 PDF Report</button>
               <button onClick={handleExportExcel} className={reportsStyles.exportBtn}>📊 Excel/CSV</button>
-            </div>
-          </div>
-
-          <div className={reportsStyles.statsGrid}>
-            <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statHeader}>
-                <span className={reportsStyles.statIcon}>👜</span>
-                <span className={reportsStyles.statLabel}>
-                  {selectedReportType === 'Daily Report' ? 'Total Submissions' : 'Total Receivables'}
-                </span>
-              </div>
-              <span className={reportsStyles.statValue}>₱{summary?.totalDues?.toLocaleString() || 0}</span>
-            </div>
-            <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statHeader}>
-                <span className={reportsStyles.statIcon}>✅</span>
-                <span className={reportsStyles.statLabel}>
-                  {selectedReportType === 'Daily Report' ? 'Collected Today' : 'Total Collected'}
-                </span>
-              </div>
-              <span className={reportsStyles.statValue} style={{ color: '#16a34a' }}>₱{summary?.totalCollected?.toLocaleString() || 0}</span>
-            </div>
-            <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statHeader}>
-                <span className={reportsStyles.statIcon}>⚠️</span>
-                <span className={reportsStyles.statLabel}>
-                  {selectedReportType === 'Daily Report' ? 'Pending/Rejected' : 'Outstanding'}
-                </span>
-              </div>
-              <span className={reportsStyles.statValue} style={{ color: '#dc2626' }}>₱{summary?.outstandingBalance?.toLocaleString() || 0}</span>
-            </div>
-            <div className={reportsStyles.statCard}>
-              <div className={reportsStyles.statHeader}>
-                <span className={reportsStyles.statIcon}>📈</span>
-                <span className={reportsStyles.statLabel}>
-                  {selectedReportType === 'Daily Report' ? 'Realization Rate' : 'Collection Rate'}
-                </span>
-              </div>
-              <span className={reportsStyles.statValue} style={{ color: '#1976d2' }}>{summary?.collectionRate || 0}%</span>
             </div>
           </div>
 
