@@ -100,6 +100,19 @@ function normalizeSubmission(submission: Partial<Submission> & { status?: string
   };
 }
 
+const formatToDDMMYY = (date: Date): string => {
+  if (isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const dd = pad(date.getDate());
+  const mm = pad(date.getMonth() + 1);
+  const yy = String(date.getFullYear()).slice(-2);
+  let h = date.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const min = pad(date.getMinutes());
+  return `${dd}/${mm}/${yy} ${pad(h)}:${min} ${ampm}`;
+};
+
 const ESTABLISHED_PAYMENT_AMOUNT = '400';
 
 const parseAndFormatDateTime = (ocrText: string): string | null => {
@@ -176,12 +189,16 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
       year = parseInt(part3, 10);
       const p1 = parseInt(part1, 10);
       const p2 = parseInt(part2, 10);
-      if (p1 > 12) {
-        day = p1;
-        month = p2 - 1;
-      } else {
+      // In the Philippines, standard is DD/MM/YYYY.
+      // So p1 is likely Day, p2 is likely Month.
+      if (p2 > 12) {
+        // If p2 > 12, it has to be MM/DD/YYYY (e.g., 09/25/2025)
         month = p1 - 1;
         day = p2;
+      } else {
+        // Assume DD/MM/YYYY
+        day = p1;
+        month = p2 - 1;
       }
     }
     let hour = hourStr ? parseInt(hourStr, 10) : 12;
@@ -423,13 +440,7 @@ export default function SubmitPaymentPage() {
         }
         if (detectedDate) {
           update.paymentDateTime = detectedDate;
-          detectedDateNice = new Date(detectedDate).toLocaleString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
+          detectedDateNice = formatToDDMMYY(new Date(detectedDate));
         }
         return update;
       });
@@ -979,15 +990,7 @@ export default function SubmitPaymentPage() {
                                   ? (() => {
                                       const d = new Date(formData.paymentDateTime);
                                       if (isNaN(d.getTime())) return formData.paymentDateTime;
-                                      const pad = (n: number) => String(n).padStart(2, '0');
-                                      const dd = pad(d.getDate());
-                                      const mm = pad(d.getMonth() + 1);
-                                      const yy = String(d.getFullYear()).slice(-2);
-                                      let h = d.getHours();
-                                      const ampm = h >= 12 ? 'PM' : 'AM';
-                                      h = h % 12 || 12;
-                                      const min = pad(d.getMinutes());
-                                      return `${dd}/${mm}/${yy} ${pad(h)}:${min} ${ampm}`;
+                                      return formatToDDMMYY(d);
                                     })()
                                   : ''
                             }
@@ -1158,12 +1161,7 @@ export default function SubmitPaymentPage() {
                               <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Date/Time</span>
                                 <span className={styles.detailValue}>
-                                  {new Date(submission.paymentDateTime).toLocaleString(undefined, {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  {formatToDDMMYY(new Date(submission.paymentDateTime))}
                                 </span>
                               </div>
                             )}

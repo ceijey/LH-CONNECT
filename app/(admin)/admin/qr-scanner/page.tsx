@@ -24,6 +24,13 @@ function isValidFirebaseUid(value: string) {
   return /^[A-Za-z0-9_-]{10,128}$/.test(value);
 }
 
+const formatDate = (date: Date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+};
+
 export default function QRScannerPage() {
   const router = useRouter();
 
@@ -346,13 +353,13 @@ export default function QRScannerPage() {
                             Array.from({ length: Math.floor(scannedResident.balance / 400) }).map((_, i) => {
                               const d = new Date();
                               d.setMonth(d.getMonth() - i);
-                              return d.toLocaleString('default', { month: 'short' });
+                              return formatDate(d);
                             }).reverse().join(', ')
                           }
                         </div>
                       ) : (
                         <div className={styles.paidStatus}>
-                          <span style={{marginRight: '6px'}}>✓</span> Up to date for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                          <span style={{marginRight: '6px'}}>✓</span> Up to date for {formatDate(new Date())}
                         </div>
                       )}
                     </div>

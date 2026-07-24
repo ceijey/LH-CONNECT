@@ -11,6 +11,7 @@ import styles from '../residents/admin-page.module.css';
 
 interface PaymentSubmission {
   id: string;
+  month?: string;
   residentId: string;
   residentName: string;
   blockLot: string;
@@ -166,7 +167,6 @@ export default function AdminPayments() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Payment ID</th>
                   <th>Resident</th>
                   <th>Block/Lot</th>
                   <th>Amount</th>
@@ -178,9 +178,6 @@ export default function AdminPayments() {
               <tbody>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i}>
-                    <td>
-                      <Skeleton height="1.5rem" width="110px" borderRadius="4px" />
-                    </td>
                     <td>
                       <Skeleton height="0.9rem" width="160px" />
                     </td>
@@ -318,7 +315,6 @@ export default function AdminPayments() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Payment ID</th>
                   <th>Resident</th>
                   <th>Block/Lot</th>
                   <th>Amount</th>
@@ -343,9 +339,6 @@ export default function AdminPayments() {
 
                     return (
                       <tr key={payment.id}>
-                        <td className={styles.paymentId}>
-                          <span className={styles.idBadge} title={payment.id}>{payment.id}</span>
-                        </td>
                         <td className={styles.resident}>{payment.residentName}</td>
                         <td>
                           <div className={styles.blockLot}>
@@ -455,7 +448,7 @@ export default function AdminPayments() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: '#9E9E9E' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px', color: '#9E9E9E' }}>
                       No {activeTab.toLowerCase()} payments found.
                     </td>
                   </tr>

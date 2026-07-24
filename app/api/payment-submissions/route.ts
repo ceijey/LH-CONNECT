@@ -35,6 +35,7 @@ type PaymentSubmission = {
   verifiedAt?: any;
   paymentDateTime?: string;
   receiptAmount?: string;
+  month?: string;
 };
 
 async function resolveFileUrl(data: any): Promise<string | undefined> {
@@ -127,6 +128,7 @@ async function toSubmission(doc: any): Promise<PaymentSubmission> {
     verifiedAt: data.verifiedAt,
     paymentDateTime: data.paymentDateTime || undefined,
     receiptAmount: data.receiptAmount || undefined,
+    month,
   };
 }
 

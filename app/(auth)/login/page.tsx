@@ -238,6 +238,12 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      if (userType === 'admin' && formData.email.toLowerCase() !== 'lhconnectadmin@gmail.com') {
+        setLoginError('Invalid admin credentials.');
+        setIsLoading(false);
+        return;
+      }
+
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const idToken = await userCredential.user.getIdToken();
 
