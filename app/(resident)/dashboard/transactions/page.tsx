@@ -118,6 +118,190 @@ export default function TransactionsPage() {
     }
   };
 
+  const handlePrintPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print.');
+      return;
+    }
+
+    const userName = profile?.fullName || 'Resident';
+    const block = profile?.block || 'N/A';
+    const lot = profile?.lot || 'N/A';
+
+    const householdNo = `P${profile?.phase ? profile.phase.substring(0,1) : '1'}B${block}L${lot}`;
+    const address = `BLK. ${block} LOT ${lot}`;
+
+    const reportDate = new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    
+    let currentMonthTotal = 0;
+    let arrearsTotal = 0;
+    let othersTotal = 0;
+    let grandTotal = 0;
+
+    const rowsHtml = filteredTransactions.map(event => {
+      const isPayment = event.type === 'PAYMENT';
+      const isBill = event.type === 'BILL';
+      const amount = event.amount || 0;
+      
+      const orNo = isPayment ? (event.id.replace('pay-', '').substring(0, 8).toUpperCase()) : '—';
+      
+      let monthLabel = '—';
+      const monthMatch = event.description.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}/);
+      if (monthMatch) {
+        const date = new Date(monthMatch[0]);
+        monthLabel = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase() + '-' + date.getFullYear().toString().slice(-2);
+      } else {
+        const d = new Date(event.date);
+        monthLabel = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase() + '-' + d.getFullYear().toString().slice(-2);
+      }
+
+      let currentMonthAmount = 0;
+      let arrearsAmount = 0;
+      let arrearsMonth = '—';
+      let otherParticular = isBill ? 'MONTHLY DUES' : '—';
+      let othersAmount = 0;
+      let totalAmount = 0;
+      
+      if (isPayment) {
+        currentMonthAmount = amount;
+        totalAmount = amount;
+        currentMonthTotal += amount;
+        grandTotal += amount;
+      } else if (isBill) {
+        othersAmount = amount;
+        othersTotal += amount;
+        otherParticular = 'BILL/CHARGE';
+      }
+
+      const remarks = event.status.toUpperCase();
+
+      return `
+        <tr>
+          <td>${householdNo}</td>
+          <td>${userName}</td>
+          <td>${address}</td>
+          <td>${isPayment ? orNo : '—'}</td>
+          <td class="col-small">${isPayment ? monthLabel : '—'}</td>
+          <td class="col-amount">${currentMonthAmount > 0 ? '₱' + currentMonthAmount.toLocaleString() : '—'}</td>
+          <td class="col-small">${arrearsMonth}</td>
+          <td class="col-amount" style="color: #dc2626;">${arrearsAmount > 0 ? '₱' + arrearsAmount.toLocaleString() : '—'}</td>
+          <td class="col-small">${otherParticular}</td>
+          <td class="col-amount" style="color: #0284c7;">${othersAmount > 0 ? '₱' + othersAmount.toLocaleString() : '—'}</td>
+          <td class="col-amount" style="font-weight: 800; color: #0f172a;">${totalAmount > 0 ? '₱' + totalAmount.toLocaleString() : '—'}</td>
+          <td class="col-status" style="color: ${remarks === 'PAID' || remarks === 'CONFIRMED' || remarks === 'VERIFIED' ? '#16a34a' : (isBill ? '#dc2626' : '#475569')};">${remarks}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const totalRow = `
+      <tr class="total-row">
+        <td colspan="5"></td>
+        <td class="col-amount">₱${currentMonthTotal.toLocaleString()}</td>
+        <td></td>
+        <td class="col-amount" style="color: #dc2626;">₱${arrearsTotal.toLocaleString()}</td>
+        <td></td>
+        <td class="col-amount" style="color: #0284c7;">₱${othersTotal.toLocaleString()}</td>
+        <td class="col-amount" style="font-weight: 800; color: #0f172a;">₱${grandTotal.toLocaleString()}</td>
+        <td></td>
+      </tr>
+    `;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>TRANSACTION HISTORY & AUDIT LOG - ${userName}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+            body { font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 12px; color: #111827; background: white; }
+            .brand-header { text-align: center; margin-bottom: 2px; }
+            .brand-logo { width: 48px; height: 48px; border-radius: 18px; background: #eef2ff; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 2px; }
+            .brand-logo img { width: auto; height: 28px; max-width: 100%; max-height: 28px; object-fit: contain; }
+            .brand-title { font-size: 18px; font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; margin: 0; color: #111827; }
+            .brand-subtitle { font-size: 10px; color: #64748b; margin: 1px 0 0; text-transform: uppercase; letter-spacing: 0.18em; line-height: 1.2; }
+            .brand-divider { width: 100%; max-width: 640px; height: 1px; background: #0f172a; margin: 2px auto 4px; }
+            .header { text-align: center; margin-bottom: 2px; }
+            .report-title { font-size: 24px; font-weight: 900; margin: 0; letter-spacing: -0.02em; text-transform: uppercase; }
+            .report-date { margin: 0; font-size: 12px; color: #475569; }
+            .table-wrapper { overflow-x: auto; }
+            table { width: 100%; border-collapse: collapse; border: 1px solid #1f2937; margin-top: 15px; }
+            th, td { border: 1px solid #1f2937; padding: 6px 6px; font-size: 10px; }
+            th { background: #1f2937; color: white; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; }
+            td { vertical-align: top; color: #111827; }
+            .col-amount { text-align: right; font-weight: 700; }
+            .col-status { text-align: right; font-weight: 700; }
+            .col-small { font-size: 10px; color: #475569; text-align: center; }
+            .total-row td { background: #f8fafc; }
+            .footer { margin-top: 10px; font-size: 10px; color: #475569; text-align: right; }
+            @media print {
+              @page { margin: 16mm; size: landscape; }
+              body { margin: 0; }
+              .footer { position: fixed; bottom: 0; left: 0; right: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="brand-header">
+            <div class="brand-logo">
+              <img src="/lhhoa-logo.png" alt="LH Logo" />
+            </div>
+            <div class="brand-title">LH-CONNECT</div>
+            <div class="brand-subtitle">LINCOLN HEIGHTS SUBD., SAN PABLO, DINALUPIHAN, BATAAN • TIN: 420-968-199-000</div>
+            <div class="brand-divider"></div>
+          </div>
+
+          <div class="header">
+            <div class="report-title">TRANSACTION HISTORY & AUDIT LOG</div>
+            <div class="report-date">${reportDate}</div>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th rowspan="2" style="width: 9%;">HOUSEHOLD NO.</th>
+                  <th rowspan="2" style="width: 14%;">NAME</th>
+                  <th rowspan="2" style="width: 14%;">ADDRESS</th>
+                  <th rowspan="2" style="width: 9%;">OR NO.</th>
+                  <th colspan="2" style="width: 12%;">CURRENT MONTH</th>
+                  <th colspan="2" style="width: 12%;">ARREARS</th>
+                  <th colspan="2" style="width: 12%;">OTHERS</th>
+                  <th rowspan="2" style="width: 10%;">TOTAL COLLECTION</th>
+                  <th rowspan="2" style="width: 8%;">REMARKS</th>
+                </tr>
+                <tr>
+                  <th>MONTH</th>
+                  <th>AMOUNT</th>
+                  <th>MONTH</th>
+                  <th>AMOUNT</th>
+                  <th>PARTICULAR</th>
+                  <th>AMOUNT</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+                ${totalRow}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer">LINCOLN HEIGHTS HOMEOWNERS ASSOCIATION © ${new Date().getFullYear()}. ALL RIGHTS RESERVED.</div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   if (isLoading) {
     return <LoadingScreen message="Loading transaction history..." />;
   }
@@ -207,11 +391,15 @@ export default function TransactionsPage() {
               <table className={styles.transactionsTable}>
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th rowSpan={2} className={styles.thDate}>Date</th>
+                    <th colSpan={2} className={styles.thGroup}>Transaction Details</th>
+                    <th colSpan={1} className={styles.thGroup}>Financials</th>
+                    <th rowSpan={2} className={styles.thStatus}>Status</th>
+                  </tr>
+                  <tr>
+                    <th className={styles.thSub}>Type</th>
+                    <th className={styles.thSub}>Description</th>
+                    <th className={styles.thSub}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -261,7 +449,7 @@ export default function TransactionsPage() {
           <button className={styles.downloadBtn} onClick={handleDownloadCSV} disabled={isDownloading || filteredTransactions.length === 0}>
             📥 {isDownloading ? 'Downloading...' : 'Download Full History (CSV)'}
           </button>
-          <button className={styles.printBtn} onClick={() => window.print()}>
+          <button className={styles.printBtn} onClick={handlePrintPDF}>
             🖨️ Print Audit Log
           </button>
         </section>

@@ -31,6 +31,10 @@ const formatDate = (date: Date) => {
   return `${day}/${month}/${year}`;
 };
 
+const formatMonthYear = (date: Date) => {
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
+
 export default function QRScannerPage() {
   const router = useRouter();
 
@@ -353,13 +357,13 @@ export default function QRScannerPage() {
                             Array.from({ length: Math.floor(scannedResident.balance / 400) }).map((_, i) => {
                               const d = new Date();
                               d.setMonth(d.getMonth() - i);
-                              return formatDate(d);
+                              return formatMonthYear(d);
                             }).reverse().join(', ')
                           }
                         </div>
                       ) : (
                         <div className={styles.paidStatus}>
-                          <span style={{marginRight: '6px'}}>✓</span> Up to date for {formatDate(new Date())}
+                          <span style={{marginRight: '6px'}}>✓</span> Up to date for {formatMonthYear(new Date())}
                         </div>
                       )}
                     </div>

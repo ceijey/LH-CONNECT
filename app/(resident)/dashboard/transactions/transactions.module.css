@@ -205,21 +205,33 @@
 
 .transactionsTable th {
   background: #f8fafc;
-  padding: 14px 16px;
+  padding: 10px 14px;
   font-weight: 700;
   color: #718096;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   border-bottom: 1px solid #edf2f7;
+  border-right: 1px solid #edf2f7;
+  text-align: center;
 }
 
-.transactionsTable th:nth-child(1) { width: 15%; }
-.transactionsTable th:nth-child(2) { width: 12%; }
-.transactionsTable th:nth-child(3) { width: 33%; }
-.transactionsTable th:nth-child(4) { width: 12%; }
-.transactionsTable th:nth-child(5) { width: 13%; }
-.transactionsTable th:nth-child(6) { width: 15%; }
+.transactionsTable th:last-child {
+  border-right: none;
+}
+
+.transactionsTable .thDate { width: 15%; }
+.transactionsTable .thStatus { width: 13%; }
+
+.transactionsTable .thGroup {
+  background: #edf2f7;
+  color: #4a5568;
+}
+
+.transactionsTable .thSub {
+  font-size: 0.68rem;
+  padding: 8px;
+}
 
 .transactionsTable tbody tr {
   border-bottom: 1px solid #edf2f7;
@@ -232,9 +244,14 @@
 }
 
 .transactionsTable td {
-  padding: 16px 16px;
+  padding: 14px 12px;
   font-size: 0.88rem;
   vertical-align: middle;
+  border-right: 1px solid #edf2f7;
+}
+
+.transactionsTable td:last-child {
+  border-right: none;
 }
 
 .idCell {
@@ -379,6 +396,14 @@
 
 /* ─── Print Media Styles ──────────────────────────────── */
 @media print {
+  @page {
+    size: landscape;
+    margin: 15mm;
+  }
+  body {
+    background: white;
+    color: black;
+  }
   .header,
   .filterSection,
   .summarySection,
@@ -386,43 +411,118 @@
     display: none !important;
   }
   .main {
-    margin-top: 150px;
+    margin-top: 0;
     padding: 0;
   }
   .transactionsSection {
     box-shadow: none !important;
-    border: 1px solid #cbd5e0;
+    border: none !important;
+    margin-top: 20px;
+  }
+  
+  /* Table Grid Structure */
+  .transactionsTable {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #000 !important; /* Thick outer border for the whole table */
+  }
+  .transactionsTable th,
+  .transactionsTable td {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    padding: 8px !important;
+    text-align: center;
+    font-size: 9pt;
   }
   .transactionsTable th {
-    background: #1B2A4A !important;
-    color: white !important;
+    background: #e2e8f0 !important;
+    font-weight: bold;
+    text-transform: uppercase;
     -webkit-print-color-adjust: exact;
   }
+  
+  .transactionsTable .thGroup {
+    background: #cbd5e0 !important;
+  }
+  
+  /* Reset badge styling to plain text */
+  .typeBadgeGroup,
+  .statusBadge {
+    display: inline-block !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+  .typeBadge {
+    background: transparent !important;
+    border: none !important;
+    color: #000 !important;
+  }
+  .typeTag,
+  .statusIcon {
+    display: none !important;
+  }
+  .amountCell {
+    color: #000 !important;
+  }
+  
+  /* Report Header Structure */
   .printHeader {
     display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 1rem 0;
-    background: white;
-    border-bottom: 2px solid #1B2A4A;
+    position: static;
+    text-align: center;
+    border: none;
+    margin-bottom: 25px;
   }
   .printHeaderCard {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .printBrand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .printLogo {
+    display: none;
+  }
+  .printBrandName {
+    font-size: 16pt;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #000;
+  }
+  .printSubtitle {
+    font-size: 10pt;
+    color: #333;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+  .printHeaderFields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 15px;
+    justify-content: center;
+  }
+  .printField {
+    display: flex;
+    gap: 8px;
   }
   .printFieldLabel {
-    font-size: 8pt;
-    font-weight: 700;
-    color: #718096;
+    font-size: 9pt;
+    font-weight: bold;
+    color: #000;
     text-transform: uppercase;
   }
   .printFieldValue {
-    font-size: 10pt;
-    font-weight: 700;
-    color: #1B2A4A;
+    font-size: 9pt;
+    color: #000;
   }
   .printFooter {
     display: block;
@@ -430,11 +530,11 @@
     bottom: 0;
     left: 0;
     right: 0;
-    text-align: center;
-    border-top: 1px solid #e2e8f0;
+    text-align: right;
+    border-top: none;
     padding-top: 8pt;
-    font-size: 8pt;
-    color: #a0aec0;
+    font-size: 7pt;
+    color: #666;
   }
 }
 
