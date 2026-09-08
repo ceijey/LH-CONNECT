@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { type Transaction, type DocumentReference } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
+import { allocatePaymentToStatements } from '@/lib/payment-allocation';
 
 function toMillis(value: any) {
   if (!value) return 0;
@@ -92,15 +93,6 @@ async function finalizeSubmission(doc: any, payload: any) {
   );
 
   const paymentRef = adminDb.collection('payments').doc(doc.id);
-  const statementsRef = adminDb.collection('statements');
-  const subMonthStr = String(month || '').toLowerCase();
-  const targetStmt = residentId
-    ? (await statementsRef.where('residentId', '==', residentId).get()).docs.find((stmtDoc: any) => {
-        const stmtData = stmtDoc.data();
-        const stmtTarget = `${stmtData.month} ${stmtData.year}`.toLowerCase();
-        return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
-      }) ?? null
-    : null;
 
   const finalized = await adminDb.runTransaction(async (transaction: Transaction) => {
     const freshSubmission = await transaction.get(doc.ref as DocumentReference);
@@ -113,17 +105,16 @@ async function finalizeSubmission(doc: any, payload: any) {
       return false;
     }
 
-    transaction.update(doc.ref, {
-      status: 'Verified',
-      verifiedAt: now,
-      verifiedDate: now.toLocaleString(),
-      updatedAt: now,
-      paymongoStatus: 'paid',
-      paymongoEventType: eventType || 'paid',
-      paymongoReferenceNumber: paymentReference,
-    });
-
     if (!residentId) {
+      transaction.update(doc.ref, {
+        status: 'Verified',
+        verifiedAt: now,
+        verifiedDate: now.toLocaleString(),
+        updatedAt: now,
+        paymongoStatus: 'paid',
+        paymongoEventType: eventType || 'paid',
+        paymongoReferenceNumber: paymentReference,
+      });
       return true;
     }
 
@@ -138,6 +129,21 @@ async function finalizeSubmission(doc: any, payload: any) {
     transaction.update(residentRef, {
       balance: Math.max(0, currentBalance - paymentAmount),
       updatedAt: now.toISOString(),
+    });
+    await allocatePaymentToStatements(
+      transaction,
+      adminDb.collection('statements'),
+      residentId,
+      paymentAmount,
+    );
+    transaction.update(doc.ref, {
+      status: 'Verified',
+      verifiedAt: now,
+      verifiedDate: now.toLocaleString(),
+      updatedAt: now,
+      paymongoStatus: 'paid',
+      paymongoEventType: eventType || 'paid',
+      paymongoReferenceNumber: paymentReference,
     });
 
     transaction.create(paymentRef, {
@@ -155,20 +161,6 @@ async function finalizeSubmission(doc: any, payload: any) {
       date: now.toLocaleDateString(),
       source: 'paymongo',
     });
-
-    if (targetStmt) {
-      const stmtData = targetStmt.data();
-      const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
-      const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
-      const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
-
-      transaction.update(statementsRef.doc(targetStmt.id), {
-        amountPaid: newAmountPaid,
-        balance: newBalance,
-        status: newStatus,
-        updatedAt: now.toISOString(),
-      });
-    }
 
     return true;
   });

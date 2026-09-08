@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { type DocumentReference, type Transaction } from 'firebase-admin/firestore';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
 import { logAuditAction } from '@/lib/audit-logger';
+import { allocatePaymentToStatements } from '@/lib/payment-allocation';
 
 export async function POST(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
@@ -27,10 +29,13 @@ export async function POST(request: NextRequest) {
     const adminName = adminData.fullName || adminData.name || 'Admin';
 
     const body = await request.json();
-    const { residentId, paymentAmount, paymentMethod = 'Cash', month, notes } = body;
+    const { residentId, paymentAmount, paymentMethod = 'Cash', month, notes, orNumber } = body;
 
-    if (!residentId || !paymentAmount || !month) {
-      return createErrorResponse('Missing required fields: residentId, paymentAmount, month', 400);
+    if (!residentId || !paymentAmount || !month || !orNumber?.trim()) {
+      return createErrorResponse('Missing required fields: residentId, paymentAmount, month, orNumber', 400);
+    }
+    if (!/^\d+$/.test(orNumber.trim())) {
+      return createErrorResponse('OR number must contain numbers only', 400);
     }
 
     const residentRef = adminDb.collection('users').doc(residentId);
@@ -54,7 +59,7 @@ export async function POST(request: NextRequest) {
       blockLot,
       paymentAmount: amount,
       paymentMethod,
-      referenceNumber: `CASH-${Date.now()}`,
+      referenceNumber: orNumber.trim(),
       notes: notes || 'Manual cash payment recorded by admin',
       status: 'Verified',
       month,
@@ -66,12 +71,24 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     });
 
-    // 2. Update resident balance
-    const currentBalance = Number(residentData.balance ?? 0);
-    const newBalance = Math.max(0, currentBalance - amount);
-    await residentRef.update({
-      balance: newBalance,
-      updatedAt: now.toISOString()
+    // 2. Update resident balance and allocate payment across unpaid months
+    await adminDb.runTransaction(async (transaction: Transaction) => {
+      const freshResident = await transaction.get(residentRef as DocumentReference);
+      if (!freshResident.exists) {
+        throw new Error('Resident not found');
+      }
+
+      const currentBalance = Number(freshResident.data()?.balance ?? 0);
+      await allocatePaymentToStatements(
+        transaction,
+        adminDb.collection('statements'),
+        residentId,
+        amount,
+      );
+      transaction.update(residentRef, {
+        balance: Math.max(0, currentBalance - amount),
+        updatedAt: now.toISOString(),
+      });
     });
 
     // 3. Create official payment record
@@ -82,43 +99,13 @@ export async function POST(request: NextRequest) {
       type: 'Payment',
       description: `Manual Payment - ${month}`,
       paymentMethod,
-      referenceNumber: `CASH-${Date.now()}`,
+      referenceNumber: orNumber.trim(),
       status: 'Paid',
       createdAt: now,
       date: now.toLocaleDateString(),
     });
 
-    // 4. Sync Statement record
-    try {
-      const subMonthStr = String(month || '').toLowerCase();
-      const statementsRef = adminDb.collection('statements');
-      const stmtSnapshot = await statementsRef.where('residentId', '==', residentId).get();
-
-      const targetStmt = stmtSnapshot.docs.find((doc: any) => {
-        const d = doc.data();
-        const stmtTarget = `${d.month} ${d.year}`.toLowerCase();
-        return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
-      });
-
-      if (targetStmt) {
-        const stmtData = targetStmt.data();
-        const newAmountPaid = Number(stmtData.amountPaid || 0) + amount;
-        const stmtTotalDues = Number(stmtData.totalDues || 0);
-        const newStmtBalance = Math.max(0, stmtTotalDues - newAmountPaid);
-        const newStatus = newStmtBalance === 0 ? 'Paid' : 'Pending';
-
-        await statementsRef.doc(targetStmt.id).update({
-          amountPaid: newAmountPaid,
-          balance: newStmtBalance,
-          status: newStatus,
-          updatedAt: now.toISOString()
-        });
-      }
-    } catch (stmtErr: any) {
-      console.error('[ManualPayment] Failed to sync statement:', stmtErr.message);
-    }
-
-    // 5. Notify resident
+    // 4. Notify resident
     await adminDb.collection('notifications').add({
       userId: residentId,
       title: 'Payment Received',
@@ -129,7 +116,7 @@ export async function POST(request: NextRequest) {
       submissionId: submissionRef.id
     });
 
-    // 6. Send Email if possible
+    // 5. Send Email if possible
     if (residentEmail) {
       try {
         await sendPaymentVerifiedEmail({

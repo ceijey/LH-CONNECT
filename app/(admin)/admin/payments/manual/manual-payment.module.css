@@ -429,6 +429,11 @@
   border-color: #cbd5e1;
 }
 
+.tableInput[aria-invalid='true'] {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
 .tableInput:focus {
   outline: none;
   border-color: #3b82f6;
@@ -805,4 +810,3 @@
     width: 100%;
   }
 }
-

@@ -120,7 +120,7 @@ export default function AdminBilling() {
 
   // Toggle selection for a single resident
   const handleToggleSelect = (id: string) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id]
     );
   };
@@ -143,11 +143,11 @@ export default function AdminBilling() {
     const yyyy = selectedYear;
     const mm = String(monthIndex + 1).padStart(2, '0');
     setMonthYear(`${yyyy}-${mm}`);
-    
+
     // If user already selected some, use those; otherwise select all residents
     const idsToSelect = selectedIds.length > 0 ? selectedIds : allResidents.map(r => r.id);
     setSelectedIds(idsToSelect);
-    
+
     setIsMonthModalOpen(false);
 
     if (idsToSelect.length === 1) {
@@ -418,18 +418,7 @@ export default function AdminBilling() {
                 />
               </div>
 
-              <div className={styles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <input
-                  type="checkbox"
-                  id="isPaid"
-                  checked={isPaid}
-                  onChange={e => setIsPaid(e.target.checked)}
-                  style={{ width: '1rem', height: '1rem' }}
-                />
-                <label htmlFor="isPaid" className={styles.formLabel} style={{ cursor: 'pointer', margin: 0 }}>
-                  Mark as PAID
-                </label>
-              </div>
+
             </div>
             <div className={styles.modalFooter}>
               <button className={styles.cancelBtn} onClick={closeModal}>Cancel</button>
@@ -451,14 +440,14 @@ export default function AdminBilling() {
             </div>
             <div className={styles.modalBody}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <button 
+                <button
                   onClick={() => setSelectedYear(y => y - 1)}
                   style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#4b5563' }}
                 >
                   ◀
                 </button>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1f2937' }}>{selectedYear}</h3>
-                <button 
+                <button
                   onClick={() => setSelectedYear(y => y + 1)}
                   style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#4b5563' }}
                 >
@@ -475,39 +464,39 @@ export default function AdminBilling() {
                   const isDisabled = selectedYear > currentYear || (selectedYear === currentYear && index > currentMonth);
 
                   return (
-                  <button
-                    key={month}
-                    disabled={isDisabled}
-                    onClick={() => handleMonthSelect(index)}
-                    style={{
-                      padding: '12px 8px',
-                      background: isDisabled ? '#f9fafb' : '#f3f4f6',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                      fontWeight: 500,
-                      color: isDisabled ? '#9ca3af' : '#374151',
-                      opacity: isDisabled ? 0.6 : 1,
-                      filter: isDisabled ? 'blur(0.5px)' : 'none',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseOver={(e) => {
-                      if (!isDisabled) {
-                        e.currentTarget.style.background = '#e0e7ff';
-                        e.currentTarget.style.borderColor = '#c7d2fe';
-                        e.currentTarget.style.color = '#4338ca';
-                      }
-                    }}
-                    onMouseOut={(e) => {
-                      if (!isDisabled) {
-                        e.currentTarget.style.background = '#f3f4f6';
-                        e.currentTarget.style.borderColor = '#e5e7eb';
-                        e.currentTarget.style.color = '#374151';
-                      }
-                    }}
-                  >
-                    {month}
-                  </button>
+                    <button
+                      key={month}
+                      disabled={isDisabled}
+                      onClick={() => handleMonthSelect(index)}
+                      style={{
+                        padding: '12px 8px',
+                        background: isDisabled ? '#f9fafb' : '#f3f4f6',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        fontWeight: 500,
+                        color: isDisabled ? '#9ca3af' : '#374151',
+                        opacity: isDisabled ? 0.6 : 1,
+                        filter: isDisabled ? 'blur(0.5px)' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => {
+                        if (!isDisabled) {
+                          e.currentTarget.style.background = '#e0e7ff';
+                          e.currentTarget.style.borderColor = '#c7d2fe';
+                          e.currentTarget.style.color = '#4338ca';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (!isDisabled) {
+                          e.currentTarget.style.background = '#f3f4f6';
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.color = '#374151';
+                        }
+                      }}
+                    >
+                      {month}
+                    </button>
                   );
                 })}
               </div>
@@ -524,28 +513,28 @@ export default function AdminBilling() {
             bills={
               selectedResident
                 ? [{
-                    residentName: selectedResident.name,
-                    blockLot: `${selectedResident.phase} Blk. ${selectedResident.block} Lot ${selectedResident.lot}`,
+                  residentName: selectedResident.name,
+                  blockLot: `${selectedResident.phase} Blk. ${selectedResident.block} Lot ${selectedResident.lot}`,
+                  periodCovered: formatPeriodDisplay(monthYear),
+                  monthlyDueBill: MONTHLY_DUE,
+                  arrears: numericArrears,
+                  totalAmountDue: totalAmountDue,
+                  dueDate: formatDueDateDisplay(dueDate),
+                  isPaid: isPaid
+                }]
+                : allResidents.filter(r => selectedIds.includes(r.id)).map(res => {
+                  const resArrearsVal = parseFloat(batchArrears[res.id]) || 0;
+                  return {
+                    residentName: res.name,
+                    blockLot: `${res.phase} Blk. ${res.block} Lot ${res.lot}`,
                     periodCovered: formatPeriodDisplay(monthYear),
                     monthlyDueBill: MONTHLY_DUE,
-                    arrears: numericArrears,
-                    totalAmountDue: totalAmountDue,
+                    arrears: resArrearsVal,
+                    totalAmountDue: MONTHLY_DUE + resArrearsVal,
                     dueDate: formatDueDateDisplay(dueDate),
                     isPaid: isPaid
-                  }]
-                : allResidents.filter(r => selectedIds.includes(r.id)).map(res => {
-                    const resArrearsVal = parseFloat(batchArrears[res.id]) || 0;
-                    return {
-                      residentName: res.name,
-                      blockLot: `${res.phase} Blk. ${res.block} Lot ${res.lot}`,
-                      periodCovered: formatPeriodDisplay(monthYear),
-                      monthlyDueBill: MONTHLY_DUE,
-                      arrears: resArrearsVal,
-                      totalAmountDue: MONTHLY_DUE + resArrearsVal,
-                      dueDate: formatDueDateDisplay(dueDate),
-                      isPaid: isPaid
-                    };
-                  })
+                  };
+                })
             }
           />
         </div>

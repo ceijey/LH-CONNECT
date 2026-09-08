@@ -16,6 +16,21 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') || 'Monthly Report';
 
   try {
+    const getDateKey = (value: unknown): string | null => {
+      if (!value) return null;
+
+      const rawDate = typeof value === 'object' && value !== null && 'toDate' in value
+        ? (value as { toDate: () => Date }).toDate()
+        : new Date(String(value));
+
+      if (Number.isNaN(rawDate.getTime())) return null;
+
+      const year = rawDate.getFullYear();
+      const month = String(rawDate.getMonth() + 1).padStart(2, '0');
+      const day = String(rawDate.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     // 1. Fetch all residents
     const residentsSnapshot = await adminDb
       .collection('users')
@@ -30,10 +45,9 @@ export async function GET(request: NextRequest) {
     // 2. Fetch submissions
     let submissionsQuery: any = adminDb.collection('payment_submissions');
     
-    if (type === 'Daily Report' && dateStr) {
-      // For daily report, we filter by the exact day in the 'submittedDate'
-      submissionsQuery = submissionsQuery.where('submittedDate', '>=', `${dateStr}T00:00:00`);
-      submissionsQuery = submissionsQuery.where('submittedDate', '<=', `${dateStr}T23:59:59`);
+    if (type === 'Daily Report') {
+      // submittedDate is stored as a localized display string, so filter using
+      // the timestamp fields in memory instead of an invalid Firestore range.
     } else if (type === 'Delinquency Report') {
       // For delinquency, we look at all residents with balance > 0
     } else if (type === 'Annual Report') {
@@ -52,6 +66,18 @@ export async function GET(request: NextRequest) {
       id: doc.id,
       ...doc.data()
     }));
+
+    if (type === 'Daily Report' && dateStr) {
+      submissions = submissions.filter((submission: any) => {
+        const submissionDate = getDateKey(
+          submission.submittedAt ??
+          submission.verifiedAt ??
+          submission.createdAt ??
+          submission.submittedDate,
+        );
+        return submissionDate === dateStr;
+      });
+    }
 
     // Perform in-memory filtering for Annual Report by checking if month ends with the selected year
     if (type === 'Annual Report') {

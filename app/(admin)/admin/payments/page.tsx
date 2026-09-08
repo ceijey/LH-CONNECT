@@ -63,6 +63,12 @@ export default function AdminPayments() {
     imageUrl: ''
   });
   const [rejectionReason, setRejectionReason] = useState('');
+  const [verificationModal, setVerificationModal] = useState<{
+    isOpen: boolean;
+    payment: PaymentSubmission | null;
+  }>({ isOpen: false, payment: null });
+  const [orNumber, setOrNumber] = useState('');
+  const [verificationError, setVerificationError] = useState('');
 
   const detectProofKind = (payment: PaymentSubmission): ProofKind => {
     const sample = `${payment.fileName || ''} ${payment.filePath || ''} ${payment.fileUrl || ''}`.toLowerCase();
@@ -110,6 +116,34 @@ export default function AdminPayments() {
         });
       }
       // Refresh list
+      fetchPayments();
+    } catch (error: any) {
+      alert(`Error: ${error.message || 'Operation failed'}`);
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    const payment = verificationModal.payment;
+    if (!payment) return;
+
+    if (!orNumber.trim()) {
+      setVerificationError('Input OR number');
+      return;
+    }
+
+    setVerificationError('');
+    setVerificationModal({ isOpen: false, payment: null });
+    const submittedOrNumber = orNumber.trim();
+    setOrNumber('');
+
+    try {
+      await apiCall(`/api/payment-submissions/${payment.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: 'Verified',
+          orNumber: submittedOrNumber,
+        }),
+      });
       fetchPayments();
     } catch (error: any) {
       alert(`Error: ${error.message || 'Operation failed'}`);
@@ -214,6 +248,77 @@ export default function AdminPayments() {
 
   return (
     <>
+      {verificationModal.isOpen && verificationModal.payment && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="verify-payment-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            background: 'rgba(15, 23, 42, 0.55)',
+          }}
+        >
+          <div style={{ width: '100%', maxWidth: '520px', borderRadius: '16px', background: '#fff', padding: '24px', boxShadow: '0 20px 60px rgba(15, 23, 42, 0.25)' }}>
+            <h2 id="verify-payment-title" style={{ margin: '0 0 6px', color: '#0f172a' }}>Verify Payment</h2>
+            <p style={{ margin: '0 0 20px', color: '#64748b' }}>Review the payment details and enter the OR number.</p>
+
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <label>
+                <span style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Name</span>
+                <input value={verificationModal.payment.residentName} disabled style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f1f5f9' }} />
+              </label>
+              <label>
+                <span style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Address</span>
+                <input value={verificationModal.payment.blockLot} disabled style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f1f5f9' }} />
+              </label>
+              <label>
+                <span style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Amount</span>
+                <input value={`₱${verificationModal.payment.paymentAmount.toLocaleString()}`} disabled style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f1f5f9' }} />
+              </label>
+              <label>
+                <span style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>Months</span>
+                <input value={verificationModal.payment.month || '—'} disabled style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f1f5f9' }} />
+              </label>
+              <label>
+                <span style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>OR Number</span>
+                <input
+                  autoFocus
+                  value={orNumber}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  onChange={(event) => {
+                    setOrNumber(event.target.value.replace(/\D/g, ''));
+                    setVerificationError('');
+                  }}
+                  aria-invalid={Boolean(verificationError)}
+                  style={{ width: '100%', padding: '10px', border: `1px solid ${verificationError ? '#dc2626' : '#2563eb'}`, borderRadius: '8px', background: '#fff' }}
+                />
+                {verificationError && <span style={{ display: 'block', marginTop: '6px', color: '#dc2626', fontSize: '0.875rem' }}>{verificationError}</span>}
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
+              <button type="button" className={styles.rejectBtn} onClick={() => {
+                setVerificationModal({ isOpen: false, payment: null });
+                setOrNumber('');
+                setVerificationError('');
+              }}>
+                Cancel
+              </button>
+              <button type="button" className={styles.approveBtn} onClick={handleVerifyPayment}>
+                Verify Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmationModal
         isOpen={actionModal.isOpen}
         title={actionModal.type === 'Reject' ? 'Decline Payment' : `${actionModal.type} Payment`}
@@ -417,13 +522,11 @@ export default function AdminPayments() {
                               <button 
                                 className={styles.approveBtn} 
                                 title="Approve Payment"
-                                onClick={() => setActionModal({
-                                  isOpen: true,
-                                  type: 'Approve',
-                                  id: payment.id,
-                                  name: payment.residentName,
-                                  imageUrl: proofKind === 'image' ? proofSrc : undefined
-                                })}
+                                onClick={() => {
+                                  setVerificationModal({ isOpen: true, payment });
+                                  setOrNumber('');
+                                  setVerificationError('');
+                                }}
                               >
                                 ✓ Verify Payment
                               </button>

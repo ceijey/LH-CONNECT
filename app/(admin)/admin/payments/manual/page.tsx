@@ -12,6 +12,7 @@ interface Resident {
   block?: string;
   lot?: string;
   email?: string;
+  balance?: number;
 }
 
 export default function ManualPaymentPage() {
@@ -20,18 +21,17 @@ export default function ManualPaymentPage() {
   const [selectedResidentId, setSelectedResidentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
-  const [amount] = useState('400');
-  const [cashSale, setCashSale] = useState('400');
+  const [cashSale, setCashSale] = useState('');
   const [chargeSale, setChargeSale] = useState('0');
   const [cashSaleChecked, setCashSaleChecked] = useState(true);
   const [chargeSaleChecked, setChargeSaleChecked] = useState(false);
-  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [orNumber, setOrNumber] = useState('');
   const [dateSoldTo, setDateSoldTo] = useState('');
   const [registeredName, setRegisteredName] = useState('');
   const [tin, setTin] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
   const [lineItems, setLineItems] = useState([
-    { natureOfService: 'Monthly Dues', quantity: '1', unitPrice: '400' }
+    { natureOfService: 'Monthly Dues', particular: '', amount: '' }
   ]);
   const [month, setMonth] = useState('');
   const [notes, setNotes] = useState('');
@@ -66,12 +66,9 @@ export default function ManualPaymentPage() {
   );
 
   const selectedResident = residents.find(r => r.id === selectedResidentId);
-  const saleAmount = lineItems.reduce((sum, item) => {
-    const itemTotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
-    return sum + itemTotal;
-  }, 0);
+  const saleAmount = lineItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
-  const handleLineItemChange = (index: number, field: 'natureOfService' | 'quantity' | 'unitPrice', value: string) => {
+  const handleLineItemChange = (index: number, field: 'natureOfService' | 'particular' | 'amount', value: string) => {
     setLineItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
   };
 
@@ -79,6 +76,11 @@ export default function ManualPaymentPage() {
     setSelectedResidentId(resident.id);
     setRegisteredName(resident.fullName);
     setShowResults(false);
+    setLineItems(prev => prev.map((item, index) => (
+      index === 0
+        ? { ...item, amount: String(Math.max(0, Number(resident.balance ?? 0))) }
+        : item
+    )));
 
     // Auto-populate Business Address from resident's phase/block/lot
     // Strip any existing "Phase/Block/Lot" prefixes to avoid duplication
@@ -99,8 +101,14 @@ export default function ManualPaymentPage() {
     setError('');
     setIsSubmitting(true);
 
-    if (!selectedResidentId || !amount || !month) {
-      setError('Please select a resident and billing period.');
+    if (!orNumber.trim()) {
+      setError('Input OR number');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!selectedResidentId || !month || saleAmount <= 0) {
+      setError('Please select a resident, billing period, and enter a valid amount.');
       setIsSubmitting(false);
       return;
     }
@@ -115,22 +123,22 @@ export default function ManualPaymentPage() {
         method: 'POST',
         body: JSON.stringify({
           residentId: selectedResidentId,
-          paymentAmount: Number(amount),
+          paymentAmount: saleAmount,
+          orNumber: orNumber.trim(),
           month: formattedMonth,
           notes,
           paymentMethod: 'Cash',
           cashSale: Number(cashSale),
           chargeSale: Number(chargeSale),
-          invoiceNumber,
+          invoiceNumber: orNumber.trim(),
           dateSoldTo,
           registeredName,
           tin,
           businessAddress,
           invoiceItems: lineItems.map(item => ({
             natureOfService: item.natureOfService,
-            quantity: Number(item.quantity || 0),
-            unitPrice: Number(item.unitPrice || 0),
-            amount: Number(item.quantity || 0) * Number(item.unitPrice || 0),
+            particular: item.particular,
+            amount: Number(item.amount || 0),
           })),
           totalSale: saleAmount,
           discountPwd: 0,
@@ -160,7 +168,7 @@ export default function ManualPaymentPage() {
     }
 
     const invoiceTitle = cashSaleChecked ? 'CASH SALE INVOICE' : chargeSaleChecked ? 'CHARGE SALE INVOICE' : 'SERVICE INVOICE';
-    const invoiceNum = invoiceNumber || 'N/A';
+    const invoiceNum = orNumber.trim() || 'N/A';
     const invoiceDate = formattedPrintDate || 'N/A';
     const clientName = registeredName || 'Resident';
     const clientAddress = businessAddress || 'N/A';
@@ -168,18 +176,18 @@ export default function ManualPaymentPage() {
     // Get non-empty line items
     const activeItems = lineItems.filter(item => item.natureOfService.trim() !== '');
     if (activeItems.length === 0) {
-      activeItems.push({ natureOfService: 'Monthly Dues', quantity: '1', unitPrice: '400' });
+      activeItems.push({ natureOfService: 'Monthly Dues', particular: '', amount: '' });
     }
 
     const tableRowsHtml = activeItems.map(item => {
-      const qty = item.quantity || '1';
-      const price = Number(item.unitPrice || 0);
-      const amount = Number(qty) * price;
+      const particular = item.particular
+        ? new Date(`${item.particular}-01T00:00:00`).toLocaleString(undefined, { month: 'long', year: 'numeric' })
+        : 'N/A';
+      const amount = Number(item.amount || 0);
       return `
         <tr>
           <td style="font-weight: 700;">${item.natureOfService}</td>
-          <td style="text-align: center;">${qty}</td>
-          <td style="text-align: right;">₱${price.toLocaleString()}</td>
+          <td style="text-align: center;">${particular}</td>
           <td style="font-weight: 800; text-align: right;">₱${amount.toLocaleString()}</td>
         </tr>
       `;
@@ -527,12 +535,15 @@ export default function ManualPaymentPage() {
                     </label>
                   </div>
                   <div className={styles.invoiceFieldRow}>
-                    <label className={styles.invoiceFieldLabel}>Invoice No.</label>
+                    <label className={styles.invoiceFieldLabel}>OR Number</label>
                     <input
                       type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className={styles.tableInput}
-                      value={invoiceNumber}
-                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      value={orNumber}
+                      onChange={(e) => setOrNumber(e.target.value.replace(/\D/g, ''))}
+                      aria-invalid={!orNumber.trim()}
                     />
                   </div>
                   <div className={styles.invoiceFieldRow}>
@@ -574,7 +585,9 @@ export default function ManualPaymentPage() {
                                   onClick={() => handleSelectResident(r)}
                                 >
                                   <span className={styles.resultName}>{r.fullName}</span>
-                                  <span className={styles.resultAddr}>Ph{r.phase} B{r.block} L{r.lot}</span>
+                                  <span className={styles.resultAddr}>
+                                    Ph{r.phase} B{r.block} L{r.lot} • Balance: ₱{Number(r.balance ?? 0).toLocaleString()}
+                                  </span>
                                 </div>
                               ))
                             ) : (
@@ -614,14 +627,12 @@ export default function ManualPaymentPage() {
                     <thead>
                       <tr>
                         <th>Nature of Service</th>
-                        <th>Quantity</th>
-                        <th>Unit Price</th>
+                        <th>Particular</th>
                         <th>Amount</th>
                       </tr>
                     </thead>
                     <tbody>
                       {lineItems.map((item, rowIndex) => {
-                        const itemAmount = Number(item.quantity || 0) * Number(item.unitPrice || 0);
                         return (
                           <tr key={`item-row-${rowIndex}`}>
                             <td>
@@ -635,26 +646,22 @@ export default function ManualPaymentPage() {
                             </td>
                             <td>
                               <input
-                                type="number"
-                                min="0"
+                                type="month"
                                 className={styles.tableInput}
-                                value={item.quantity}
-                                onChange={(e) => handleLineItemChange(rowIndex, 'quantity', e.target.value)}
-                                disabled={rowIndex === 0}
+                                value={item.particular}
+                                onChange={(e) => handleLineItemChange(rowIndex, 'particular', e.target.value)}
                               />
                             </td>
                             <td>
                               <input
                                 type="number"
-                                min="0"
+                                min="0.01"
+                                step="0.01"
                                 className={styles.tableInput}
-                                value={item.unitPrice}
-                                onChange={(e) => handleLineItemChange(rowIndex, 'unitPrice', e.target.value)}
-                                disabled={rowIndex === 0}
+                                value={item.amount}
+                                aria-invalid={saleAmount <= 0}
+                                onChange={(e) => handleLineItemChange(rowIndex, 'amount', e.target.value)}
                               />
-                            </td>
-                            <td>
-                              <div className={styles.staticCell}>₱{itemAmount.toLocaleString()}</div>
                             </td>
                           </tr>
                         );
@@ -679,17 +686,17 @@ export default function ManualPaymentPage() {
             <div className={styles.fullWidth}>
               <div className={styles.sectionHeader}>
                 <div>
-                  <p className={styles.sectionLabel}>Notes</p>
-                  <h2 className={styles.sectionTitle}>Payment reference</h2>
+                  <p className={styles.sectionLabel}>Note</p>
+                  <h2 className={styles.sectionTitle}>Note</h2>
                 </div>
-                <p className={styles.sectionNote}>Add optional notes for the receipt or admin record.</p>
+                <p className={styles.sectionNote}>Add an optional note for the receipt or admin record.</p>
               </div>
 
               <div className={styles.formGroup}>
                 <textarea
                   className={styles.textarea}
                   rows={4}
-                  placeholder="e.g. Cash payment made at admin office, reference memo #123..."
+                  placeholder="e.g. Cash payment made at admin office..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />

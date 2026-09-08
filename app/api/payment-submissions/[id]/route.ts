@@ -5,6 +5,7 @@ import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { sendPaymentStatusEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
 import { logAuditAction } from '@/lib/audit-logger';
+import { allocatePaymentToStatements } from '@/lib/payment-allocation';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,9 +32,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const adminName = userData.fullName || userData.name || 'Admin';
 
     const body = await request.json();
-    const { status, rejectionReason } = body as { status?: string; rejectionReason?: string };
+    const { status, rejectionReason, orNumber } = body as { status?: string; rejectionReason?: string; orNumber?: string };
     if (!status || !['Verified', 'Pending', 'Rejected'].includes(status)) {
       return createErrorResponse('Invalid status', 400);
+    }
+    if (status === 'Verified' && !orNumber?.trim()) {
+      return createErrorResponse('Input OR number', 400);
+    }
+    if (status === 'Verified' && !/^\d+$/.test(orNumber?.trim() ?? '')) {
+      return createErrorResponse('OR number must contain numbers only', 400);
     }
 
     const docRef = adminDb.collection('payment_submissions').doc(id);
@@ -72,17 +79,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updatePayload.verifiedAt = now;
       updatePayload.verifiedDate = now.toLocaleString();
       updatePayload.rejectionReason = null; // Clear any previous reason
-
-      const statementsRef = adminDb.collection('statements');
-      const subMonthStr = String(submissionData.month || '').toLowerCase();
-      const stmtSnapshot = residentId
-        ? await statementsRef.where('residentId', '==', residentId).get()
-        : null;
-      const targetStmt = stmtSnapshot?.docs.find((statementDoc: any) => {
-        const statementData = statementDoc.data();
-        const stmtTarget = `${statementData.month} ${statementData.year}`.toLowerCase();
-        return subMonthStr.includes(stmtTarget) || stmtTarget.includes(subMonthStr);
-      }) ?? null;
+      updatePayload.referenceNumber = orNumber!.trim();
 
       let verificationApplied = false;
 
@@ -106,6 +103,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           }
 
           const currentBalance = Number(residentDoc.data()?.balance ?? 0);
+          await allocatePaymentToStatements(
+            transaction,
+            adminDb.collection('statements'),
+            residentId,
+            paymentAmount,
+          );
           transaction.update(residentRef, {
             balance: Math.max(0, currentBalance - paymentAmount),
             updatedAt: now.toISOString()
@@ -120,27 +123,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             type: 'Payment',
             description: `Monthly Dues - ${month}`,
             paymentMethod: submissionData.paymentMethod,
-            referenceNumber: submissionData.referenceNumber,
+            referenceNumber: orNumber!.trim(),
             submissionId: id,
             fileUrl: submissionData.fileUrl || null,
             status: 'Paid',
             createdAt: now,
             date: now.toLocaleDateString(),
           });
-
-          if (targetStmt) {
-            const stmtData = targetStmt.data();
-            const newAmountPaid = Number(stmtData.amountPaid || 0) + paymentAmount;
-            const newBalance = Math.max(0, Number(stmtData.totalDues || 0) - newAmountPaid);
-            const newStatus = newBalance === 0 ? 'Paid' : 'Pending';
-
-            transaction.update(statementsRef.doc(targetStmt.id), {
-              amountPaid: newAmountPaid,
-              balance: newBalance,
-              status: newStatus,
-              updatedAt: now.toISOString()
-            });
-          }
 
           return true;
         });
