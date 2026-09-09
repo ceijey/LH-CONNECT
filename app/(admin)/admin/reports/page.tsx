@@ -69,6 +69,19 @@ export default function AdminReports() {
 
   const years = ['2024', '2025', '2026', '2027', '2028', '2029', '2030'];
 
+  const isDigitalPayment = (method?: string) => {
+    const normalized = String(method ?? '').toLowerCase();
+    return normalized.includes('paymongo') || normalized.includes('gcash') || normalized.includes('maya');
+  };
+
+  const getReportPaymentMethod = (method?: string) => (
+    isDigitalPayment(method) ? 'GCASH' : (method?.toUpperCase() || 'CASH')
+  );
+
+  const formatReferenceNumber = (referenceNumber?: string) => (
+    String(referenceNumber ?? '').replace(/^PAYMONGO-/i, '') || '—'
+  );
+
   const getFormattedPeriod = () => {
     if (selectedReportType === 'Daily Report') {
       if (!selectedDate) return '';
@@ -203,10 +216,8 @@ export default function AdminReports() {
       const householdNo = `P${row.block}B${row.lot}`;
       const name = row.resident;
       const address = `BLK. ${row.block} LOT ${row.lot}`;
-      const orNo = (row as any).referenceNumber || '—';
-      const remarks = row.paymentMethod === 'Gcash' || row.paymentMethod === 'GCash'
-        ? 'GCASH'
-        : (row.paymentMethod?.toUpperCase() || 'CASH');
+      const orNo = formatReferenceNumber((row as any).referenceNumber);
+      const remarks = getReportPaymentMethod(row.paymentMethod);
 
       currentMonthTotal += currentMonthAmount;
       arrearsTotal += arrearsAmount;
@@ -400,7 +411,7 @@ export default function AdminReports() {
         const householdNo = `B${row.block}L${row.lot}`;
         const name = row.resident;
         const address = `Blk. ${row.block} Lot ${row.lot}`;
-        const orNo = (row as any).referenceNumber || '';
+        const orNo = formatReferenceNumber((row as any).referenceNumber);
         
         let currentMonthAmount = 0;
         let currentMonthLabel = '';
@@ -421,7 +432,7 @@ export default function AdminReports() {
         const particular = '';
         const othersAmount = 0;
         const total = row.amountPaid;
-        const remarks = row.paymentMethod === 'Gcash' || row.paymentMethod === 'GCash' ? 'GCASH' : (row.paymentMethod?.toUpperCase() || '');
+        const remarks = getReportPaymentMethod(row.paymentMethod);
 
         if (remarks === 'GCASH' || remarks.includes('GCASH')) gcashTotal += total;
 
@@ -768,7 +779,7 @@ export default function AdminReports() {
                       <td>Blk {row.block} Lot {row.lot}</td>
                       <td>{row.resident}</td>
                       <td>
-                        {selectedReportType === 'Daily Report' ? (row as any).referenceNumber : `₱${row.monthlyDues.toLocaleString()}`}
+                        {selectedReportType === 'Daily Report' ? formatReferenceNumber((row as any).referenceNumber) : `₱${row.monthlyDues.toLocaleString()}`}
                       </td>
                       <td style={{ color: row.amountPaid > 0 ? '#16a34a' : '#64748b', fontWeight: 700 }}>
                         ₱{row.amountPaid.toLocaleString()}

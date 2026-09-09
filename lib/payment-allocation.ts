@@ -19,7 +19,7 @@ const MONTH_NAMES = [
   'december',
 ];
 
-function statementTime(data: Record<string, unknown>): number {
+export function statementTime(data: Record<string, unknown>): number {
   const monthText = String(data.month ?? '').toLowerCase();
   const month = MONTH_NAMES.findIndex((name) => monthText.includes(name));
   const monthYear = monthText.match(/\b(20\d{2})\b/)?.[1];
@@ -47,6 +47,7 @@ export async function allocatePaymentToStatements(
   const statements = [...statementSnapshot.docs].sort(
     (a, b) => statementTime(a.data()) - statementTime(b.data()),
   );
+  const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
 
   let remaining = paymentAmount;
 
@@ -54,6 +55,7 @@ export async function allocatePaymentToStatements(
     if (remaining <= 0) break;
 
     const data = statement.data();
+    if (statementTime(data) > currentMonthStart) continue;
     const totalDues = Math.max(0, Number(data.totalDues ?? MONTHLY_DUES));
     const amountPaid = Math.max(0, Number(data.amountPaid ?? 0));
     const currentBalance = Math.max(0, totalDues - amountPaid);

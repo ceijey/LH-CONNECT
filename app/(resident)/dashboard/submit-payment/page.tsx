@@ -241,6 +241,7 @@ export default function SubmitPaymentPage() {
   const [selectedBank, setSelectedBank] = useState('BDO');
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [oldestUnpaidMonth, setOldestUnpaidMonth] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
@@ -252,14 +253,13 @@ export default function SubmitPaymentPage() {
   });
 
   const currentMonthSubmission = recentSubmissions.find((submission) => {
-    const monthMatches = String(submission.month || '').toLowerCase() === currentMonthLabel.toLowerCase();
+    const monthMatches = String(submission.month || '').toLowerCase() === String(oldestUnpaidMonth || '').toLowerCase();
     const status = String(submission.status || '').toLowerCase();
-    return monthMatches && (status === 'pending' || status === 'verified');
+    return monthMatches && status === 'pending';
   });
   const isMonthlyPaymentLocked = Boolean(currentMonthSubmission);
-  const monthlyLockMessage = currentMonthSubmission?.status === 'Verified'
-    ? `You already paid for ${currentMonthLabel}.`
-    : `You already have a pending submission for ${currentMonthLabel}. Please wait for HOA verification before submitting another payment.`;
+  const paymentStatusMonth = oldestUnpaidMonth ?? currentMonthLabel;
+  const monthlyLockMessage = `You already have a pending payment for ${paymentStatusMonth}. Please wait for HOA verification before submitting another payment.`;
 
   useEffect(() => {
     setIsMounted(true);
@@ -296,6 +296,36 @@ export default function SubmitPaymentPage() {
 
     loadResidentProfile();
   }, [isMounted]);
+
+  useEffect(() => {
+    const loadOldestUnpaidMonth = async () => {
+      try {
+        const payload = await apiCall('/api/statements');
+        const statements = Array.isArray(payload.statements) ? payload.statements : [];
+        const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+        const unpaidStatements = statements
+          .filter((statement: { balance?: number; status?: string; month?: string; year?: number }) => {
+            const monthDate = new Date(`${statement.month} 1, ${statement.year}`).getTime();
+            return (Number(statement.balance ?? 0) > 0 || String(statement.status ?? '').toLowerCase() !== 'paid')
+              && Number.isFinite(monthDate)
+              && monthDate <= currentMonthStart;
+          })
+          .sort((a: { month?: string; year?: number }, b: { month?: string; year?: number }) =>
+            new Date(`${a.month} 1, ${a.year}`).getTime() - new Date(`${b.month} 1, ${b.year}`).getTime()
+          );
+
+        const oldest = unpaidStatements[0];
+        setOldestUnpaidMonth(oldest ? `${oldest.month} ${oldest.year}` : null);
+      } catch (error) {
+        console.error('Failed to determine oldest unpaid month:', error);
+        setOldestUnpaidMonth(null);
+      }
+    };
+
+    if (isMounted) {
+      loadOldestUnpaidMonth();
+    }
+  }, [isMounted, recentSubmissions]);
 
   useEffect(() => {
     const loadRecentSubmissions = async () => {
@@ -541,11 +571,6 @@ export default function SubmitPaymentPage() {
     const scannedAmount = Number(formData.receiptAmount.trim());
     if (isNaN(scannedAmount) || scannedAmount <= 0) {
       setToast({ message: 'Receipt amount must be a valid number greater than 0', type: 'error' });
-      return;
-    }
-
-    if (scannedAmount > 400) {
-      setToast({ message: 'Payment amount cannot exceed the monthly dues of ₱400.', type: 'error' });
       return;
     }
 
@@ -898,8 +923,8 @@ export default function SubmitPaymentPage() {
                         <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{formData.blockLot || '—'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Amount Due</div>
-                        <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.paymentAmount}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Amount to Pay</div>
+                        <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.receiptAmount || formData.paymentAmount}</div>
                       </div>
                     </div>
 
@@ -1004,7 +1029,7 @@ export default function SubmitPaymentPage() {
 
                         {/* Receipt Amount */}
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Receipt Amount</label>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Receipt Amount (oldest balance is applied first)</label>
                           <div style={{ position: 'relative' }}>
                             <span style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: '1.15rem' }}>₱</span>
                             <input

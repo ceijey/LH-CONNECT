@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import { decrypt } from '@/lib/encryption';
 
 function inferContentType(fileName?: string) {
   const lowerName = (fileName ?? '').toLowerCase();
@@ -47,12 +48,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const filePath = submission.filePath as string | undefined;
     const fileName = submission.fileName as string | undefined;
     const fileUrl = submission.fileUrl as string | undefined;
+    const encryptedFileUrl = submission.fileEncrypted as string | undefined;
+    const decryptedFileUrl = encryptedFileUrl ? decrypt(encryptedFileUrl) ?? undefined : undefined;
+    const resolvedFileUrl = fileUrl || decryptedFileUrl;
 
     // 1. PRIORITIZE BASE64 (This is our most reliable method on Vercel)
-    if (fileUrl && fileUrl.startsWith('data:')) {
+    if (resolvedFileUrl && resolvedFileUrl.startsWith('data:')) {
       try {
         console.log(`[ProofProxy] Serving Base64 data for submission: ${id}`);
-        const [mimePart, base64Data] = fileUrl.split(';base64,');
+        const [mimePart, base64Data] = resolvedFileUrl.split(';base64,');
         const contentType = mimePart.split(':')[1] || 'image/jpeg';
         const buffer = Buffer.from(base64Data, 'base64');
 
@@ -101,8 +105,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // 3. LAST RESORT: STANDARD REDIRECT
-    if (fileUrl && !fileUrl.startsWith('data:')) {
-      return NextResponse.redirect(fileUrl);
+    if (resolvedFileUrl && !resolvedFileUrl.startsWith('data:')) {
+      return NextResponse.redirect(resolvedFileUrl);
     }
 
     console.error(`[ProofProxy] No proof available for submission ${id}`);

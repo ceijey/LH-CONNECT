@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') || 'Monthly Report';
 
   try {
+    const normalizePaymentMethod = (method: unknown, source?: unknown) => {
+      const normalized = `${String(method ?? '')} ${String(source ?? '')}`.trim().toLowerCase();
+      return normalized.includes('paymongo') || normalized.includes('gcash') || normalized.includes('maya')
+        ? 'GCash'
+        : String(method ?? '').trim() || 'Cash';
+    };
     const getDateKey = (value: unknown): string | null => {
       if (!value) return null;
 
@@ -141,7 +147,10 @@ export async function GET(request: NextRequest) {
         amountPaid,
         balance,
         status,
-        paymentMethod: residentSubmissions[0]?.paymentMethod || 'N/A'
+        paymentMethod: normalizePaymentMethod(
+          residentSubmissions[0]?.paymentMethod,
+          residentSubmissions[0]?.source,
+        )
       };
     });
 
@@ -161,7 +170,7 @@ export async function GET(request: NextRequest) {
           amountPaid: Number(s.paymentAmount) || 0,
           balance: Number(resident.balance || 0),
           status: s.status === 'Verified' ? 'Paid' : s.status, // Map to table status types
-          paymentMethod: s.paymentMethod || 'N/A',
+          paymentMethod: normalizePaymentMethod(s.paymentMethod, s.source),
           referenceNumber: s.referenceNumber || '-',
           date: s.submittedDate
         };

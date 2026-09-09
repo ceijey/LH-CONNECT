@@ -4,6 +4,7 @@ import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import { encrypt, decrypt } from '@/lib/encryption';
 import { verifyCsrf } from '@/lib/csrf';
 import { getMonthlySubmissionId, getMonthlySubmissionMonth } from '@/lib/payment-submission';
+import { statementTime } from '@/lib/payment-allocation';
 
 function isAlreadyExistsError(error: unknown): boolean {
   if (!error) return false;
@@ -250,10 +251,6 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Payment amount must be greater than 0', 400);
     }
 
-    if (paymentAmount > 400) {
-      return createErrorResponse('Payment amount cannot exceed the monthly dues of ₱400.', 400);
-    }
-
     if (!paymentMethod) {
       return createErrorResponse('Payment method is required', 400);
     }
@@ -286,19 +283,37 @@ export async function POST(request: NextRequest) {
 
     const submittedAt = new Date();
     const currentMonth = getMonthlySubmissionMonth(submittedAt);
-    const submissionId = getMonthlySubmissionId(userId, submittedAt);
+    const statementSnapshot = await adminDb.collection('statements').where('residentId', '==', userId).get();
+    const oldestUnpaid = statementSnapshot.docs
+      .map((statement: { data: () => Record<string, unknown> }) => ({ data: statement.data(), time: statementTime(statement.data()) }))
+      .filter(({ data, time }: { data: Record<string, unknown>; time: number }) =>
+        time <= new Date(submittedAt.getFullYear(), submittedAt.getMonth(), 1).getTime() &&
+        (Number(data.balance ?? 0) > 0 || String(data.status ?? '').toLowerCase() !== 'paid')
+      )
+      .sort((a: { time: number }, b: { time: number }) => a.time - b.time)[0];
+    const targetDate = oldestUnpaid ? new Date(oldestUnpaid.time) : submittedAt;
+    const targetMonth = oldestUnpaid
+      ? `${targetDate.toLocaleString(undefined, { month: 'long' })} ${targetDate.getFullYear()}`
+      : currentMonth;
+    const baseSubmissionId = getMonthlySubmissionId(userId, targetDate);
+    const baseSubmissionRef = adminDb.collection('payment_submissions').doc(baseSubmissionId);
+    const baseSubmission = await baseSubmissionRef.get();
+    const submissionId = baseSubmission.exists && baseSubmission.data()?.status === 'Pending'
+      ? baseSubmissionId
+      : baseSubmission.exists
+        ? `${baseSubmissionId}-${Date.now()}`
+        : baseSubmissionId;
     const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
     // Check for any existing submission for this resident and month, including legacy documents.
     const existingMonthSubmissionQuery = await adminDb
       .collection('payment_submissions')
       .where('residentId', '==', userId)
-      .where('month', '==', currentMonth)
-      .limit(1)
+      .where('month', '==', targetMonth)
       .get();
 
-    if (!existingMonthSubmissionQuery.empty) {
-      return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+    if (existingMonthSubmissionQuery.docs.some((doc: { data: () => Record<string, unknown> }) => doc.data().status === 'Pending')) {
+      return createErrorResponse(`You already have a pending payment for ${targetMonth}. Please wait for verification before submitting another payment.`, 400);
     }
     
     // Only require file if URL or Base64 is not provided
@@ -398,7 +413,7 @@ export async function POST(request: NextRequest) {
         filePath,
         fileEncrypted: fileEncrypted ?? null,
         status: 'Pending',
-        month: currentMonth,
+        month: targetMonth,
         submittedDate: submittedAt.toLocaleString(),
         submittedAt,
         verifiedDate: null,
@@ -410,7 +425,7 @@ export async function POST(request: NextRequest) {
       });
     } catch (createError: unknown) {
       if (isAlreadyExistsError(createError)) {
-        return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+        return createErrorResponse(`You already have a pending payment for ${targetMonth}. Please wait for verification before submitting another payment.`, 400);
       }
 
       throw createError;
@@ -431,7 +446,7 @@ export async function POST(request: NextRequest) {
       filePath,
       fileUploadError: fileUploadError ?? null,
       status: 'Pending' as const,
-      month: currentMonth,
+      month: targetMonth,
       submittedDate: submittedAt.toLocaleString(),
       verifiedDate: undefined,
       paymentDateTime,
