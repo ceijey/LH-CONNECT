@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
+import { validatePaymentAmount } from '@/lib/payment-validation';
 import Toast from '@/app/components/Toast';
 import LoadingScreen from '@/app/components/LoadingScreen';
 import ReceiptModal from '@/app/components/ReceiptModal';
@@ -100,19 +101,6 @@ function normalizeSubmission(submission: Partial<Submission> & { status?: string
   };
 }
 
-const formatToDDMMYY = (date: Date): string => {
-  if (isNaN(date.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const dd = pad(date.getDate());
-  const mm = pad(date.getMonth() + 1);
-  const yy = String(date.getFullYear()).slice(-2);
-  let h = date.getHours();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  const min = pad(date.getMinutes());
-  return `${dd}/${mm}/${yy} ${pad(h)}:${min} ${ampm}`;
-};
-
 const ESTABLISHED_PAYMENT_AMOUNT = '400';
 
 const parseAndFormatDateTime = (ocrText: string): string | null => {
@@ -189,16 +177,12 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
       year = parseInt(part3, 10);
       const p1 = parseInt(part1, 10);
       const p2 = parseInt(part2, 10);
-      // In the Philippines, standard is DD/MM/YYYY.
-      // So p1 is likely Day, p2 is likely Month.
-      if (p2 > 12) {
-        // If p2 > 12, it has to be MM/DD/YYYY (e.g., 09/25/2025)
-        month = p1 - 1;
-        day = p2;
-      } else {
-        // Assume DD/MM/YYYY
+      if (p1 > 12) {
         day = p1;
         month = p2 - 1;
+      } else {
+        month = p1 - 1;
+        day = p2;
       }
     }
     let hour = hourStr ? parseInt(hourStr, 10) : 12;
@@ -241,7 +225,6 @@ export default function SubmitPaymentPage() {
   const [selectedBank, setSelectedBank] = useState('BDO');
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
-  const [oldestUnpaidMonth, setOldestUnpaidMonth] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
@@ -253,13 +236,14 @@ export default function SubmitPaymentPage() {
   });
 
   const currentMonthSubmission = recentSubmissions.find((submission) => {
-    const monthMatches = String(submission.month || '').toLowerCase() === String(oldestUnpaidMonth || '').toLowerCase();
+    const monthMatches = String(submission.month || '').toLowerCase() === currentMonthLabel.toLowerCase();
     const status = String(submission.status || '').toLowerCase();
-    return monthMatches && status === 'pending';
+    return monthMatches && (status === 'pending' || status === 'verified');
   });
   const isMonthlyPaymentLocked = Boolean(currentMonthSubmission);
-  const paymentStatusMonth = oldestUnpaidMonth ?? currentMonthLabel;
-  const monthlyLockMessage = `You already have a pending payment for ${paymentStatusMonth}. Please wait for HOA verification before submitting another payment.`;
+  const monthlyLockMessage = currentMonthSubmission?.status === 'Verified'
+    ? `You already paid for ${currentMonthLabel}.`
+    : `You already have a pending submission for ${currentMonthLabel}. Please wait for HOA verification before submitting another payment.`;
 
   useEffect(() => {
     setIsMounted(true);
@@ -296,36 +280,6 @@ export default function SubmitPaymentPage() {
 
     loadResidentProfile();
   }, [isMounted]);
-
-  useEffect(() => {
-    const loadOldestUnpaidMonth = async () => {
-      try {
-        const payload = await apiCall('/api/statements');
-        const statements = Array.isArray(payload.statements) ? payload.statements : [];
-        const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
-        const unpaidStatements = statements
-          .filter((statement: { balance?: number; status?: string; month?: string; year?: number }) => {
-            const monthDate = new Date(`${statement.month} 1, ${statement.year}`).getTime();
-            return (Number(statement.balance ?? 0) > 0 || String(statement.status ?? '').toLowerCase() !== 'paid')
-              && Number.isFinite(monthDate)
-              && monthDate <= currentMonthStart;
-          })
-          .sort((a: { month?: string; year?: number }, b: { month?: string; year?: number }) =>
-            new Date(`${a.month} 1, ${a.year}`).getTime() - new Date(`${b.month} 1, ${b.year}`).getTime()
-          );
-
-        const oldest = unpaidStatements[0];
-        setOldestUnpaidMonth(oldest ? `${oldest.month} ${oldest.year}` : null);
-      } catch (error) {
-        console.error('Failed to determine oldest unpaid month:', error);
-        setOldestUnpaidMonth(null);
-      }
-    };
-
-    if (isMounted) {
-      loadOldestUnpaidMonth();
-    }
-  }, [isMounted, recentSubmissions]);
 
   useEffect(() => {
     const loadRecentSubmissions = async () => {
@@ -470,7 +424,13 @@ export default function SubmitPaymentPage() {
         }
         if (detectedDate) {
           update.paymentDateTime = detectedDate;
-          detectedDateNice = formatToDDMMYY(new Date(detectedDate));
+          detectedDateNice = new Date(detectedDate).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
         }
         return update;
       });
@@ -568,9 +528,9 @@ export default function SubmitPaymentPage() {
       return;
     }
 
-    const scannedAmount = Number(formData.receiptAmount.trim());
-    if (isNaN(scannedAmount) || scannedAmount <= 0) {
-      setToast({ message: 'Receipt amount must be a valid number greater than 0', type: 'error' });
+    const amountValidation = validatePaymentAmount(formData.receiptAmount.trim());
+    if (!amountValidation.isValid) {
+      setToast({ message: amountValidation.error ?? 'Payment amount is invalid', type: 'error' });
       return;
     }
 
@@ -923,8 +883,8 @@ export default function SubmitPaymentPage() {
                         <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{formData.blockLot || '—'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Amount to Pay</div>
-                        <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.receiptAmount || formData.paymentAmount}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Amount Due</div>
+                        <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.paymentAmount}</div>
                       </div>
                     </div>
 
@@ -1015,7 +975,15 @@ export default function SubmitPaymentPage() {
                                   ? (() => {
                                       const d = new Date(formData.paymentDateTime);
                                       if (isNaN(d.getTime())) return formData.paymentDateTime;
-                                      return formatToDDMMYY(d);
+                                      const pad = (n: number) => String(n).padStart(2, '0');
+                                      const dd = pad(d.getDate());
+                                      const mm = pad(d.getMonth() + 1);
+                                      const yy = String(d.getFullYear()).slice(-2);
+                                      let h = d.getHours();
+                                      const ampm = h >= 12 ? 'PM' : 'AM';
+                                      h = h % 12 || 12;
+                                      const min = pad(d.getMinutes());
+                                      return `${dd}/${mm}/${yy} ${pad(h)}:${min} ${ampm}`;
                                     })()
                                   : ''
                             }
@@ -1029,7 +997,7 @@ export default function SubmitPaymentPage() {
 
                         {/* Receipt Amount */}
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Receipt Amount (oldest balance is applied first)</label>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Receipt Amount</label>
                           <div style={{ position: 'relative' }}>
                             <span style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: '1.15rem' }}>₱</span>
                             <input
@@ -1186,7 +1154,12 @@ export default function SubmitPaymentPage() {
                               <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Date/Time</span>
                                 <span className={styles.detailValue}>
-                                  {formatToDDMMYY(new Date(submission.paymentDateTime))}
+                                  {new Date(submission.paymentDateTime).toLocaleString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </span>
                               </div>
                             )}

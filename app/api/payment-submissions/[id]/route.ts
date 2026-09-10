@@ -108,6 +108,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             adminDb.collection('statements'),
             residentId,
             paymentAmount,
+            residentDoc.data()?.createdAt,
           );
           transaction.update(residentRef, {
             balance: Math.max(0, currentBalance - paymentAmount),

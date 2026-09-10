@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Transaction } from 'firebase-admin/firestore';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 import { sendDueBillEmail } from '@/lib/mailer';
+import { ensureMissingStatementsForResident } from '@/lib/payment-allocation';
 
 const MONTHLY_DUES = 400;
 
@@ -39,6 +41,16 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const currentMonthName = now.toLocaleString(undefined, { month: 'long' });
     const currentYear = now.getFullYear();
+
+    await adminDb.runTransaction(async (transaction: Transaction) => {
+      await ensureMissingStatementsForResident(
+        transaction,
+        adminDb.collection('statements'),
+        userId,
+        userData.createdAt,
+        now,
+      );
+    });
 
     // Fetch resident's statements and submissions from Firestore
     let statements: any[] = [];

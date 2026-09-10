@@ -4,12 +4,10 @@ import { adminDb } from '@/lib/firebase-admin';
 import { verifyCsrf } from '@/lib/csrf';
 import { createPayMongoCheckoutSession, hasPayMongoConfig } from '@/lib/paymongo';
 import { getMonthlySubmissionId, getMonthlySubmissionMonth } from '@/lib/payment-submission';
-import { statementTime } from '@/lib/payment-allocation';
+import { validatePaymentAmount } from '@/lib/payment-validation';
 
 function getAppBaseUrl(request: NextRequest) {
-  // Return to the same host where the resident started checkout so the
-  // existing resident session cookie remains available after PayMongo.
-  return new URL(request.url).origin;
+  return process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
 }
 
 export async function POST(request: NextRequest) {
@@ -51,43 +49,26 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Block/Lot information is required', 400);
     }
 
-    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
-      return createErrorResponse('Payment amount is required', 400);
+    const amountValidation = validatePaymentAmount(paymentAmount);
+    if (!amountValidation.isValid) {
+      return createErrorResponse(amountValidation.error ?? 'Payment amount is invalid', 400);
     }
 
     const now = new Date();
     const currentMonth = getMonthlySubmissionMonth(now);
-    const statementSnapshot = await adminDb.collection('statements').where('residentId', '==', userId).get();
-    const oldestUnpaid = statementSnapshot.docs
-      .map((statement: { data: () => Record<string, unknown> }) => ({ data: statement.data(), time: statementTime(statement.data()) }))
-      .filter(({ data, time }: { data: Record<string, unknown>; time: number }) =>
-        time <= new Date(now.getFullYear(), now.getMonth(), 1).getTime() &&
-        (Number(data.balance ?? 0) > 0 || String(data.status ?? '').toLowerCase() !== 'paid')
-      )
-      .sort((a: { time: number }, b: { time: number }) => a.time - b.time)[0];
-    const targetDate = oldestUnpaid ? new Date(oldestUnpaid.time) : now;
-    const targetMonth = oldestUnpaid
-      ? `${targetDate.toLocaleString(undefined, { month: 'long' })} ${targetDate.getFullYear()}`
-      : currentMonth;
-    const baseSubmissionId = getMonthlySubmissionId(userId, targetDate);
-    const baseSubmissionRef = adminDb.collection('payment_submissions').doc(baseSubmissionId);
-    const baseSubmission = await baseSubmissionRef.get();
-    const submissionId = baseSubmission.exists && baseSubmission.data()?.status === 'Pending'
-      ? baseSubmissionId
-      : baseSubmission.exists
-        ? `${baseSubmissionId}-${Date.now()}`
-        : baseSubmissionId;
+    const submissionId = getMonthlySubmissionId(userId, now);
     const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
     // Check for any existing submission for this resident and month, including legacy documents.
     const existingMonthSubmissionQuery = await adminDb
       .collection('payment_submissions')
       .where('residentId', '==', userId)
-      .where('month', '==', targetMonth)
+      .where('month', '==', currentMonth)
+      .limit(1)
       .get();
 
-    if (existingMonthSubmissionQuery.docs.some((doc: { data: () => Record<string, unknown> }) => doc.data().status === 'Pending')) {
-      return createErrorResponse(`You already have a pending payment for ${targetMonth}. Please wait for verification before submitting another payment.`, 400);
+    if (!existingMonthSubmissionQuery.empty) {
+      return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
     }
 
     const referenceNumber = `PAYMONGO-${now.getTime()}`;
@@ -101,7 +82,7 @@ export async function POST(request: NextRequest) {
       referenceNumber,
       notes: notes || 'PayMongo checkout initiated by resident',
       status: 'Pending' as const,
-      month: targetMonth,
+      month: currentMonth,
       submittedDate: now.toLocaleString(),
       submittedAt: now,
       updatedAt: now,
@@ -128,15 +109,15 @@ export async function POST(request: NextRequest) {
       const checkoutSession = await createPayMongoCheckoutSession({
         amount: paymentAmount,
         description: `Monthly HOA dues for ${residentName}`,
-        successUrl: `${baseUrl}/dashboard`,
-        cancelUrl: `${baseUrl}/dashboard`,
+        successUrl: `${baseUrl}/dashboard/submit-payment?paymongo=success`,
+        cancelUrl: `${baseUrl}/dashboard/submit-payment?paymongo=cancelled`,
         metadata: {
           submissionId: submissionRef.id,
           residentId: userId,
           residentName,
           blockLot,
           referenceNumber,
-          month: targetMonth,
+          month: currentMonth,
           paymentMethod: 'PayMongo',
         },
       });

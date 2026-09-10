@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
         adminDb.collection('statements'),
         residentId,
         amount,
+        residentData.createdAt,
       );
       transaction.update(residentRef, {
         balance: Math.max(0, currentBalance - amount),

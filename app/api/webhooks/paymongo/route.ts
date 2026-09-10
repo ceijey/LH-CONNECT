@@ -135,6 +135,7 @@ async function finalizeSubmission(doc: any, payload: any) {
       adminDb.collection('statements'),
       residentId,
       paymentAmount,
+      residentData.createdAt,
     );
     transaction.update(doc.ref, {
       status: 'Verified',

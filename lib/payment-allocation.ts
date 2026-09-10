@@ -33,13 +33,78 @@ export function statementTime(data: Record<string, unknown>): number {
   return Number.isFinite(createdAt) ? createdAt : Number.MAX_SAFE_INTEGER;
 }
 
+export function getMonthIdentifier(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export async function ensureMissingStatementsForResident(
+  transaction: Transaction,
+  statementsRef: CollectionReference,
+  residentId: string,
+  residentCreatedAt?: string | Date | null,
+  asOfDate: Date = new Date(),
+): Promise<void> {
+  const existingSnapshot = await transaction.get(
+    statementsRef.where('residentId', '==', residentId),
+  );
+
+  const existingKeys = new Set<string>();
+  for (const doc of existingSnapshot.docs) {
+    const data = doc.data();
+    const year = Number(data.year ?? 0);
+    const monthName = String(data.month ?? '').trim();
+    if (year && monthName) {
+      const monthIndex = MONTH_NAMES.findIndex((name) => monthName.toLowerCase().includes(name));
+      if (monthIndex >= 0) {
+        existingKeys.add(getMonthIdentifier(new Date(year, monthIndex, 1)));
+      }
+    }
+  }
+
+  const startDate = residentCreatedAt ? new Date(residentCreatedAt) : asOfDate;
+  const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const endMonth = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), 1);
+  const nowIso = new Date().toISOString();
+
+  for (let cursor = new Date(startMonth); cursor <= endMonth; cursor.setMonth(cursor.getMonth() + 1)) {
+    const monthKey = getMonthIdentifier(cursor);
+    if (existingKeys.has(monthKey)) continue;
+
+    const dueDate = new Date(cursor.getFullYear(), cursor.getMonth(), 15, 23, 59, 59);
+    const monthName = cursor.toLocaleString('en-US', { month: 'long' });
+
+    transaction.create(statementsRef.doc(), {
+      residentId,
+      month: monthName,
+      year: cursor.getFullYear(),
+      date: cursor.toISOString(),
+      dueDate: dueDate.toISOString(),
+      totalDues: MONTHLY_DUES,
+      amountPaid: 0,
+      balance: MONTHLY_DUES,
+      status: 'Pending',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    });
+  }
+}
+
 export async function allocatePaymentToStatements(
   transaction: Transaction,
   statementsRef: CollectionReference,
   residentId: string,
   paymentAmount: number,
+  residentCreatedAt?: string | Date | null,
 ): Promise<void> {
   if (paymentAmount <= 0) return;
+
+  await ensureMissingStatementsForResident(
+    transaction,
+    statementsRef,
+    residentId,
+    residentCreatedAt,
+    new Date(),
+  );
 
   const statementSnapshot = await transaction.get(
     statementsRef.where('residentId', '==', residentId),
