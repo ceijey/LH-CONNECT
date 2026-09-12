@@ -77,27 +77,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (filePath) {
       try {
         const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-        if (!envBucket) {
-          console.warn(`[ProofProxy] No bucket configured, skipping storage check for: ${filePath}`);
-        } else {
-          const bucket = adminStorage.bucket(envBucket);
-          const storageFile = bucket.file(filePath);
-          const [exists] = await storageFile.exists();
+        const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
+        const storageFile = bucket.file(filePath);
+        const [exists] = await storageFile.exists();
 
-          if (exists) {
-            const [metadata] = await storageFile.getMetadata();
-            const [buffer] = await storageFile.download();
-            const contentType = metadata?.contentType || inferContentType(fileName);
+        if (exists) {
+          const [metadata] = await storageFile.getMetadata();
+          const [buffer] = await storageFile.download();
+          const contentType = metadata?.contentType || inferContentType(fileName);
 
-            return new NextResponse(buffer, {
-              status: 200,
-              headers: {
-                'Content-Type': contentType,
-                'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
-                'Cache-Control': 'private, max-age=3600',
-              },
-            });
-          }
+          return new NextResponse(buffer, {
+            status: 200,
+            headers: {
+              'Content-Type': contentType,
+              'Content-Disposition': `inline; filename="${fileName || 'proof'}"`,
+              'Cache-Control': 'private, max-age=3600',
+            },
+          });
         }
       } catch (err: any) {
         console.error(`[ProofProxy] Storage operation failed for ${filePath}: ${err.message}`);

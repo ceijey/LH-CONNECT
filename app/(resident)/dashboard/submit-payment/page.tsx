@@ -12,6 +12,7 @@ import { validatePaymentAmount } from '@/lib/payment-validation';
 import Toast from '@/app/components/Toast';
 import LoadingScreen from '@/app/components/LoadingScreen';
 import ReceiptModal from '@/app/components/ReceiptModal';
+import ImageModal from '@/app/components/ImageModal';
 import styles from './submit-payment.module.css';
 
 // Type definition for Tesseract
@@ -46,6 +47,8 @@ interface Submission {
   referenceNumber: string;
   fileName?: string;
   fileUrl?: string;
+  proofUrl?: string;
+  hasProof?: boolean;
   residentName: string;
   blockLot: string;
   notes?: string;
@@ -93,6 +96,8 @@ function normalizeSubmission(submission: Partial<Submission> & { status?: string
     referenceNumber: submission.referenceNumber ?? '',
     fileName: submission.fileName,
     fileUrl: submission.fileUrl,
+    proofUrl: submission.proofUrl,
+    hasProof: submission.hasProof,
     residentName: submission.residentName ?? '',
     blockLot: submission.blockLot ?? '',
     notes: submission.notes,
@@ -102,6 +107,42 @@ function normalizeSubmission(submission: Partial<Submission> & { status?: string
 }
 
 const ESTABLISHED_PAYMENT_AMOUNT = '400';
+
+const extractReceiptAmount = (ocrText: string): string => {
+  const normalizedText = ocrText
+    .replace(/[₱₹]/g, 'P')
+    .replace(/\r/g, '')
+    .replace(/[ \t]+/g, ' ');
+  const amountPattern = '(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.(\\d{1,2}))?';
+  const parseAmount = (value: string, decimals?: string) => {
+    const amount = Number(`${value.replace(/,/g, '')}.${decimals ?? '00'}`);
+    return Number.isFinite(amount) && amount > 0 ? amount : 0;
+  };
+
+  // Prefer the amount beside an explicit transaction label over phone,
+  // reference, and account numbers elsewhere in the receipt.
+  const labeledPatterns = [
+    new RegExp(`(?:amount|amt|total amount|sent|paid|received)\\s*[:=.-]?\\s*(?:php?|p)?\\s*${amountPattern}`, 'i'),
+    new RegExp(`(?:php?|p)\\s*${amountPattern}`, 'i'),
+  ];
+
+  for (const pattern of labeledPatterns) {
+    const match = normalizedText.match(pattern);
+    if (match) {
+      const amount = parseAmount(match[1], match[2]);
+      if (amount > 0) return amount.toFixed(2);
+    }
+  }
+
+  // Last fallback: use decimal currency-looking values, excluding long
+  // reference/account numbers that OCR may also return.
+  const candidates = normalizedText.match(/\b\d{1,3}(?:,\d{3})*\.\d{2}\b/g) ?? [];
+  const validCandidate = candidates
+    .map((candidate) => parseAmount(candidate))
+    .find((amount) => amount > 0 && amount < 1000000);
+
+  return validCandidate ? validCandidate.toFixed(2) : '';
+};
 
 const parseAndFormatDateTime = (ocrText: string): string | null => {
   const cleanText = ocrText.replace(/\s+/g, ' ');
@@ -225,6 +266,8 @@ export default function SubmitPaymentPage() {
   const [selectedBank, setSelectedBank] = useState('BDO');
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [oldestUnpaidMonth, setOldestUnpaidMonth] = useState<string | null>(null);
+  const [outstandingBalance, setOutstandingBalance] = useState<number | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
@@ -233,6 +276,11 @@ export default function SubmitPaymentPage() {
   const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: ReceiptPayment }>({
     isOpen: false,
     payment: null
+  });
+  const [proofModal, setProofModal] = useState<{ isOpen: boolean; url: string; title: string }>({
+    isOpen: false,
+    url: '',
+    title: '',
   });
 
   const currentMonthSubmission = recentSubmissions.find((submission) => {
@@ -255,6 +303,7 @@ export default function SubmitPaymentPage() {
       try {
         const profilePayload = await apiCall('/api/auth/profile');
         const userProfile = (profilePayload.user ?? {}) as UserProfile;
+        setOutstandingBalance(Math.max(0, Number(userProfile.balance ?? 0)));
 
         // Prefill form with resident information
         if (isMounted) {
@@ -280,6 +329,45 @@ export default function SubmitPaymentPage() {
 
     loadResidentProfile();
   }, [isMounted]);
+
+  useEffect(() => {
+    const loadOldestUnpaidMonth = async () => {
+      try {
+        const payload = await apiCall('/api/statements');
+        const statements = Array.isArray(payload.statements) ? payload.statements : [];
+        const statementBalance = statements.reduce(
+          (total: number, statement: { balance?: number; totalDues?: number; amountPaid?: number }) =>
+            total + Math.max(
+              0,
+              Number(statement.balance ?? Number(statement.totalDues ?? 400) - Number(statement.amountPaid ?? 0))
+            ),
+          0
+        );
+        setOutstandingBalance(statementBalance);
+        const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+        const unpaidStatements = statements
+          .filter((statement: { balance?: number; status?: string; month?: string; year?: number }) => {
+            const monthDate = new Date(`${statement.month} 1, ${statement.year}`).getTime();
+            return (Number(statement.balance ?? 0) > 0 || String(statement.status ?? '').toLowerCase() !== 'paid')
+              && Number.isFinite(monthDate)
+              && monthDate <= currentMonthStart;
+          })
+          .sort((a: { month?: string; year?: number }, b: { month?: string; year?: number }) =>
+            new Date(`${a.month} 1, ${a.year}`).getTime() - new Date(`${b.month} 1, ${b.year}`).getTime()
+          );
+
+        const oldest = unpaidStatements[0];
+        setOldestUnpaidMonth(oldest ? `${oldest.month} ${oldest.year}` : null);
+      } catch (error) {
+        console.error('Failed to determine oldest unpaid month:', error);
+        setOldestUnpaidMonth(null);
+      }
+    };
+
+    if (isMounted) {
+      loadOldestUnpaidMonth();
+    }
+  }, [isMounted, recentSubmissions]);
 
   useEffect(() => {
     const loadRecentSubmissions = async () => {
@@ -395,19 +483,7 @@ export default function SubmitPaymentPage() {
         }
       }
 
-      // Search for amount patterns
-      let foundAmount = '';
-      const amountRegex = /(?:PHP|P|₱|Amount|Amt)\s*[:.-]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i;
-      const amountMatch = text.match(amountRegex);
-      if (amountMatch) {
-        foundAmount = amountMatch[1].replace(/,/g, '');
-      } else {
-        const fallbackRegex = /\b(\d{1,3}(?:,\d{3})*\.\d{2})\b/;
-        const fallbackMatch = text.match(fallbackRegex);
-        if (fallbackMatch) {
-          foundAmount = fallbackMatch[1].replace(/,/g, '');
-        }
-      }
+      const foundAmount = extractReceiptAmount(text);
 
       const detectedDate = parseAndFormatDateTime(text);
       let detectedDateNice = '';
@@ -420,6 +496,7 @@ export default function SubmitPaymentPage() {
         }
         if (foundAmount) {
           update.receiptAmount = foundAmount;
+          update.paymentAmount = foundAmount;
           detectedAmountNice = `₱${foundAmount}`;
         }
         if (detectedDate) {
@@ -501,6 +578,11 @@ export default function SubmitPaymentPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (outstandingBalance !== null && outstandingBalance <= 0) {
+      setToast({ message: 'You have no outstanding dues. Payment submission is disabled.', type: 'info' });
+      return;
+    }
 
     if (isMonthlyPaymentLocked) {
       setToast({ message: monthlyLockMessage, type: 'error' });
@@ -719,6 +801,8 @@ export default function SubmitPaymentPage() {
           residentName: formData.residentName,
           blockLot: formData.blockLot,
           paymentDateTime: formData.paymentDateTime,
+          proofUrl: `/api/payment-submissions/${submission.id}/proof`,
+          hasProof: true,
         }),
         ...current,
       ]);
@@ -737,6 +821,8 @@ export default function SubmitPaymentPage() {
           status: 'Pending',
           submittedDate: new Date().toLocaleString(),
           paymentDateTime: formData.paymentDateTime,
+          proofUrl: `/api/payment-submissions/${submission.id}/proof`,
+          hasProof: true,
         })
       });
 
@@ -767,6 +853,13 @@ export default function SubmitPaymentPage() {
         isOpen={receiptModal.isOpen}
         payment={receiptModal.payment}
         onClose={() => setReceiptModal(prev => ({ ...prev, isOpen: false }))}
+      />
+      <ImageModal
+        isOpen={proofModal.isOpen}
+        imageUrl={proofModal.url}
+        title={proofModal.title}
+        proofKind="image"
+        onClose={() => setProofModal({ isOpen: false, url: '', title: '' })}
       />
       {/* Header */}
       <header className={styles.header}>
@@ -815,6 +908,12 @@ export default function SubmitPaymentPage() {
               {isMonthlyPaymentLocked && (
                 <div style={{ marginBottom: '1rem', padding: '12px 14px', borderRadius: '12px', background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.4 }}>
                   {monthlyLockMessage}
+                </div>
+              )}
+
+              {outstandingBalance !== null && outstandingBalance <= 0 && (
+                <div style={{ marginBottom: '1rem', padding: '12px 14px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #86efac', color: '#166534', fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.4 }}>
+                  Your account is fully paid. Payment submission is disabled until you have a new outstanding due.
                 </div>
               )}
 
@@ -1019,12 +1118,14 @@ export default function SubmitPaymentPage() {
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isSubmitting || isMonthlyPaymentLocked}
+                      disabled={isSubmitting || isMonthlyPaymentLocked || outstandingBalance === 0}
                       className={styles.submitBtn}
                       style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
                     >
                       {isMonthlyPaymentLocked
                         ? 'Already submitted for this month'
+                        : outstandingBalance === 0
+                        ? 'Fully Paid'
                         : isSubmitting
                         ? (isPayMongoCheckout ? 'Redirecting to PayMongo...' : 'Submitting...')
                         : (isPayMongoCheckout ? 'Continue to PayMongo Checkout' : 'Submit Payment')}
@@ -1174,6 +1275,31 @@ export default function SubmitPaymentPage() {
                               <p className={styles.pendingMsg}>
                                 Your submission is being reviewed by the HOA. This usually takes 1-2 business days.
                               </p>
+                            )}
+                            {submission.hasProof && submission.proofUrl && (
+                              <div style={{ marginTop: '12px' }}>
+                                <img
+                                  src={submission.proofUrl}
+                                  alt="Submitted payment proof"
+                                  style={{ display: 'block', width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer' }}
+                                  onClick={() => setProofModal({
+                                    isOpen: true,
+                                    url: submission.proofUrl!,
+                                    title: `Payment Proof - ${submission.month}`,
+                                  })}
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.viewReceiptBtn}
+                                  onClick={() => setProofModal({
+                                    isOpen: true,
+                                    url: submission.proofUrl!,
+                                    title: `Payment Proof - ${submission.month}`,
+                                  })}
+                                >
+                                  🖼️ View Payment Proof
+                                </button>
+                              </div>
                             )}
                             <button
                               className={styles.viewReceiptBtn}

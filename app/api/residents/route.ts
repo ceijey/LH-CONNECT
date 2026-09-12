@@ -112,26 +112,58 @@ export async function GET(request: NextRequest) {
         .where('year', '==', currentYear)
         .get();
       
-      const statementsByResident: Record<string, any[]> = {};
+      const statementsByResident: Record<string, Record<string, any>> = {};
       allStatementsQuery.docs.forEach((doc: any) => {
         const data = doc.data();
+        const totalDues = Math.max(0, Number(data.totalDues ?? 400));
+        const amountPaid = Math.max(0, Number(data.amountPaid ?? 0));
+        const balance = Math.max(0, totalDues - amountPaid);
         if (!statementsByResident[data.residentId]) {
-          statementsByResident[data.residentId] = [];
+          statementsByResident[data.residentId] = {};
         }
-        statementsByResident[data.residentId].push({
+        const statement = {
           id: doc.id,
           month: data.month,
-          status: data.status,
-          balance: data.balance,
-          totalDues: data.totalDues,
-          amountPaid: data.amountPaid
-        });
+          year: Number(data.year ?? currentYear),
+          status: balance === 0 ? 'Paid' : 'Pending',
+          balance,
+          totalDues,
+          amountPaid
+        };
+        const monthKey = `${statement.year}-${String(statement.month ?? '').toLowerCase()}`;
+        const existing = statementsByResident[data.residentId][monthKey];
+
+        // A repeated generation request can create duplicate records for one month.
+        // Keep the record with the most payment applied so one month is counted once.
+        if (!existing || statement.amountPaid > existing.amountPaid) {
+          statementsByResident[data.residentId][monthKey] = statement;
+        }
       });
 
       // Attach to residents
-      const residentsWithStatements = residents.map((r: any) => ({
-        ...r,
-        statements: statementsByResident[r.id] || []
+      const residentsWithStatements = residents.map((r: any) => {
+        const statements = Object.values(statementsByResident[r.id] || {});
+        const statementBalance = statements.reduce(
+          (total: number, statement: any) => total + Number(statement.balance || 0),
+          0
+        );
+
+        return {
+          ...r,
+          // The statement ledger is the source of truth for the table's past-due total.
+          balance: statementBalance,
+          statements
+        };
+      });
+
+      // Keep the profile balance consistent with the statement ledger for other screens.
+      await Promise.all(residentsWithStatements.map(async (resident: any) => {
+        if (Number(resident.balance ?? 0) !== Number(residents.find((r: any) => r.id === resident.id)?.balance ?? 0)) {
+          await adminDb.collection('users').doc(resident.id).update({
+            balance: resident.balance,
+            updatedAt: new Date().toISOString()
+          });
+        }
       }));
 
       return NextResponse.json({ residents: residentsWithStatements, user: decoded });

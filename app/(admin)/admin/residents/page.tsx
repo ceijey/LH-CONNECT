@@ -36,7 +36,15 @@ interface Resident {
   approvalStatus: 'Pending' | 'Approved' | 'Rejected';
   balance: number;
   createdAt?: string;
-  statements?: any[];
+  statements?: ResidentStatement[];
+}
+
+interface ResidentStatement {
+  month?: string;
+  status?: string;
+  balance?: number;
+  totalDues?: number;
+  amountPaid?: number;
 }
 
 export default function AdminResidents() {
@@ -446,7 +454,13 @@ export default function AdminResidents() {
               </thead>
               <tbody>
                 {filteredResidents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((resident) => {
-                  const pastDue = resident.balance;
+                  const pastDue = (resident.statements || []).reduce(
+                    (total: number, statement: ResidentStatement) => total + Math.max(
+                      0,
+                      Number(statement.totalDues ?? 400) - Number(statement.amountPaid ?? 0)
+                    ),
+                    0
+                  );
                   return (
                     <tr key={resident.id}>
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>{resident.phase}</td>

@@ -21,6 +21,8 @@ interface PaymentSubmission {
   fileName?: string;
   fileUrl?: string;
   filePath?: string;
+  proofUrl?: string;
+  hasProof?: boolean;
   status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
@@ -435,7 +437,7 @@ export default function AdminPayments() {
                   filteredPayments.map((payment) => {
                     const proofKind = detectProofKind(payment);
                     // Use the proxy endpoint for all images to avoid Vercel payload limits
-                    const proofSrc = `/api/payment-submissions/${payment.id}/proof?v=${Date.now()}`;
+                    const proofSrc = payment.hasProof ? payment.proofUrl || '' : '';
 
                     // Extract block/lot/phase from string "Phase X Blk Y Lot Z" if possible
                     const addressParts = payment.blockLot.split(' ');

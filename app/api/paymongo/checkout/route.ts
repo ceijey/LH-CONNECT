@@ -5,6 +5,7 @@ import { verifyCsrf } from '@/lib/csrf';
 import { createPayMongoCheckoutSession, hasPayMongoConfig } from '@/lib/paymongo';
 import { getMonthlySubmissionId, getMonthlySubmissionMonth } from '@/lib/payment-submission';
 import { validatePaymentAmount } from '@/lib/payment-validation';
+import { calculateOutstandingBalance, statementTime } from '@/lib/payment-allocation';
 
 function getAppBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
@@ -56,7 +57,32 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const currentMonth = getMonthlySubmissionMonth(now);
-    const submissionId = getMonthlySubmissionId(userId, now);
+    const statementSnapshot = await adminDb.collection('statements').where('residentId', '==', userId).get();
+    const outstandingBalance = calculateOutstandingBalance(
+      statementSnapshot.docs.map((statement: { data: () => Record<string, unknown> }) => statement.data())
+    );
+    if (outstandingBalance <= 0) {
+      return createErrorResponse('Your account is fully paid. Payment submission is not available.', 400);
+    }
+    const oldestUnpaid = statementSnapshot.docs
+      .map((statement: { data: () => Record<string, unknown> }) => ({ data: statement.data(), time: statementTime(statement.data()) }))
+      .filter(({ data, time }: { data: Record<string, unknown>; time: number }) =>
+        time <= new Date(now.getFullYear(), now.getMonth(), 1).getTime() &&
+        (Number(data.balance ?? 0) > 0 || String(data.status ?? '').toLowerCase() !== 'paid')
+      )
+      .sort((a: { time: number }, b: { time: number }) => a.time - b.time)[0];
+    const targetDate = oldestUnpaid ? new Date(oldestUnpaid.time) : now;
+    const targetMonth = oldestUnpaid
+      ? `${targetDate.toLocaleString(undefined, { month: 'long' })} ${targetDate.getFullYear()}`
+      : currentMonth;
+    const baseSubmissionId = getMonthlySubmissionId(userId, targetDate);
+    const baseSubmissionRef = adminDb.collection('payment_submissions').doc(baseSubmissionId);
+    const baseSubmission = await baseSubmissionRef.get();
+    const submissionId = baseSubmission.exists && baseSubmission.data()?.status === 'Pending'
+      ? baseSubmissionId
+      : baseSubmission.exists
+        ? `${baseSubmissionId}-${Date.now()}`
+        : baseSubmissionId;
     const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
     // Check for any existing submission for this resident and month, including legacy documents.

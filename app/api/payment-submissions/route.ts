@@ -5,6 +5,7 @@ import { encrypt, decrypt } from '@/lib/encryption';
 import { verifyCsrf } from '@/lib/csrf';
 import { getMonthlySubmissionId, getMonthlySubmissionMonth } from '@/lib/payment-submission';
 import { validatePaymentAmount } from '@/lib/payment-validation';
+import { calculateOutstandingBalance, statementTime } from '@/lib/payment-allocation';
 
 function isAlreadyExistsError(error: unknown): boolean {
   if (!error) return false;
@@ -29,6 +30,8 @@ type PaymentSubmission = {
   fileName?: string;
   fileUrl?: string;
   filePath?: string;
+  proofUrl: string;
+  hasProof: boolean;
   status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
@@ -107,6 +110,7 @@ async function toSubmission(doc: any): Promise<PaymentSubmission> {
   }
 
   const fileUrl = await resolveFileUrl(data);
+  const hasProof = Boolean(data.fileEncrypted || data.fileUrl || data.filePath);
 
   return {
     id: doc.id,
@@ -121,6 +125,8 @@ async function toSubmission(doc: any): Promise<PaymentSubmission> {
     fileName: data.fileName,
     fileUrl,
     filePath: data.filePath,
+    proofUrl: `/api/payment-submissions/${doc.id}/proof`,
+    hasProof,
     status: data.status || 'Pending',
     submittedDate,
     verifiedDate: data.verifiedDate,
@@ -282,7 +288,32 @@ export async function POST(request: NextRequest) {
 
     const submittedAt = new Date();
     const currentMonth = getMonthlySubmissionMonth(submittedAt);
-    const submissionId = getMonthlySubmissionId(userId, submittedAt);
+    const statementSnapshot = await adminDb.collection('statements').where('residentId', '==', userId).get();
+    const outstandingBalance = calculateOutstandingBalance(
+      statementSnapshot.docs.map((statement: { data: () => Record<string, unknown> }) => statement.data())
+    );
+    if (outstandingBalance <= 0) {
+      return createErrorResponse('Your account is fully paid. Payment submission is not available.', 400);
+    }
+    const oldestUnpaid = statementSnapshot.docs
+      .map((statement: { data: () => Record<string, unknown> }) => ({ data: statement.data(), time: statementTime(statement.data()) }))
+      .filter(({ data, time }: { data: Record<string, unknown>; time: number }) =>
+        time <= new Date(submittedAt.getFullYear(), submittedAt.getMonth(), 1).getTime() &&
+        (Number(data.balance ?? 0) > 0 || String(data.status ?? '').toLowerCase() !== 'paid')
+      )
+      .sort((a: { time: number }, b: { time: number }) => a.time - b.time)[0];
+    const targetDate = oldestUnpaid ? new Date(oldestUnpaid.time) : submittedAt;
+    const targetMonth = oldestUnpaid
+      ? `${targetDate.toLocaleString(undefined, { month: 'long' })} ${targetDate.getFullYear()}`
+      : currentMonth;
+    const baseSubmissionId = getMonthlySubmissionId(userId, targetDate);
+    const baseSubmissionRef = adminDb.collection('payment_submissions').doc(baseSubmissionId);
+    const baseSubmission = await baseSubmissionRef.get();
+    const submissionId = baseSubmission.exists && baseSubmission.data()?.status === 'Pending'
+      ? baseSubmissionId
+      : baseSubmission.exists
+        ? `${baseSubmissionId}-${Date.now()}`
+        : baseSubmissionId;
     const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
     // Check for any existing submission for this resident and month, including legacy documents.

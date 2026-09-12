@@ -89,6 +89,30 @@ export async function ensureMissingStatementsForResident(
   }
 }
 
+export function calculateOutstandingBalance(statementData: Record<string, unknown>[]): number {
+  const statementsByMonth = new Map<string, { totalDues: number; amountPaid: number }>();
+
+  for (const data of statementData) {
+    const time = statementTime(data);
+    const date = Number.isFinite(time) ? new Date(time) : null;
+    const monthKey = date
+      ? `${date.getFullYear()}-${date.getMonth()}`
+      : String(data.month ?? '').toLowerCase();
+    const totalDues = Math.max(0, Number(data.totalDues ?? MONTHLY_DUES));
+    const amountPaid = Math.max(0, Number(data.amountPaid ?? 0));
+    const existing = statementsByMonth.get(monthKey);
+
+    if (!existing || amountPaid > existing.amountPaid) {
+      statementsByMonth.set(monthKey, { totalDues, amountPaid });
+    }
+  }
+
+  return Array.from(statementsByMonth.values()).reduce(
+    (total, statement) => total + Math.max(0, statement.totalDues - statement.amountPaid),
+    0
+  );
+}
+
 export async function allocatePaymentToStatements(
   transaction: Transaction,
   statementsRef: CollectionReference,
