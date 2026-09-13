@@ -41,14 +41,14 @@ function getCookieValue(name: string) {
 type ApiCallOptions = {
   method?: string;
   headers?: Record<string, string> | Headers | undefined;
-  body?: string | FormData | Blob | ArrayBuffer | ArrayBufferView | URLSearchParams | null;
+  body?: string | FormData | Blob | ArrayBuffer | URLSearchParams | null;
   credentials?: 'omit' | 'same-origin' | 'include';
   signal?: AbortSignal;
   cache?: 'default' | 'no-store' | 'reload' | 'no-cache' | 'force-cache' | 'only-if-cached';
   mode?: 'navigate' | 'same-origin' | 'no-cors' | 'cors';
   redirect?: 'follow' | 'error' | 'manual';
   referrer?: string;
-  referrerPolicy?: string;
+  referrerPolicy?: ReferrerPolicy;
   integrity?: string;
   keepalive?: boolean;
   priority?: 'high' | 'low' | 'auto';

@@ -49,12 +49,13 @@ async function resolveFileUrl(data: Record<string, unknown>): Promise<string | u
   }
 
   // If it's a Base64 string, don't return it in the list to avoid payload size limits on Vercel
-  if (data.fileUrl && data.fileUrl.startsWith('data:')) {
+  const fileUrlValue = typeof data.fileUrl === 'string' ? data.fileUrl : '';
+  if (fileUrlValue.startsWith('data:')) {
     return undefined;
   }
 
-  if (data.fileUrl) {
-    return data.fileUrl;
+  if (fileUrlValue) {
+    return fileUrlValue;
   }
 
   if (!data.filePath) {
@@ -86,17 +87,30 @@ async function resolveFileUrl(data: Record<string, unknown>): Promise<string | u
 
 async function toSubmission(doc: { data: () => Record<string, unknown>; id: string }): Promise<PaymentSubmission> {
   const data = doc.data();
-  const submittedAt = data.submittedAt;
-  
+  const submittedAt = data.submittedAt as
+    | { toDate?: () => Date; toMillis?: () => number }
+    | Date
+    | string
+    | null
+    | undefined;
+
   // Convert Firestore Timestamp to Date
   let submittedDate = data.submittedDate;
   let month = data.month;
-  
+
   if (!submittedDate || submittedDate === 'Invalid Date') {
-    const dateObj = submittedAt?.toDate?.() 
-      ? submittedAt.toDate() 
-      : typeof submittedAt === 'string' ? new Date(submittedAt) : new Date();
-    
+    const timestampLike = submittedAt && typeof submittedAt === 'object' && 'toDate' in submittedAt
+      ? submittedAt
+      : undefined;
+
+    const dateObj = timestampLike && typeof timestampLike.toDate === 'function'
+      ? timestampLike.toDate()
+      : typeof submittedAt === 'string'
+        ? new Date(submittedAt)
+        : submittedAt instanceof Date
+          ? submittedAt
+          : new Date();
+
     if (dateObj && dateObj.getTime && !isNaN(dateObj.getTime())) {
       submittedDate = dateObj.toLocaleString();
       if (!month) {
@@ -113,29 +127,35 @@ async function toSubmission(doc: { data: () => Record<string, unknown>; id: stri
   const fileUrl = await resolveFileUrl(data);
   const hasProof = Boolean(data.fileEncrypted || data.fileUrl || data.filePath);
 
-  return {
+  const normalizedStatus = typeof data.status === 'string' ? data.status : 'Pending';
+  const normalizedNotes = data.notesEncrypted
+    ? (decrypt(String(data.notesEncrypted)) ?? (typeof data.notes === 'string' ? data.notes : undefined) ?? undefined)
+    : (typeof data.notes === 'string' ? data.notes : undefined);
+
+  const submission: PaymentSubmission = {
     id: doc.id,
-    residentId: data.residentId,
-    residentName: data.residentName,
-    blockLot: data.blockLot,
+    residentId: typeof data.residentId === 'string' ? data.residentId : String(data.residentId ?? ''),
+    residentName: typeof data.residentName === 'string' ? data.residentName : String(data.residentName ?? ''),
+    blockLot: typeof data.blockLot === 'string' ? data.blockLot : String(data.blockLot ?? ''),
     paymentAmount: Number(data.paymentAmount ?? 0),
-    paymentMethod: data.paymentMethod ?? 'Unknown',
-    referenceNumber: data.referenceNumber ?? '',
-    // Decrypt notes if stored encrypted
-    notes: data.notesEncrypted ? (decrypt(String(data.notesEncrypted)) ?? data.notes ?? null) : data.notes,
-    fileName: data.fileName,
+    paymentMethod: typeof data.paymentMethod === 'string' ? data.paymentMethod : 'Unknown',
+    referenceNumber: typeof data.referenceNumber === 'string' ? data.referenceNumber : String(data.referenceNumber ?? ''),
+    notes: normalizedNotes,
+    fileName: typeof data.fileName === 'string' ? data.fileName : undefined,
     fileUrl,
-    filePath: data.filePath,
+    filePath: typeof data.filePath === 'string' ? data.filePath : undefined,
     proofUrl: `/api/payment-submissions/${doc.id}/proof`,
     hasProof,
-    status: data.status || 'Pending',
-    submittedDate,
-    verifiedDate: data.verifiedDate,
-    submittedAt,
-    verifiedAt: data.verifiedAt,
-    paymentDateTime: data.paymentDateTime || undefined,
-    receiptAmount: data.receiptAmount || undefined,
+    status: normalizedStatus as PaymentSubmission['status'],
+    submittedDate: String(submittedDate),
+    verifiedDate: typeof data.verifiedDate === 'string' ? data.verifiedDate : undefined,
+    submittedAt: submittedAt ?? undefined,
+    verifiedAt: data.verifiedAt as PaymentSubmission['verifiedAt'],
+    paymentDateTime: typeof data.paymentDateTime === 'string' ? data.paymentDateTime : undefined,
+    receiptAmount: typeof data.receiptAmount === 'string' ? data.receiptAmount : undefined,
   };
+
+  return submission;
 }
 
 export async function GET(request: NextRequest) {
