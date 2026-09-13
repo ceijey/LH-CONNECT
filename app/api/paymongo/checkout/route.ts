@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const userId = decoded.uid;
 
   try {
-    const userData = (tokenVerification as any).userData;
+    const userData = (tokenVerification as { userData?: { role?: string } }).userData;
 
     if (!userData) {
       return createErrorResponse('User not found', 404);
@@ -85,16 +85,17 @@ export async function POST(request: NextRequest) {
         : baseSubmissionId;
     const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
-    // Check for any existing submission for this resident and month, including legacy documents.
+    // Check for any existing submission for this resident and actual due month, oldest unpaid first.
     const existingMonthSubmissionQuery = await adminDb
       .collection('payment_submissions')
       .where('residentId', '==', userId)
-      .where('month', '==', currentMonth)
+      .where('month', '==', targetMonth)
+      .where('status', '==', 'Pending')
       .limit(1)
       .get();
 
     if (!existingMonthSubmissionQuery.empty) {
-      return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+      return createErrorResponse(`You have already submitted a payment for ${targetMonth}. You cannot submit multiple payments for the same month.`, 400);
     }
 
     const referenceNumber = `PAYMONGO-${now.getTime()}`;
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
       referenceNumber,
       notes: notes || 'PayMongo checkout initiated by resident',
       status: 'Pending' as const,
-      month: currentMonth,
+      month: targetMonth,
       submittedDate: now.toLocaleString(),
       submittedAt: now,
       updatedAt: now,
@@ -122,9 +123,11 @@ export async function POST(request: NextRequest) {
 
     try {
       await submissionRef.create(submissionData);
-    } catch (createError: any) {
-      if (createError?.code === 6 || String(createError?.message || '').includes('already exists')) {
-        return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+    } catch (createError: unknown) {
+      const createMessage = createError instanceof Error ? createError.message : String(createError);
+      const createCode = typeof createError === 'object' && createError !== null && 'code' in createError ? Number((createError as { code?: unknown }).code) : undefined;
+      if (createCode === 6 || createMessage.includes('already exists')) {
+        return createErrorResponse(`You have already submitted a payment for ${targetMonth}. You cannot submit multiple payments for the same month.`, 400);
       }
 
       throw createError;
@@ -143,7 +146,7 @@ export async function POST(request: NextRequest) {
           residentName,
           blockLot,
           referenceNumber,
-          month: currentMonth,
+          month: targetMonth,
           paymentMethod: 'PayMongo',
         },
       });
@@ -166,12 +169,14 @@ export async function POST(request: NextRequest) {
           paymongoStatus: 'pending',
         },
       });
-    } catch (checkoutError: any) {
+    } catch (checkoutError: unknown) {
+      const message = checkoutError instanceof Error ? checkoutError.message : String(checkoutError);
       await submissionRef.delete().catch(() => undefined);
-      throw checkoutError;
+      throw new Error(message);
     }
-  } catch (error: any) {
-    console.error('[PayMongo Checkout] Failed to create checkout session:', error?.message ?? error);
-    return createErrorResponse(error?.message ?? 'Failed to create PayMongo checkout session', 500);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[PayMongo Checkout] Failed to create checkout session:', message);
+    return createErrorResponse(message || 'Failed to create PayMongo checkout session', 500);
   }
 }

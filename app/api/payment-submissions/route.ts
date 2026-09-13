@@ -35,13 +35,13 @@ type PaymentSubmission = {
   status: 'Verified' | 'Pending' | 'Rejected';
   submittedDate: string;
   verifiedDate?: string;
-  submittedAt?: any;
-  verifiedAt?: any;
+  submittedAt?: Date | string | { toDate?: () => Date; toMillis?: () => number };
+  verifiedAt?: Date | string | { toDate?: () => Date; toMillis?: () => number };
   paymentDateTime?: string;
   receiptAmount?: string;
 };
 
-async function resolveFileUrl(data: any): Promise<string | undefined> {
+async function resolveFileUrl(data: Record<string, unknown>): Promise<string | undefined> {
   // If file stored encrypted (inline Base64 was encrypted), decrypt and return it
   if (data.fileEncrypted) {
     const decrypted = decrypt(String(data.fileEncrypted));
@@ -64,7 +64,7 @@ async function resolveFileUrl(data: any): Promise<string | undefined> {
   try {
     const envBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
     const bucket = envBucket ? adminStorage.bucket(envBucket) : adminStorage.bucket();
-    const storageFile = bucket.file(data.filePath);
+    const storageFile = bucket.file(String(data.filePath));
     const [exists] = await storageFile.exists();
 
     if (!exists) {
@@ -77,13 +77,14 @@ async function resolveFileUrl(data: any): Promise<string | undefined> {
     });
 
     return signedUrl;
-  } catch (error: any) {
-    console.error(`[resolveFileUrl] Failed to resolve filePath: ${data.filePath}. Error: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[resolveFileUrl] Failed to resolve filePath: ${String(data.filePath ?? '')}. Error: ${message}`);
     return undefined;
   }
 }
 
-async function toSubmission(doc: any): Promise<PaymentSubmission> {
+async function toSubmission(doc: { data: () => Record<string, unknown>; id: string }): Promise<PaymentSubmission> {
   const data = doc.data();
   const submittedAt = data.submittedAt;
   
@@ -149,7 +150,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Use userData from middleware to avoid redundant Firestore read
-    const userData = (tokenVerification as any).userData;
+    const userData = (tokenVerification as { userData?: { role?: string } }).userData;
 
     if (!userData) {
       return createErrorResponse('User not found', 404);
@@ -164,23 +165,30 @@ export async function GET(request: NextRequest) {
     const submissionsSnapshot = await submissionsQuery.get();
 
     const submissions = (await Promise.all(
-      submissionsSnapshot.docs.map((doc: any) => toSubmission(doc))
+      submissionsSnapshot.docs.map((doc: { data: () => Record<string, unknown>; id: string }) => toSubmission(doc))
     ))
       .sort((a: PaymentSubmission, b: PaymentSubmission) => {
-        const toMillis = (value: any) => {
+        const toMillis = (value: unknown): number => {
           if (!value) return 0;
-          if (typeof value.toMillis === 'function') return value.toMillis();
-          if (typeof value.toDate === 'function') return value.toDate().getTime();
+          if (typeof value === 'object' && value !== null) {
+            if ('toMillis' in value && typeof (value as { toMillis?: () => number }).toMillis === 'function') {
+              return (value as { toMillis: () => number }).toMillis();
+            }
+            if ('toDate' in value && typeof (value as { toDate?: () => Date }).toDate === 'function') {
+              return (value as { toDate: () => Date }).toDate().getTime();
+            }
+          }
           const numeric = Number(value);
-          return Number.isFinite(numeric) ? numeric : new Date(value).getTime() || 0;
+          return Number.isFinite(numeric) ? numeric : new Date(String(value)).getTime() || 0;
         };
 
         return toMillis(b.submittedAt) - toMillis(a.submittedAt);
       });
 
     return NextResponse.json({ submissions, user: decoded });
-  } catch (error: any) {
-    console.error('Error fetching payment submissions:', error.message || error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching payment submissions:', message);
     const mockSubmissions = Array.from({ length: 10 }, (_, i) => ({
       id: `mock-sub-${i}`,
       residentId: `mock-resident-${i}`,
@@ -216,7 +224,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Use userData from middleware to avoid redundant Firestore read
-    const userData = (tokenVerification as any).userData;
+    const userData = (tokenVerification as { userData?: { role?: string } }).userData;
 
     if (!userData) {
       return createErrorResponse('User not found', 404);
@@ -316,16 +324,17 @@ export async function POST(request: NextRequest) {
         : baseSubmissionId;
     const submissionRef = adminDb.collection('payment_submissions').doc(submissionId);
 
-    // Check for any existing submission for this resident and month, including legacy documents.
+    // Check for any existing submission for this resident and actual due month, oldest unpaid first.
     const existingMonthSubmissionQuery = await adminDb
       .collection('payment_submissions')
       .where('residentId', '==', userId)
-      .where('month', '==', currentMonth)
+      .where('month', '==', targetMonth)
+      .where('status', '==', 'Pending')
       .limit(1)
       .get();
 
     if (!existingMonthSubmissionQuery.empty) {
-      return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+      return createErrorResponse(`You have already submitted a payment for ${targetMonth}. You cannot submit multiple payments for the same month.`, 400);
     }
     
     // Only require file if URL or Base64 is not provided
@@ -425,7 +434,7 @@ export async function POST(request: NextRequest) {
         filePath,
         fileEncrypted: fileEncrypted ?? null,
         status: 'Pending',
-        month: currentMonth,
+        month: targetMonth,
         submittedDate: submittedAt.toLocaleString(),
         submittedAt,
         verifiedDate: null,
@@ -437,7 +446,7 @@ export async function POST(request: NextRequest) {
       });
     } catch (createError: unknown) {
       if (isAlreadyExistsError(createError)) {
-        return createErrorResponse(`You have already submitted a payment for ${currentMonth}. You cannot submit multiple payments for the same month.`, 400);
+        return createErrorResponse(`You have already submitted a payment for ${targetMonth}. You cannot submit multiple payments for the same month.`, 400);
       }
 
       throw createError;
@@ -458,7 +467,7 @@ export async function POST(request: NextRequest) {
       filePath,
       fileUploadError: fileUploadError ?? null,
       status: 'Pending' as const,
-      month: currentMonth,
+      month: targetMonth,
       submittedDate: submittedAt.toLocaleString(),
       verifiedDate: undefined,
       paymentDateTime,
@@ -491,13 +500,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ submission });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error('Error creating payment submission:', {
-      message: error?.message,
-      code: error?.code,
-      stack: error?.stack,
+      message,
+      code: typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: unknown }).code : undefined,
+      stack: error instanceof Error ? error.stack : undefined,
       fullError: error,
     });
-    return createErrorResponse(`Failed to submit payment proof: ${error?.message || 'Unknown error'}`, 500);
+    return createErrorResponse(`Failed to submit payment proof: ${message || 'Unknown error'}`, 500);
   }
 }

@@ -255,15 +255,14 @@ export default function SubmitPaymentPage() {
     blockLot: '',
     paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
     paymentDateTime: '',
-    receiptAmount: '',
+    receiptAmount: ESTABLISHED_PAYMENT_AMOUNT,
   });
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isOCRProcessing, setIsOCRProcessing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('paymongo');
-  const [selectedBank, setSelectedBank] = useState('BDO');
+  const [paymentMethod, setPaymentMethod] = useState('manual');
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [oldestUnpaidMonth, setOldestUnpaidMonth] = useState<string | null>(null);
@@ -272,6 +271,7 @@ export default function SubmitPaymentPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
   const isPayMongoCheckout = paymentMethod === 'paymongo';
+  const shouldShowReviewSection = isPayMongoCheckout || (!isPayMongoCheckout && formData.file);
 
   const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: ReceiptPayment }>({
     isOpen: false,
@@ -283,15 +283,14 @@ export default function SubmitPaymentPage() {
     title: '',
   });
 
+  const targetDueMonthLabel = oldestUnpaidMonth ?? currentMonthLabel;
   const currentMonthSubmission = recentSubmissions.find((submission) => {
-    const monthMatches = String(submission.month || '').toLowerCase() === currentMonthLabel.toLowerCase();
+    const monthMatches = String(submission.month || '').toLowerCase() === targetDueMonthLabel.toLowerCase();
     const status = String(submission.status || '').toLowerCase();
-    return monthMatches && (status === 'pending' || status === 'verified');
+    return monthMatches && status === 'pending';
   });
   const isMonthlyPaymentLocked = Boolean(currentMonthSubmission);
-  const monthlyLockMessage = currentMonthSubmission?.status === 'Verified'
-    ? `You already paid for ${currentMonthLabel}.`
-    : `You already have a pending submission for ${currentMonthLabel}. Please wait for HOA verification before submitting another payment.`;
+  const monthlyLockMessage = `You already have a pending submission for ${targetDueMonthLabel}. Please wait for HOA verification before submitting another payment.`;
 
   useEffect(() => {
     setIsMounted(true);
@@ -513,11 +512,11 @@ export default function SubmitPaymentPage() {
       });
 
       if (lowerText.includes('gcash')) {
-        setPaymentMethod('gcash');
+        setPaymentMethod('manual');
       } else if (lowerText.includes('maya') || lowerText.includes('paymaya')) {
-        setPaymentMethod('maya');
+        setPaymentMethod('manual');
       } else if (['bdo', 'bpi', 'metrobank', 'unionbank', 'landbank', 'security bank'].some(bank => lowerText.includes(bank))) {
-        setPaymentMethod('bank');
+        setPaymentMethod('manual');
       }
 
       let toastMsg = 'Automatically detected:';
@@ -579,6 +578,11 @@ export default function SubmitPaymentPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    if (recentLoading) {
+      setToast({ message: 'Loading your payment history. Please wait a moment and try again.', type: 'info' });
+      return;
+    }
+
     if (outstandingBalance !== null && outstandingBalance <= 0) {
       setToast({ message: 'You have no outstanding dues. Payment submission is disabled.', type: 'info' });
       return;
@@ -600,17 +604,19 @@ export default function SubmitPaymentPage() {
       return;
     }
 
+    const amountValue = (formData.receiptAmount || formData.paymentAmount).trim();
+
     if (!formData.paymentAmount.trim()) {
       setToast({ message: 'Please enter the payment amount', type: 'error' });
       return;
     }
 
-    if (!formData.receiptAmount.trim()) {
+    if (!amountValue) {
       setToast({ message: 'Please enter the receipt amount', type: 'error' });
       return;
     }
 
-    const amountValidation = validatePaymentAmount(formData.receiptAmount.trim());
+    const amountValidation = validatePaymentAmount(amountValue);
     if (!amountValidation.isValid) {
       setToast({ message: amountValidation.error ?? 'Payment amount is invalid', type: 'error' });
       return;
@@ -640,7 +646,7 @@ export default function SubmitPaymentPage() {
           body: JSON.stringify({
             residentName: formData.residentName.trim(),
             blockLot: formData.blockLot.trim(),
-            amount: Number(formData.receiptAmount.trim()),
+            amount: Number((formData.receiptAmount || formData.paymentAmount).trim()),
             notes: formData.notes.trim(),
             paymentDateTime: formData.paymentDateTime,
           }),
@@ -722,7 +728,7 @@ export default function SubmitPaymentPage() {
       payload.append('residentName', formData.residentName.trim());
       payload.append('blockLot', formData.blockLot.trim());
       payload.append('paymentAmount', formData.receiptAmount.trim());
-      payload.append('paymentMethod', paymentMethod === 'bank' ? `Bank Transfer (${selectedBank})` : paymentMethod);
+      payload.append('paymentMethod', paymentMethod === 'manual' ? 'Manual Payment' : 'PayMongo');
       payload.append('referenceNumber', formData.referenceNumber.trim());
       payload.append('notes', formData.notes.trim());
       payload.append('paymentDateTime', formData.paymentDateTime);
@@ -902,7 +908,7 @@ export default function SubmitPaymentPage() {
             <div className={styles.formCard}>
               <h2 className={styles.formTitle}>Submit Payment</h2>
               <p className={styles.formDescription}>
-                Upload your GCash, Maya, PayMongo, or Bank Transfer payment screenshot for instant verification
+                Upload your payment screenshot for manual verification or use PayMongo for a secure online checkout.
               </p>
 
               {isMonthlyPaymentLocked && (
@@ -918,59 +924,85 @@ export default function SubmitPaymentPage() {
               )}
 
               <form onSubmit={handleSubmit} className={styles.form}>
-                {/* 1. Upload Payment Proof */}
-                <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
-                  <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>1. Upload Receipt (Scan & Auto-fill)</label>
-                  <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>
-                    {isPayMongoCheckout
-                      ? 'PayMongo opens a secure hosted checkout, so uploading a receipt is optional.'
-                      : 'Upload your receipt and we will automatically fill in the details below!'}
-                  </p>
-                  <div className={styles.uploadBox}>
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleFileChange}
-                      className={styles.fileInput}
-                      id="fileInput"
-                    />
-                    <label htmlFor="fileInput" className={styles.uploadLabel}>
-                      <div className={styles.uploadIcon}>📁</div>
-                      {fileName ? (
-                        <div>
-                          <p className={styles.uploadText}>✓ {fileName}</p>
-                          <p className={styles.uploadSmall}>Click to change</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className={styles.uploadText}>Click to upload screenshot</p>
-                          <p className={styles.uploadSmall}>JPG or PNG images up to 10MB</p>
-                        </div>
-                      )}
-                    </label>
+                {/* 1. Select Payment Method */}
+                <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '12px' }}>1. Select Payment Method</label>
+                  <div className={styles.methodGrid}>
+                    <div
+                      className={`${styles.methodCard} ${paymentMethod === 'manual' ? styles.activeCard : ''}`}
+                      onClick={() => setPaymentMethod('manual')}
+                    >
+                      <div className={styles.methodIcon}>📸</div>
+                      <div className={styles.methodName}>Manual Payment</div>
+                    </div>
+                    <div
+                      className={`${styles.methodCard} ${paymentMethod === 'paymongo' ? styles.activeCard : ''}`}
+                      onClick={() => setPaymentMethod('paymongo')}
+                    >
+                      <div className={styles.methodIcon}>⬢</div>
+                      <div className={styles.methodName}>Secure Online Checkout</div>
+                    </div>
                   </div>
-                  {preview && (
-                    <div className={styles.previewContainer}>
-                      <Image
-                        src={preview}
-                        alt="Preview"
-                        className={styles.previewImage}
-                        width={800}
-                        height={260}
-                        onError={(e) => {
-                          console.error('Preview image failed to load:', e);
-                          setPreview(null);
-                        }}
-                      />
+
+                  {isPayMongoCheckout && (
+                    <div className={styles.uploadSmall} style={{ marginTop: '12px' }}>
+                      You will be redirected to PayMongo’s secure checkout page after submitting.
                     </div>
                   )}
                 </div>
 
-                {formData.file && (
+                {!isPayMongoCheckout && (
+                  <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
+                    <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>2. Upload Receipt (Scan & Auto-fill)</label>
+                    <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>
+                      Upload your receipt and we will automatically fill in the details below!
+                    </p>
+                    <div className={styles.uploadBox}>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={handleFileChange}
+                        className={styles.fileInput}
+                        id="fileInput"
+                      />
+                      <label htmlFor="fileInput" className={styles.uploadLabel}>
+                        <div className={styles.uploadIcon}>📁</div>
+                        {fileName ? (
+                          <div>
+                            <p className={styles.uploadText}>✓ {fileName}</p>
+                            <p className={styles.uploadSmall}>Click to change</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className={styles.uploadText}>Click to upload screenshot</p>
+                            <p className={styles.uploadSmall}>JPG or PNG images up to 10MB</p>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                    {preview && (
+                      <div className={styles.previewContainer}>
+                        <Image
+                          src={preview}
+                          alt="Preview"
+                          className={styles.previewImage}
+                          width={800}
+                          height={260}
+                          onError={(e) => {
+                            console.error('Preview image failed to load:', e);
+                            setPreview(null);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {shouldShowReviewSection && (
                   <div style={{ marginTop: '40px', animation: 'fadeIn 0.5s ease-in' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
-                      <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 2: Verify & Submit</span>
+                      <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 3: Verify & Submit</span>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
                     </div>
 
@@ -986,55 +1018,6 @@ export default function SubmitPaymentPage() {
                         <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.paymentAmount}</div>
                       </div>
                     </div>
-
-                    {/* Select Payment Method */}
-                    <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '12px' }}>Select Payment Method</label>
-                      <div className={styles.methodGrid}>
-                        <div
-                          className={`${styles.methodCard} ${paymentMethod === 'bank' ? styles.activeCard : ''}`}
-                          onClick={() => setPaymentMethod('bank')}
-                        >
-                          <div className={styles.methodIcon}>🏦</div>
-                          <div className={styles.methodName}>Bank</div>
-                        </div>
-                        <div
-                          className={`${styles.methodCard} ${paymentMethod === 'paymongo' ? styles.activeCard : ''}`}
-                          onClick={() => setPaymentMethod('paymongo')}
-                        >
-                          <div className={styles.methodIcon}>⬢</div>
-                          <div className={styles.methodName}>PayMongo</div>
-                        </div>
-                      </div>
-
-                      {isPayMongoCheckout && (
-                        <div className={styles.uploadSmall} style={{ marginTop: '12px' }}>
-                          Secure checkout will open in a PayMongo payment page after you submit.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bank Selection */}
-                    {paymentMethod === 'bank' && (
-                      <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '8px' }}>Select Your Bank</label>
-                        <select
-                          className={styles.select}
-                          value={selectedBank}
-                          onChange={(e) => setSelectedBank(e.target.value)}
-                        >
-                          <option value="BDO">BDO (Banco de Oro)</option>
-                          <option value="BPI">BPI (Bank of the Philippine Islands)</option>
-                          <option value="Metrobank">Metrobank</option>
-                          <option value="UnionBank">UnionBank of the Philippines</option>
-                          <option value="Landbank">Landbank of the Philippines</option>
-                          <option value="Security Bank">Security Bank</option>
-                          <option value="PNB">PNB (Philippine National Bank)</option>
-                          <option value="Chinabank">Chinabank</option>
-                          <option value="RCBC">RCBC</option>
-                        </select>
-                      </div>
-                    )}
 
                     {/* Sleek Scanned Details */}
                     <div style={{ marginBottom: '40px' }}>
@@ -1118,7 +1101,7 @@ export default function SubmitPaymentPage() {
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isSubmitting || isMonthlyPaymentLocked || outstandingBalance === 0}
+                      disabled={isSubmitting || isMonthlyPaymentLocked || outstandingBalance === 0 || recentLoading}
                       className={styles.submitBtn}
                       style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
                     >
@@ -1145,38 +1128,35 @@ export default function SubmitPaymentPage() {
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>1</span>
                   <div>
-                    <strong>Send Payment</strong>
-                    <p>Transfer your monthly dues via GCash, Maya, or Bank Transfer to the HOA account</p>
+                    <strong>Choose a payment method</strong>
+                    <p>Use Manual Payment to upload a proof screenshot, or choose PayMongo for secure online checkout.</p>
                   </div>
                 </li>
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>2</span>
                   <div>
-                    <strong>Take Screenshot</strong>
-                    <p>Capture the confirmation screen showing the transaction details</p>
+                    <strong>Upload screenshot or proceed to checkout</strong>
+                    <p>For manual payment, capture the confirmation screen showing the transaction details.</p>
                   </div>
                 </li>
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>3</span>
                   <div>
-                    <strong>Upload & Submit</strong>
-                    <p>Fill in the form and upload your screenshot for instant verification</p>
+                    <strong>Confirm details</strong>
+                    <p>Review the amount, reference number, date, and proof before submitting.</p>
                   </div>
                 </li>
               </ol>
 
-              {/* HOA Payment Details */}
+              {/* Payment Service Details */}
               <div className={styles.hoaDetails}>
-                <h4 className={styles.hoaTitle}>HOA Payment Details:</h4>
+                <h4 className={styles.hoaTitle}>Payment Options:</h4>
                 <ul className={styles.detailsList}>
                   <li>
-                    <strong>GCash:</strong> 0917-123-4567
+                    <strong>Manual Payment:</strong> Upload screenshot / receipt for verification
                   </li>
                   <li>
-                    <strong>Maya:</strong> 0918-765-4321
-                  </li>
-                  <li>
-                    <strong>Bank Transfer:</strong> BDO Account 12345-6789
+                    <strong>PayMongo:</strong> Secure hosted checkout
                   </li>
                   <li>
                     <strong>HOA Name:</strong> Lincoln Heights HOA
@@ -1278,9 +1258,12 @@ export default function SubmitPaymentPage() {
                             )}
                             {submission.hasProof && submission.proofUrl && (
                               <div style={{ marginTop: '12px' }}>
-                                <img
+                                <Image
                                   src={submission.proofUrl}
                                   alt="Submitted payment proof"
+                                  width={800}
+                                  height={180}
+                                  unoptimized
                                   style={{ display: 'block', width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer' }}
                                   onClick={() => setProofModal({
                                     isOpen: true,
