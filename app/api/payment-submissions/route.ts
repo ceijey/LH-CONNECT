@@ -453,7 +453,7 @@ export async function POST(request: NextRequest) {
         referenceNumber,
         notesEncrypted: notesEncrypted ?? null,
         fileName,
-        fileUrl,
+        fileUrl: fileUrl ?? null,
         filePath,
         fileEncrypted: fileEncrypted ?? null,
         status: 'Pending',
