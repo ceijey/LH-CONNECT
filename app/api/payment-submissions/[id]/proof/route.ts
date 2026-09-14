@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const filePath = submission.filePath as string | undefined;
     const fileName = submission.fileName as string | undefined;
-    const fileUrl = submission.fileUrl as string | undefined;
+    const fileUrl = (submission.fileUrl || submission.file) as string | undefined;
     const encryptedFileUrl = submission.fileEncrypted as string | undefined;
     const decryptedFileUrl = encryptedFileUrl ? decrypt(encryptedFileUrl) ?? undefined : undefined;
     const resolvedFileUrl = fileUrl || decryptedFileUrl;

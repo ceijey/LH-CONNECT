@@ -48,8 +48,11 @@ async function resolveFileUrl(data: Record<string, unknown>): Promise<string | u
     if (decrypted && String(decrypted).startsWith('data:')) return decrypted;
   }
 
+  // Support submissions created by the older client, which stored proof in `file`.
+  const legacyFileValue = typeof data.file === 'string' ? data.file : '';
+
   // If it's a Base64 string, don't return it in the list to avoid payload size limits on Vercel
-  const fileUrlValue = typeof data.fileUrl === 'string' ? data.fileUrl : '';
+  const fileUrlValue = typeof data.fileUrl === 'string' ? data.fileUrl : legacyFileValue;
   if (fileUrlValue.startsWith('data:')) {
     return undefined;
   }
@@ -125,7 +128,7 @@ async function toSubmission(doc: { data: () => Record<string, unknown>; id: stri
   }
 
   const fileUrl = await resolveFileUrl(data);
-  const hasProof = Boolean(data.fileEncrypted || data.fileUrl || data.filePath);
+  const hasProof = Boolean(data.fileEncrypted || data.fileUrl || data.filePath || data.file);
 
   const normalizedStatus = typeof data.status === 'string' ? data.status : 'Pending';
   const normalizedNotes = data.notesEncrypted
