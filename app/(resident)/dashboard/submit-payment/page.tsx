@@ -622,6 +622,11 @@ export default function SubmitPaymentPage() {
       return;
     }
 
+    if (!isPayMongoCheckout && Number(amountValue) !== Number(ESTABLISHED_PAYMENT_AMOUNT)) {
+      setToast({ message: `Manual payment amount must be exactly ₱${ESTABLISHED_PAYMENT_AMOUNT}.`, type: 'error' });
+      return;
+    }
+
     if (!isPayMongoCheckout && !formData.file) {
       setToast({ message: 'Please upload a payment proof', type: 'error' });
       return;

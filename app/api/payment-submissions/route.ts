@@ -261,6 +261,10 @@ export async function POST(request: NextRequest) {
     const paymentMethod = String(formData.get('paymentMethod') ?? '').trim();
     const referenceNumber = String(formData.get('referenceNumber') ?? '').trim();
     const notes = String(formData.get('notes') ?? '').trim();
+    const fixedManualPaymentAmount = 400;
+    if (paymentAmount !== fixedManualPaymentAmount) {
+      return createErrorResponse(`Payment amount must be exactly ₱${fixedManualPaymentAmount}.`, 400);
+    }
     const paymentDateTime = String(formData.get('paymentDateTime') ?? '').trim();
     const receiptAmount = String(formData.get('receiptAmount') ?? '').trim();
     const file = formData.get('file');
