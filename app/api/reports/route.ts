@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     const normalizePaymentMethod = (method: unknown, source?: unknown) => {
       const normalized = `${String(method ?? '')} ${String(source ?? '')}`.trim().toLowerCase();
-      return normalized.includes('paymongo') || normalized.includes('gcash') || normalized.includes('maya')
+      return normalized.includes('gcash') || normalized.includes('maya')
         ? 'GCash'
         : String(method ?? '').trim() || 'Cash';
     };

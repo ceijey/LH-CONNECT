@@ -270,8 +270,7 @@ export default function SubmitPaymentPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
-  const isPayMongoCheckout = paymentMethod === 'paymongo';
-  const shouldShowReviewSection = isPayMongoCheckout || (!isPayMongoCheckout && formData.file);
+  const shouldShowReviewSection = Boolean(formData.file);
 
   const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: ReceiptPayment }>({
     isOpen: false,
@@ -622,22 +621,22 @@ export default function SubmitPaymentPage() {
       return;
     }
 
-    if (!isPayMongoCheckout && Number(amountValue) !== Number(ESTABLISHED_PAYMENT_AMOUNT)) {
+    if (Number(amountValue) !== Number(ESTABLISHED_PAYMENT_AMOUNT)) {
       setToast({ message: `Manual payment amount must be exactly ₱${ESTABLISHED_PAYMENT_AMOUNT}.`, type: 'error' });
       return;
     }
 
-    if (!isPayMongoCheckout && !formData.file) {
+    if (!formData.file) {
       setToast({ message: 'Please upload a payment proof', type: 'error' });
       return;
     }
 
-    if (!isPayMongoCheckout && !formData.referenceNumber.trim()) {
+    if (!formData.referenceNumber.trim()) {
       setToast({ message: 'Please enter a reference number', type: 'error' });
       return;
     }
 
-    if (!isPayMongoCheckout && !formData.paymentDateTime) {
+    if (!formData.paymentDateTime) {
       setToast({ message: 'Please enter the date and time of payment', type: 'error' });
       return;
     }
@@ -645,46 +644,6 @@ export default function SubmitPaymentPage() {
     setIsSubmitting(true);
 
     try {
-      if (isPayMongoCheckout) {
-        const response = await apiCall('/api/paymongo/checkout', {
-          method: 'POST',
-          body: JSON.stringify({
-            residentName: formData.residentName.trim(),
-            blockLot: formData.blockLot.trim(),
-            amount: Number((formData.receiptAmount || formData.paymentAmount).trim()),
-            notes: formData.notes.trim(),
-            paymentDateTime: formData.paymentDateTime,
-          }),
-        });
-
-        const submission = response.submission as Submission | undefined;
-
-        if (submission) {
-          setRecentSubmissions((current) => [
-            {
-              ...submission,
-              month: submission.month ?? new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
-              paymentAmount: Number(submission.paymentAmount ?? (Number(formData.receiptAmount) || 0)),
-              status: submission.status ?? 'Pending',
-              submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
-              residentName: formData.residentName,
-              blockLot: formData.blockLot,
-              paymentDateTime: formData.paymentDateTime || new Date().toISOString(),
-            },
-            ...current,
-          ]);
-        }
-
-        setToast({ message: 'Redirecting to PayMongo checkout...', type: 'info' });
-
-        if (response.checkoutUrl) {
-          window.location.href = response.checkoutUrl;
-          return;
-        }
-
-        throw new Error('PayMongo checkout URL was not returned');
-      }
-
       let fileBase64 = '';
 
       // If there's a file, compress it and convert to Base64
@@ -733,7 +692,7 @@ export default function SubmitPaymentPage() {
       payload.append('residentName', formData.residentName.trim());
       payload.append('blockLot', formData.blockLot.trim());
       payload.append('paymentAmount', formData.receiptAmount.trim());
-      payload.append('paymentMethod', paymentMethod === 'manual' ? 'Manual Payment' : 'PayMongo');
+      payload.append('paymentMethod', 'Manual Payment');
       payload.append('referenceNumber', formData.referenceNumber.trim());
       payload.append('notes', formData.notes.trim());
       payload.append('paymentDateTime', formData.paymentDateTime);
@@ -913,7 +872,7 @@ export default function SubmitPaymentPage() {
             <div className={styles.formCard}>
               <h2 className={styles.formTitle}>Submit Payment</h2>
               <p className={styles.formDescription}>
-                Upload your payment screenshot for manual verification or use PayMongo for a secure online checkout.
+                Scan the QR code to pay, then upload your receipt for manual verification.
               </p>
 
               {isMonthlyPaymentLocked && (
@@ -929,35 +888,26 @@ export default function SubmitPaymentPage() {
               )}
 
               <form onSubmit={handleSubmit} className={styles.form}>
-                {/* 1. Select Payment Method */}
-                <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '12px' }}>1. Select Payment Method</label>
-                  <div className={styles.methodGrid}>
-                    <div
-                      className={`${styles.methodCard} ${paymentMethod === 'manual' ? styles.activeCard : ''}`}
-                      onClick={() => setPaymentMethod('manual')}
-                    >
-                      <div className={styles.methodIcon}>📸</div>
-                      <div className={styles.methodName}>Manual Payment</div>
-                    </div>
-                    <div
-                      className={`${styles.methodCard} ${paymentMethod === 'paymongo' ? styles.activeCard : ''}`}
-                      onClick={() => setPaymentMethod('paymongo')}
-                    >
-                      <div className={styles.methodIcon}>⬢</div>
-                      <div className={styles.methodName}>Secure Online Checkout</div>
-                    </div>
-                  </div>
-
-                  {isPayMongoCheckout && (
-                    <div className={styles.uploadSmall} style={{ marginTop: '12px' }}>
-                      You will be redirected to PayMongo’s secure checkout page after submitting.
-                    </div>
-                  )}
+                <div className={styles.formGroup} style={{ marginBottom: '32px', textAlign: 'center' }}>
+                  <label className={styles.label} style={{ display: 'block', marginBottom: '12px' }}>1. Scan to Pay</label>
+                  <Image
+                    src="/lhconnect_qrcode.jpg"
+                    alt="LH-Connect payment QR code"
+                    width={320}
+                    height={320}
+                    className={styles.qrCode}
+                    priority
+                  />
+                  <a
+                    href="/lhconnect_qrcode.jpg"
+                    download="lhconnect_qrcode.jpg"
+                    className={styles.downloadQrBtn}
+                  >
+                    Download QR Code
+                  </a>
                 </div>
 
-                {!isPayMongoCheckout && (
-                  <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
+                <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
                     <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>2. Upload Receipt (Scan & Auto-fill)</label>
                     <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>
                       Upload your receipt and we will automatically fill in the details below!
@@ -1000,8 +950,7 @@ export default function SubmitPaymentPage() {
                         />
                       </div>
                     )}
-                  </div>
-                )}
+                </div>
 
                 {shouldShowReviewSection && (
                   <div style={{ marginTop: '40px', animation: 'fadeIn 0.5s ease-in' }}>
@@ -1115,8 +1064,8 @@ export default function SubmitPaymentPage() {
                         : outstandingBalance === 0
                         ? 'Fully Paid'
                         : isSubmitting
-                        ? (isPayMongoCheckout ? 'Redirecting to PayMongo...' : 'Submitting...')
-                        : (isPayMongoCheckout ? 'Continue to PayMongo Checkout' : 'Submit Payment')}
+                        ? 'Submitting...'
+                        : 'Submit Payment'}
                     </button>
                   </div>
                 )}
@@ -1133,15 +1082,15 @@ export default function SubmitPaymentPage() {
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>1</span>
                   <div>
-                    <strong>Choose a payment method</strong>
-                    <p>Use Manual Payment to upload a proof screenshot, or choose PayMongo for secure online checkout.</p>
+                    <strong>Scan the payment QR code</strong>
+                    <p>Complete your payment using the LH-Connect QR code shown in the form.</p>
                   </div>
                 </li>
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>2</span>
                   <div>
-                    <strong>Upload screenshot or proceed to checkout</strong>
-                    <p>For manual payment, capture the confirmation screen showing the transaction details.</p>
+                    <strong>Upload your receipt</strong>
+                    <p>Capture the confirmation screen showing the transaction details.</p>
                   </div>
                 </li>
                 <li className={styles.instructionItem}>
@@ -1158,10 +1107,7 @@ export default function SubmitPaymentPage() {
                 <h4 className={styles.hoaTitle}>Payment Options:</h4>
                 <ul className={styles.detailsList}>
                   <li>
-                    <strong>Manual Payment:</strong> Upload screenshot / receipt for verification
-                  </li>
-                  <li>
-                    <strong>PayMongo:</strong> Secure hosted checkout
+                    <strong>Manual Payment:</strong> Scan the QR code and upload your receipt for verification
                   </li>
                   <li>
                     <strong>HOA Name:</strong> Lincoln Heights HOA
