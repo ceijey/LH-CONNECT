@@ -51,6 +51,8 @@ const normalizeSubject = (value: unknown) => {
   return hasReplyPrefix ? `Re: ${base}` : base;
 };
 
+const MAX_MESSAGE_IMAGE_LENGTH = Math.ceil(5 * 1024 * 1024 * 1.4);
+
 export async function GET(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
 
@@ -144,6 +146,12 @@ export async function POST(request: NextRequest) {
     const fileName = body.fileName ? String(body.fileName) : 'image.jpg';
 
     if (fileBase64) {
+      if (fileBase64.length > MAX_MESSAGE_IMAGE_LENGTH) {
+        return createErrorResponse('Message image must be 5 MB or smaller', 400);
+      }
+      if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(fileBase64)) {
+        return createErrorResponse('Message image has an invalid file format', 400);
+      }
       imageUrl = fileBase64;
       console.log(`[api/messages] Storing Base64 image payload directly in Firestore to minimize Firebase Storage quota usage.`);
     }
@@ -154,6 +162,9 @@ export async function POST(request: NextRequest) {
 
     const senderName = String(userData.fullName ?? userData.name ?? decoded.uid).trim();
     const senderRole = String(userData.role ?? 'resident').toLowerCase();
+    if (senderRole === 'resident' && recipientId !== 'admin') {
+      return createErrorResponse('Residents may only message the HOA admin', 403);
+    }
     const addressParts = [userData.phase, userData.block && `Blk ${userData.block}`, userData.lot && `Lot ${userData.lot}`]
       .filter(Boolean)
       .join(' ');
@@ -179,6 +190,13 @@ export async function POST(request: NextRequest) {
       }
 
       const existingThread = threadDoc.data() ?? {};
+      const canReply = senderRole === 'admin'
+        || existingThread.senderId === decoded.uid
+        || existingThread.recipientId === decoded.uid
+        || (Array.isArray(existingThread.replies) && existingThread.replies.some((reply: any) => reply.senderId === decoded.uid));
+      if (!canReply) {
+        return createErrorResponse('You do not have access to this message thread', 403);
+      }
       const existingReplies = Array.isArray(existingThread.replies) ? existingThread.replies : [];
       const updatedReplies = [...existingReplies, reply];
       const threadSubject = normalizeSubject(existingThread.subject ?? subject);

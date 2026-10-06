@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
-export async function GET(_req: NextRequest) {
+export async function GET(request: NextRequest) {
+  const tokenVerification = await requireAdmin(request);
+  if (tokenVerification.error) {
+    return createErrorResponse(tokenVerification.error, tokenVerification.status);
+  }
+
   try {
     // Use server local timezone for "today" (midnight -> now)
     const now = new Date();
@@ -28,6 +34,6 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ count: total });
   } catch (err: any) {
     console.error('Error fetching today payments count', err?.message || err);
-    return NextResponse.json({ count: 0, error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: 'Payment count is temporarily unavailable' }, { status: 503 });
   }
 }

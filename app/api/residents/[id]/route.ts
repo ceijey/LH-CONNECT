@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
 import { verifyCsrf } from '@/lib/csrf';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
-import { sendDueBillEmail, sendAccountStatusEmail } from '@/lib/mailer';
-import { sendDueBillSMS } from '@/lib/sms';
+import { sendAccountStatusEmail } from '@/lib/mailer';
 import { logAuditAction } from '@/lib/audit-logger';
+import { decrypt, encrypt } from '@/lib/encryption';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,7 +32,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return createErrorResponse('User is not a resident', 400);
     }
 
-    return NextResponse.json({ id, ...residentData });
+    const phone = residentData?.phoneEncrypted
+      ? decrypt(String(residentData.phoneEncrypted))
+      : residentData?.phone;
+    return NextResponse.json({ id, ...residentData, phone: phone ?? undefined });
   } catch (error: any) {
     console.error('Error fetching resident:', error.message);
     return NextResponse.json({ id, error: 'Temporarily unavailable' });
@@ -63,18 +66,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Get the resident's current data before update
     const residentDoc = await adminDb.collection('users').doc(id).get();
     const currentData = residentDoc.data();
-    const previousBalance = currentData?.balance ?? 0;
-
     const body = await request.json();
     const updatePayload: any = {};
 
     // Only allow updating certain fields
-    const allowedFields = ['fullName', 'phone', 'phase', 'block', 'lot', 'status', 'balance', 'approvalStatus'];
+    const allowedFields = ['fullName', 'phone', 'phase', 'block', 'lot', 'status', 'approvalStatus'];
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
         updatePayload[field] = body[field];
       }
     });
+
+    if (typeof updatePayload.phone === 'string') {
+      const phone = updatePayload.phone.trim();
+      updatePayload.phoneEncrypted = phone ? encrypt(phone) : null;
+      updatePayload.phoneMasked = phone ? `****${phone.replace(/\D/g, '').slice(-4)}` : null;
+      delete updatePayload.phone;
+    }
 
     if (Object.keys(updatePayload).length === 0) {
       return createErrorResponse('No valid fields to update', 400);
@@ -163,110 +171,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         `Updated details for resident ${currentData?.fullName || id}`,
         id
       );
-    }
-
-    // Create notification and send email if balance is being set
-    if (updatePayload.balance !== undefined && updatePayload.balance > 0) {
-      const now = new Date();
-      const currentMonth = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
-      const currentMonthName = now.toLocaleString(undefined, { month: 'long' });
-      const currentYear = now.getFullYear();
-      
-      // Automation: Create or Update Statement record
-      try {
-        const statementsRef = adminDb.collection('statements');
-        const existingStmtQuery = await statementsRef
-          .where('residentId', '==', id)
-          .where('month', '==', currentMonthName)
-          .where('year', '==', currentYear)
-          .limit(1)
-          .get();
-
-        if (existingStmtQuery.empty) {
-          console.log(`[Automation] Creating new statement for ${id} - ${currentMonth}`);
-          // compute dueDate as 15th of the month
-          const monthIndex = new Date(`${currentMonthName} 1, ${currentYear}`).getMonth();
-          const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
-          await statementsRef.add({
-            residentId: id,
-            month: currentMonthName,
-            year: currentYear,
-            date: now.toISOString().split('T')[0],
-            dueDate: due.toISOString(),
-            totalDues: updatePayload.balance,
-            amountPaid: 0,
-            balance: updatePayload.balance,
-            status: 'Pending',
-            createdAt: now.toISOString(),
-            fileFormat: 'PDF'
-          });
-        } else {
-          console.log(`[Automation] Updating existing statement for ${id} - ${currentMonth}`);
-          const stmtDoc = existingStmtQuery.docs[0];
-          const updates: any = {
-            totalDues: updatePayload.balance,
-            balance: updatePayload.balance,
-            updatedAt: now.toISOString()
-          };
-          if (!stmtDoc.data()?.dueDate) {
-            const monthIndex = new Date(`${currentMonthName} 1, ${currentYear}`).getMonth();
-            const due = new Date(currentYear, monthIndex, 15, 23, 59, 59);
-            updates.dueDate = due.toISOString();
-          }
-          await statementsRef.doc(stmtDoc.id).update(updates);
-        }
-      } catch (stmtErr: any) {
-        console.error('[Automation] Failed to sync statement:', stmtErr.message);
-      }
-
-      const notification = {
-        userId: id,
-        type: 'due-bill',
-        title: 'Monthly Bill Due',
-        message: `You have a pending bill of ₱${updatePayload.balance.toFixed(2)} due this month (${currentMonth}). Please submit your payment.`,
-        dueAmount: updatePayload.balance,
-        dueMonth: currentMonth,
-        read: false,
-        createdAt: new Date(),
-      };
-
-      await adminDb.collection('notifications').add(notification as any);
-
-      // Send email + SMS notifications to resident (non-blocking)
-      try {
-        const authUser = await adminAuth.getUser(id);
-        const residentEmail = authUser.email;
-        const residentPhone = currentData?.phone as string | undefined;
-        const residentName = currentData?.fullName || authUser.displayName || 'Resident';
-
-        // Send email
-        if (residentEmail) {
-          sendDueBillEmail({
-            toEmail: residentEmail,
-            residentName,
-            dueAmount: updatePayload.balance,
-            dueMonth: currentMonth,
-          }).catch((emailErr) => {
-            console.error('[Mailer] Failed to send due-bill email:', emailErr.message);
-          });
-        }
-
-        // Send SMS
-        if (residentPhone) {
-          sendDueBillSMS({
-            toPhone: residentPhone,
-            residentName,
-            dueAmount: updatePayload.balance,
-            dueMonth: currentMonth,
-          }).catch((smsErr) => {
-            console.error('[SMS] Failed to send due-bill SMS:', smsErr.message);
-          });
-        } else {
-          console.warn('[SMS] Resident has no phone number stored, skipping SMS.');
-        }
-      } catch (authErr: any) {
-        console.error('[Notifications] Could not fetch resident data:', authErr.message);
-      }
     }
 
     return NextResponse.json({ message: 'Resident updated successfully' });

@@ -197,28 +197,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Dashboard API Error:', error);
-    // Graceful fallback response in case of any database / quota issues so that the UI never breaks
-    return NextResponse.json({
-      stats: {
-        todayCollections: 8500,
-        monthlyTotal: 62000,
-        pendingVerifications: 12,
-        delinquentCount: 17,
-        totalResidents: 100
-      },
-      trends: [
-        { month: 'Jan', value: 45000 },
-        { month: 'Feb', value: 48000 },
-        { month: 'Mar', value: 52000 },
-        { month: 'Apr', value: 58000 },
-        { month: 'May', value: 60000 },
-        { month: 'Jun', value: 62000 }
-      ],
-      delinquencyByPhase: [
-        { phase: 'Phase 1', delinquent: 5 },
-        { phase: 'Phase 2', delinquent: 8 },
-        { phase: 'Phase 3', delinquent: 4 }
-      ]
-    });
+    return createErrorResponse('Dashboard data is temporarily unavailable', 503);
   }
 }

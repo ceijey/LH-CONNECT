@@ -6,6 +6,7 @@ import { sendPaymentVerifiedEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
 import { logAuditAction } from '@/lib/audit-logger';
 import { allocatePaymentToStatements } from '@/lib/payment-allocation';
+import { validatePaymentAmount } from '@/lib/payment-validation';
 
 export async function POST(request: NextRequest) {
   const tokenVerification = await requireApprovedUser(request);
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { residentId, paymentAmount, paymentMethod = 'Cash', month, notes, orNumber } = body;
 
-    if (!residentId || !paymentAmount || !month || !orNumber?.trim()) {
+    if (!residentId || paymentAmount === undefined || paymentAmount === null || !month || !orNumber?.trim()) {
       return createErrorResponse('Missing required fields: residentId, paymentAmount, month, orNumber', 400);
     }
     if (!/^\d+$/.test(orNumber.trim())) {
@@ -45,12 +46,27 @@ export async function POST(request: NextRequest) {
     }
 
     const residentData = residentDoc.data()!;
+    if (residentData.role !== 'resident') {
+      return createErrorResponse('Target user is not a resident', 400);
+    }
     const residentName = residentData.fullName || residentData.name || 'Resident';
     const residentEmail = residentData.email;
     const blockLot = `Phase ${residentData.phase || ''} Blk ${residentData.block || ''} Lot ${residentData.lot || ''}`.trim();
 
     const now = new Date();
     const amount = Number(paymentAmount);
+    const amountValidation = validatePaymentAmount(amount);
+    if (!amountValidation.isValid) {
+      return createErrorResponse(amountValidation.error ?? 'Payment amount is invalid', 400);
+    }
+
+    const duplicateOr = await adminDb.collection('payments')
+      .where('referenceNumber', '==', orNumber.trim())
+      .limit(1)
+      .get();
+    if (!duplicateOr.empty) {
+      return createErrorResponse('OR number has already been used', 400);
+    }
 
     // 1. Create payment_submissions record (Status: Verified)
     const submissionRef = await adminDb.collection('payment_submissions').add({

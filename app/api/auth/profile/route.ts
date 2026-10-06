@@ -59,17 +59,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ user: userData });
   } catch (error: any) {
-    console.error('Error getting profile, providing fallback:', error.message);
-    return NextResponse.json({
-      user: {
-        uid,
-        fullName: email ? email.split('@')[0].toUpperCase() : 'ADMIN USER',
-        email: email ?? '',
-        role: email?.includes('admin') ? 'admin' : 'resident',
-        approvalStatus: 'Approved',
-        createdAt: new Date().toISOString(),
-      }
-    });
+    console.error('Error getting profile:', error.message);
+    return createErrorResponse('Profile is temporarily unavailable', 503);
   }
 }
 

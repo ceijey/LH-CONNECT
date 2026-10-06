@@ -1,9 +1,16 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApprovedUser, createErrorResponse } from '@/lib/auth-middleware';
 import { verifyCsrf } from '@/lib/csrf';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { encrypt } from '@/lib/encryption';
+import { sendResidentAccountCreatedEmail } from '@/lib/mailer';
 
 export const runtime = 'nodejs';
+
+function generateTemporaryPassword() {
+  return crypto.randomBytes(18).toString('base64url');
+}
 
 export async function POST(request: NextRequest) {
   // 1. Verify Authentication & Role
@@ -76,18 +83,21 @@ export async function POST(request: NextRequest) {
 
       try {
         // A. Register User in Firebase Auth
+        const temporaryPassword = generateTemporaryPassword();
         const authUser = await adminAuth.createUser({
           email: finalEmail,
-          password: 'lhconnect2026', // Secure default temporary password
+          password: temporaryPassword,
           displayName: name,
           phoneNumber: finalPhone || undefined,
         });
 
         // B. Persist User Profile Schema in Firestore
+        const digits = phone.replace(/\D/g, '');
         const newUser = {
           email: finalEmail,
           fullName: name,
-          phone: phone || '',
+          phoneEncrypted: phone ? encrypt(phone) : null,
+          phoneMasked: phone ? `****${digits.slice(-4)}` : null,
           phase: defaultPhase || 'NEW AREA & SOCIALIZED',
           block: block || '',
           lot: lot || '',
@@ -100,6 +110,17 @@ export async function POST(request: NextRequest) {
         };
 
         await adminDb.collection('users').doc(authUser.uid).set(newUser);
+
+        try {
+          await sendResidentAccountCreatedEmail({
+            toEmail: finalEmail,
+            residentName: name,
+            temporaryPassword,
+            loginUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000/login',
+          });
+        } catch (mailError: any) {
+          console.error(`[Bulk Import] Failed to send credentials for row ${index + 1}:`, mailError?.message ?? mailError);
+        }
 
         results.push({
           rowNumber: index + 1,

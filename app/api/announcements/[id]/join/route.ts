@@ -49,15 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({
         hasJoined,
         count: attendees.length,
-        // Residents can also see a safe/clean list of attendee names
-        attendees: attendees.map((a: any) => ({
-          userId: a.userId,
-          userName: a.userName,
-          phase: a.phase,
-          block: a.block,
-          lot: a.lot,
-          joinedAt: a.joinedAt,
-        })),
+        attendees: [],
       });
     }
   } catch (error: any) {

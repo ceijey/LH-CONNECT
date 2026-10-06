@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { requireAdmin, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest) {
-  const tokenVerification = await verifyToken(request);
+  const tokenVerification = await requireAdmin(request);
 
   if (tokenVerification.error) {
     return createErrorResponse(tokenVerification.error, tokenVerification.status);
@@ -226,30 +226,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error generating report:', error.message);
-    const mockFinancialData = Array.from({ length: 10 }, (_, i) => ({
-      id: `mock-resident-${i}`,
-      block: `${(i % 5) + 1}`,
-      lot: `${(i % 10) + 1}`,
-      resident: `Mock Resident ${i + 1}`,
-      monthlyDues: 400,
-      amountPaid: i % 2 === 0 ? 400 : 0,
-      balance: i % 2 === 0 ? 0 : 400,
-      status: i % 2 === 0 ? 'Paid' : 'Delinquent',
-      paymentMethod: i % 2 === 0 ? 'GCash' : 'N/A'
-    }));
-    
-    return NextResponse.json({
-      financialData: mockFinancialData,
-      summary: { totalDues: 4000, totalCollected: 2000, outstandingBalance: 2000, collectionRate: '50.0' },
-      analytics: { 
-        totalCount: 10, 
-        verifiedCount: 5, 
-        pendingCount: 1, 
-        rejectedCount: 0, 
-        paidCount: 5, 
-        delinquentCount: 5, 
-        methods: [{ name: 'GCash', value: 3 }, { name: 'Cash', value: 2 }] 
-      }
-    });
+    return createErrorResponse('Reports are temporarily unavailable', 503);
   }
 }

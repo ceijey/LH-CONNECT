@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, createErrorResponse } from '@/lib/auth-middleware';
+import { requireAdmin, createErrorResponse } from '@/lib/auth-middleware';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const tokenVerification = await verifyToken(request);
+  const tokenVerification = await requireAdmin(request);
 
   if (tokenVerification.error || !tokenVerification.decoded) {
     return createErrorResponse(tokenVerification.error ?? 'Unauthorized', tokenVerification.status ?? 401);

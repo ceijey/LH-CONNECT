@@ -4,6 +4,10 @@ import { verifyCsrf } from '@/lib/csrf';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return createErrorResponse('Payment seeding is disabled in production', 404);
+  }
+
   const tokenVerification = await verifyToken(request);
 
   if (tokenVerification.error) {

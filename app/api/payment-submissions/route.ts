@@ -18,6 +18,9 @@ function isAlreadyExistsError(error: unknown): boolean {
   return code === 6 || message.includes('already exists');
 }
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+
 type PaymentSubmission = {
   id: string;
   residentId: string;
@@ -212,23 +215,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Error fetching payment submissions:', message);
-    const mockSubmissions = Array.from({ length: 10 }, (_, i) => ({
-      id: `mock-sub-${i}`,
-      residentId: `mock-resident-${i}`,
-      residentName: `Mock Resident ${i + 1}`,
-      blockLot: `Phase 1 Blk ${(i % 5) + 1} Lot ${(i % 10) + 1}`,
-      paymentAmount: 400 * ((i % 3) + 1),
-      paymentMethod: i % 2 === 0 ? 'GCash' : 'Cash',
-      referenceNumber: `REF${Date.now() + i}`,
-      notes: 'Mock data due to database limit',
-      fileName: 'proof.jpg',
-      fileUrl: '',
-      status: i % 4 === 0 ? 'Verified' : i % 4 === 1 ? 'Rejected' : 'Pending',
-      submittedDate: new Date().toLocaleString(),
-      month: new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
-      paymentDateTime: new Date().toISOString()
-    }));
-    return NextResponse.json({ submissions: mockSubmissions, user: decoded });
+    return createErrorResponse('Payment submissions are temporarily unavailable', 503);
   }
 }
 
@@ -272,6 +259,24 @@ export async function POST(request: NextRequest) {
     let filePath = String(formData.get('filePath') ?? '').trim();
     let fileBase64 = String(formData.get('fileBase64') ?? '').trim();
     let fileName = String(formData.get('fileName') ?? '').trim();
+
+    if (file instanceof File) {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        return createErrorResponse('Payment proof must be 5 MB or smaller', 400);
+      }
+      if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
+        return createErrorResponse('Payment proof must be a JPG, PNG, WEBP, or PDF file', 400);
+      }
+    }
+
+    if (fileBase64) {
+      if (fileBase64.length > Math.ceil(MAX_UPLOAD_BYTES * 1.4)) {
+        return createErrorResponse('Payment proof must be 5 MB or smaller', 400);
+      }
+      if (!/^data:(image\/(jpeg|png|webp)|application\/pdf);base64,[A-Za-z0-9+/=]+$/.test(fileBase64)) {
+        return createErrorResponse('Payment proof has an invalid file format', 400);
+      }
+    }
 
     // Detailed validation
     if (!residentName) {
