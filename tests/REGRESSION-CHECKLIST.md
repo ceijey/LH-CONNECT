@@ -40,6 +40,11 @@ Use this checklist against a staging deployment with test accounts and test paym
 - Reject zero, negative, non-numeric, and oversized payment amounts.
 - Reject duplicate reference numbers and duplicate OR numbers.
 - Submit one valid payment proof and confirm it appears as Pending.
+- Select 2 months and confirm the amount becomes `₱800`.
+- Select 3 months and confirm the amount becomes `₱1,200`.
+- Submit a valid 2-month advance payment and confirm two statements receive `₱400` allocation each.
+- Submit an advance payment when current dues are fully paid and confirm future statements are created and paid.
+- Confirm a payment duration outside 1-12 months is rejected by the API.
 - Reject invalid file types and files over 5 MB.
 - Verify a payment once and confirm exactly one payment record is created.
 - Repeat the verification request and confirm no duplicate payment or balance deduction occurs.

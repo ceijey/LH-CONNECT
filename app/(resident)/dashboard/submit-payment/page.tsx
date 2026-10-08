@@ -32,6 +32,7 @@ interface FormData {
   residentName: string;
   blockLot: string;
   paymentAmount: string;
+  paymentMonths: string;
   paymentDateTime: string;
   receiptAmount: string;
 }
@@ -107,6 +108,7 @@ function normalizeSubmission(submission: Partial<Submission> & { status?: string
 }
 
 const ESTABLISHED_PAYMENT_AMOUNT = '400';
+const MAX_ADVANCE_MONTHS = 12;
 
 const extractReceiptAmount = (ocrText: string): string => {
   const normalizedText = ocrText
@@ -254,6 +256,7 @@ export default function SubmitPaymentPage() {
     residentName: '',
     blockLot: '',
     paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
+    paymentMonths: '1',
     paymentDateTime: '',
     receiptAmount: ESTABLISHED_PAYMENT_AMOUNT,
   });
@@ -312,6 +315,7 @@ export default function SubmitPaymentPage() {
               ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
               : '',
             paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
+            paymentMonths: '1',
             paymentDateTime: '',
             receiptAmount: '',
           }));
@@ -495,6 +499,10 @@ export default function SubmitPaymentPage() {
         if (foundAmount) {
           update.receiptAmount = foundAmount;
           update.paymentAmount = foundAmount;
+          const detectedMonths = Number(foundAmount) / Number(ESTABLISHED_PAYMENT_AMOUNT);
+          if (Number.isInteger(detectedMonths) && detectedMonths >= 1 && detectedMonths <= MAX_ADVANCE_MONTHS) {
+            update.paymentMonths = String(detectedMonths);
+          }
           detectedAmountNice = `₱${foundAmount}`;
         }
         if (detectedDate) {
@@ -621,8 +629,15 @@ export default function SubmitPaymentPage() {
       return;
     }
 
-    if (Number(amountValue) !== Number(ESTABLISHED_PAYMENT_AMOUNT)) {
-      setToast({ message: `Manual payment amount must be exactly ₱${ESTABLISHED_PAYMENT_AMOUNT}.`, type: 'error' });
+    const paymentMonths = Number(formData.paymentMonths);
+    const expectedPaymentAmount = Number(ESTABLISHED_PAYMENT_AMOUNT) * paymentMonths;
+    if (!Number.isInteger(paymentMonths) || paymentMonths < 1 || paymentMonths > MAX_ADVANCE_MONTHS) {
+      setToast({ message: 'Please select a payment duration between 1 and 12 months.', type: 'error' });
+      return;
+    }
+
+    if (Number(amountValue) !== expectedPaymentAmount) {
+      setToast({ message: `Receipt amount must be exactly ₱${expectedPaymentAmount} for ${paymentMonths} month${paymentMonths === 1 ? '' : 's'}.`, type: 'error' });
       return;
     }
 
@@ -692,6 +707,7 @@ export default function SubmitPaymentPage() {
       payload.append('residentName', formData.residentName.trim());
       payload.append('blockLot', formData.blockLot.trim());
       payload.append('paymentAmount', formData.receiptAmount.trim());
+      payload.append('paymentMonths', String(paymentMonths));
       payload.append('paymentMethod', 'Manual Payment');
       payload.append('referenceNumber', formData.referenceNumber.trim());
       payload.append('notes', formData.notes.trim());
@@ -796,7 +812,7 @@ export default function SubmitPaymentPage() {
         })
       });
 
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentDateTime: '', receiptAmount: '' });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentMonths: '1', paymentDateTime: '', receiptAmount: '' });
       setFileName('');
       setPreview(null);
     } catch (error: unknown) {
@@ -883,7 +899,7 @@ export default function SubmitPaymentPage() {
 
               {outstandingBalance !== null && outstandingBalance <= 0 && (
                 <div style={{ marginBottom: '1rem', padding: '12px 14px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #86efac', color: '#166534', fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.4 }}>
-                  Your account is fully paid. Payment submission is disabled until you have a new outstanding due.
+                  Your current dues are fully paid. You may still select an advance payment duration below.
                 </div>
               )}
 
@@ -930,7 +946,7 @@ export default function SubmitPaymentPage() {
                         ) : (
                           <div>
                             <p className={styles.uploadText}>Click to upload screenshot</p>
-                            <p className={styles.uploadSmall}>JPG or PNG images up to 10MB</p>
+                            <p className={styles.uploadSmall}>JPG or PNG images up to 5 MB</p>
                           </div>
                         )}
                       </label>
@@ -983,6 +999,35 @@ export default function SubmitPaymentPage() {
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px' }}>
+                        {/* Payment Coverage */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Payment Coverage</label>
+                          <select
+                            value={formData.paymentMonths}
+                            onChange={(e) => {
+                              const months = Number(e.target.value);
+                              const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
+                              setFormData(prev => ({
+                                ...prev,
+                                paymentMonths: String(months),
+                                paymentAmount: String(amount),
+                                receiptAmount: String(amount),
+                              }));
+                            }}
+                            style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.05rem', color: '#111827', outline: 'none' }}
+                          >
+                            {Array.from({ length: MAX_ADVANCE_MONTHS }, (_, index) => {
+                              const months = index + 1;
+                              const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
+                              return (
+                                <option key={months} value={months}>
+                                  {months} month{months === 1 ? '' : 's'} - ₱{amount.toLocaleString()}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
                         {/* Reference Number */}
                         <div>
                           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Reference Number</label>
@@ -1055,14 +1100,14 @@ export default function SubmitPaymentPage() {
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isSubmitting || isMonthlyPaymentLocked || outstandingBalance === 0 || recentLoading}
+                      disabled={isSubmitting || isMonthlyPaymentLocked || (outstandingBalance === 0 && Number(formData.paymentMonths) === 1) || recentLoading}
                       className={styles.submitBtn}
                       style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
                     >
                       {isMonthlyPaymentLocked
                         ? 'Already submitted for this month'
-                        : outstandingBalance === 0
-                        ? 'Fully Paid'
+                        : outstandingBalance === 0 && Number(formData.paymentMonths) === 1
+                        ? 'Select advance duration'
                         : isSubmitting
                         ? 'Submitting...'
                         : 'Submit Payment'}

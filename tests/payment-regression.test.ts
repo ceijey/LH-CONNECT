@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
   calculateOutstandingBalance,
+  allocatePaymentToStatements,
   statementTime,
 } from '../lib/payment-allocation';
 import { validatePaymentAmount } from '../lib/payment-validation';
@@ -39,5 +40,34 @@ describe('statement ledger calculations', () => {
     expect(calculateOutstandingBalance([
       { month: 'March', year: 2026, totalDues: 400, amountPaid: 500 },
     ])).toBe(0);
+  });
+
+  test('creates and pays two months when an 800 advance payment is allocated', async () => {
+    const now = new Date();
+    const created: Array<Record<string, unknown>> = [];
+    const updated: Array<Record<string, unknown>> = [];
+    let referenceId = 0;
+    const transaction = {
+      get: async () => ({ docs: [] }),
+      create: (_ref: unknown, data: Record<string, unknown>) => created.push(data),
+      update: (_ref: unknown, data: Record<string, unknown>) => updated.push(data),
+    };
+    const statementsRef = {
+      where: () => ({}),
+      doc: () => ({ id: `statement-${referenceId++}` }),
+    };
+    const residentCreatedAt = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    await allocatePaymentToStatements(
+      transaction as never,
+      statementsRef as never,
+      'resident-1',
+      800,
+      residentCreatedAt,
+    );
+
+    expect(created).toHaveLength(2);
+    expect(created.map((statement) => statement.amountPaid)).toEqual([400, 400]);
+    expect(updated).toHaveLength(0);
   });
 });

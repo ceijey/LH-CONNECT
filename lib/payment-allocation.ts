@@ -122,29 +122,60 @@ export async function allocatePaymentToStatements(
 ): Promise<void> {
   if (paymentAmount <= 0) return;
 
-  await ensureMissingStatementsForResident(
-    transaction,
-    statementsRef,
-    residentId,
-    residentCreatedAt,
-    new Date(),
-  );
-
   const statementSnapshot = await transaction.get(
     statementsRef.where('residentId', '==', residentId),
   );
-  const statements = [...statementSnapshot.docs].sort(
-    (a, b) => statementTime(a.data()) - statementTime(b.data()),
+  const now = new Date();
+  const futureMonthsNeeded = Math.max(0, Math.ceil(paymentAmount / MONTHLY_DUES) - 1);
+  const startDate = residentCreatedAt ? new Date(residentCreatedAt) : now;
+  const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const endMonth = new Date(now.getFullYear(), now.getMonth() + futureMonthsNeeded, 1);
+  const existingKeys = new Set(
+    statementSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const date = new Date(statementTime(data));
+      return getMonthIdentifier(date);
+    }),
   );
-  const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const statements = statementSnapshot.docs.map((doc) => ({
+    ref: doc.ref,
+    data: doc.data(),
+    isNew: false,
+  }));
+  const nowIso = now.toISOString();
+
+  for (let cursor = new Date(startMonth); cursor <= endMonth; cursor.setMonth(cursor.getMonth() + 1)) {
+    const monthKey = getMonthIdentifier(cursor);
+    if (existingKeys.has(monthKey)) continue;
+
+    const dueDate = new Date(cursor.getFullYear(), cursor.getMonth(), 15, 23, 59, 59);
+    statements.push({
+      ref: statementsRef.doc(),
+      data: {
+        residentId,
+        month: cursor.toLocaleString('en-US', { month: 'long' }),
+        year: cursor.getFullYear(),
+        date: cursor.toISOString(),
+        dueDate: dueDate.toISOString(),
+        totalDues: MONTHLY_DUES,
+        amountPaid: 0,
+        balance: MONTHLY_DUES,
+        status: 'Pending',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      },
+      isNew: true,
+    });
+  }
+
+  statements.sort((a, b) => statementTime(a.data) - statementTime(b.data));
 
   let remaining = paymentAmount;
 
   for (const statement of statements) {
     if (remaining <= 0) break;
 
-    const data = statement.data();
-    if (statementTime(data) > currentMonthStart) continue;
+    const data = statement.data;
     const totalDues = Math.max(0, Number(data.totalDues ?? MONTHLY_DUES));
     const amountPaid = Math.max(0, Number(data.amountPaid ?? 0));
     const currentBalance = Math.max(0, totalDues - amountPaid);
@@ -155,12 +186,18 @@ export async function allocatePaymentToStatements(
     const newAmountPaid = amountPaid + appliedAmount;
     const newBalance = Math.max(0, totalDues - newAmountPaid);
 
-    transaction.update(statement.ref, {
+    const updatedData = {
       amountPaid: newAmountPaid,
       balance: newBalance,
       status: newBalance === 0 ? 'Paid' : 'Pending',
-      updatedAt: new Date().toISOString(),
-    });
+      updatedAt: nowIso,
+    };
+
+    if (statement.isNew) {
+      transaction.create(statement.ref, { ...data, ...updatedData });
+    } else {
+      transaction.update(statement.ref, updatedData);
+    }
 
     remaining -= appliedAmount;
   }
