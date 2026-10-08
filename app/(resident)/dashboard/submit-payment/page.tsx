@@ -904,8 +904,40 @@ export default function SubmitPaymentPage() {
               )}
 
               <form onSubmit={handleSubmit} className={styles.form}>
+                <div className={styles.formGroup} style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '12px', border: '1px solid #93c5fd' }}>
+                  <label className={styles.label} style={{ color: '#1e3a8a', fontSize: '1.1rem', marginBottom: '4px' }}>1. Choose Payment Coverage</label>
+                  <p style={{ fontSize: '0.85rem', color: '#1d4ed8', marginBottom: '12px' }}>
+                    Outstanding months are settled oldest-first before any remaining amount covers future months.
+                  </p>
+                  <select
+                    value={formData.paymentMonths}
+                    onChange={(e) => {
+                      const months = Number(e.target.value);
+                      const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
+                      setFormData(prev => ({
+                        ...prev,
+                        paymentMonths: String(months),
+                        paymentAmount: String(amount),
+                        receiptAmount: String(amount),
+                      }));
+                    }}
+                    style={{ width: '100%', padding: '12px', border: '1px solid #93c5fd', borderRadius: '8px', backgroundColor: '#fff', fontSize: '1rem', color: '#111827', outline: 'none' }}
+                  >
+                    {Array.from({ length: MAX_ADVANCE_MONTHS }, (_, index) => {
+                      const months = index + 1;
+                      const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
+                      return <option key={months} value={months}>{months} month{months === 1 ? '' : 's'} - ₱{amount.toLocaleString()}</option>;
+                    })}
+                  </select>
+                  <p style={{ fontSize: '0.85rem', color: '#1e3a8a', margin: '12px 0 0' }}>
+                    {outstandingBalance !== null && outstandingBalance > 0
+                      ? `Outstanding balance: ₱${outstandingBalance.toLocaleString()}. Starting with ${oldestUnpaidMonth ?? 'the oldest unpaid month'}.`
+                      : 'Your selected amount will be applied to future months.'}
+                  </p>
+                </div>
+
                 <div className={styles.formGroup} style={{ marginBottom: '32px', textAlign: 'center' }}>
-                  <label className={styles.label} style={{ display: 'block', marginBottom: '12px' }}>1. Scan to Pay</label>
+                  <label className={styles.label} style={{ display: 'block', marginBottom: '12px' }}>2. Scan to Pay</label>
                   <Image
                     src="/lhconnect_qrcode.jpg"
                     alt="LH-Connect payment QR code"
@@ -924,7 +956,7 @@ export default function SubmitPaymentPage() {
                 </div>
 
                 <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
-                    <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>2. Upload Receipt (Scan & Auto-fill)</label>
+                    <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>3. Upload Receipt (Scan & Auto-fill)</label>
                     <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>
                       Upload your receipt and we will automatically fill in the details below!
                     </p>
@@ -984,7 +1016,7 @@ export default function SubmitPaymentPage() {
                         <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{formData.blockLot || '—'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Amount Due</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Selected Payment</div>
                         <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.paymentAmount}</div>
                       </div>
                     </div>
@@ -999,35 +1031,6 @@ export default function SubmitPaymentPage() {
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px' }}>
-                        {/* Payment Coverage */}
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Payment Coverage</label>
-                          <select
-                            value={formData.paymentMonths}
-                            onChange={(e) => {
-                              const months = Number(e.target.value);
-                              const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
-                              setFormData(prev => ({
-                                ...prev,
-                                paymentMonths: String(months),
-                                paymentAmount: String(amount),
-                                receiptAmount: String(amount),
-                              }));
-                            }}
-                            style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.05rem', color: '#111827', outline: 'none' }}
-                          >
-                            {Array.from({ length: MAX_ADVANCE_MONTHS }, (_, index) => {
-                              const months = index + 1;
-                              const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
-                              return (
-                                <option key={months} value={months}>
-                                  {months} month{months === 1 ? '' : 's'} - ₱{amount.toLocaleString()}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-
                         {/* Reference Number */}
                         <div>
                           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Reference Number</label>

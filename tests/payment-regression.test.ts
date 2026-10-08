@@ -70,4 +70,47 @@ describe('statement ledger calculations', () => {
     expect(created.map((statement) => statement.amountPaid)).toEqual([400, 400]);
     expect(updated).toHaveLength(0);
   });
+
+  test('pays older July-to-September balances before creating future advance statements', async () => {
+    const now = new Date();
+    const monthData = (offset: number, id: string) => {
+      const date = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+      return {
+        ref: { id },
+        data: () => ({
+          residentId: 'resident-1',
+          month: date.toLocaleString('en-US', { month: 'long' }),
+          year: date.getFullYear(),
+          totalDues: 400,
+          amountPaid: 0,
+          balance: 400,
+          status: 'Pending',
+          createdAt: date.toISOString(),
+        }),
+      };
+    };
+    const existingDocs = [monthData(-3, 'july'), monthData(-2, 'august'), monthData(-1, 'september')];
+    const updated: Array<{ id: string; data: Record<string, unknown> }> = [];
+    const transaction = {
+      get: async () => ({ docs: existingDocs }),
+      create: () => undefined,
+      update: (ref: { id: string }, data: Record<string, unknown>) => updated.push({ id: ref.id, data }),
+    };
+    const statementsRef = {
+      where: () => ({}),
+      doc: () => ({ id: 'future-statement' }),
+    };
+    const residentCreatedAt = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+
+    await allocatePaymentToStatements(
+      transaction as never,
+      statementsRef as never,
+      'resident-1',
+      1200,
+      residentCreatedAt,
+    );
+
+    expect(updated.map((entry) => entry.id)).toEqual(['july', 'august', 'september']);
+    expect(updated.every((entry) => entry.data.amountPaid === 400 && entry.data.status === 'Paid')).toBe(true);
+  });
 });

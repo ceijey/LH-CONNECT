@@ -48,6 +48,10 @@
   box-sizing: border-box;
 }
 
+body {
+  font-family: "Inter", Arial, sans-serif;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
