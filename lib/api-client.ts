@@ -144,3 +144,22 @@ export async function apiCall(
   console.log(`[API Response] ${endpoint}:`, jsonText);
   return JSON.parse(jsonText);
 }
+
+export async function apiBlob(endpoint: string): Promise<Blob> {
+  const headers = new Headers();
+  const bearerToken = await getBearerToken();
+  if (bearerToken) {
+    headers.set('Authorization', `Bearer ${bearerToken}`);
+  }
+
+  const response = await fetch(endpoint, {
+    headers,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Unable to load protected file (${response.status})`);
+  }
+
+  return response.blob();
+}

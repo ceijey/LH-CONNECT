@@ -2,7 +2,7 @@
 
 import { startTransition, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiCall } from '@/lib/api-client';
+import { apiBlob, apiCall } from '@/lib/api-client';
 import Skeleton from '@/app/components/Skeleton';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import ImageModal from '@/app/components/ImageModal';
@@ -71,6 +71,27 @@ export default function AdminPayments() {
   }>({ isOpen: false, payment: null });
   const [orNumber, setOrNumber] = useState('');
   const [verificationError, setVerificationError] = useState('');
+  const [proofLoading, setProofLoading] = useState(false);
+
+  const openProof = async (payment: PaymentSubmission, proofKind: ProofKind, proofSrc: string) => {
+    if (!proofSrc) return;
+
+    setProofLoading(true);
+    try {
+      const proofBlob = await apiBlob(proofSrc);
+      const objectUrl = URL.createObjectURL(proofBlob);
+      setProofModal({
+        isOpen: true,
+        url: objectUrl,
+        title: `Payment Proof - ${payment.residentName}`,
+        proofKind,
+      });
+    } catch (error) {
+      console.error('Failed to load payment proof:', error);
+    } finally {
+      setProofLoading(false);
+    }
+  };
 
   const detectProofKind = (payment: PaymentSubmission): ProofKind => {
     const sample = `${payment.fileName || ''} ${payment.filePath || ''} ${payment.fileUrl || ''}`.toLowerCase();
@@ -459,17 +480,12 @@ export default function AdminPayments() {
                             <div className={styles.proofActions}>
                               <div 
                                 className={styles.thumbnailWrapper}
-                                onClick={() => setProofModal({
-                                  isOpen: true,
-                                  url: proofSrc,
-                                  title: `Payment Proof - ${payment.residentName}`,
-                                  proofKind
-                                })}
+                                onClick={() => void openProof(payment, proofKind, proofSrc)}
                               >
                                 {proofKind === 'pdf' ? (
                                   <span className={styles.noProof}>PDF</span>
                                 ) : (
-                                  <img src={proofSrc} alt="Proof" className={styles.thumbnail} />
+                                  <span className={styles.noProof}>{proofLoading ? 'Loading' : 'View Proof'}</span>
                                 )}
                               </div>
                               {payment.fileUrl && (

@@ -269,6 +269,7 @@ export default function SubmitPaymentPage() {
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [oldestUnpaidMonth, setOldestUnpaidMonth] = useState<string | null>(null);
+  const [unpaidMonthLabels, setUnpaidMonthLabels] = useState<string[]>([]);
   const [outstandingBalance, setOutstandingBalance] = useState<number | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -360,9 +361,11 @@ export default function SubmitPaymentPage() {
 
         const oldest = unpaidStatements[0];
         setOldestUnpaidMonth(oldest ? `${oldest.month} ${oldest.year}` : null);
+        setUnpaidMonthLabels(unpaidStatements.map((statement: { month?: string; year?: number }) => `${statement.month} ${statement.year}`));
       } catch (error) {
         console.error('Failed to determine oldest unpaid month:', error);
         setOldestUnpaidMonth(null);
+        setUnpaidMonthLabels([]);
       }
     };
 
@@ -498,11 +501,6 @@ export default function SubmitPaymentPage() {
         }
         if (foundAmount) {
           update.receiptAmount = foundAmount;
-          update.paymentAmount = foundAmount;
-          const detectedMonths = Number(foundAmount) / Number(ESTABLISHED_PAYMENT_AMOUNT);
-          if (Number.isInteger(detectedMonths) && detectedMonths >= 1 && detectedMonths <= MAX_ADVANCE_MONTHS) {
-            update.paymentMonths = String(detectedMonths);
-          }
           detectedAmountNice = `₱${foundAmount}`;
         }
         if (detectedDate) {
@@ -909,29 +907,34 @@ export default function SubmitPaymentPage() {
                   <p style={{ fontSize: '0.85rem', color: '#1d4ed8', marginBottom: '12px' }}>
                     Outstanding months are settled oldest-first before any remaining amount covers future months.
                   </p>
-                  <select
-                    value={formData.paymentMonths}
-                    onChange={(e) => {
-                      const months = Number(e.target.value);
-                      const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
-                      setFormData(prev => ({
-                        ...prev,
-                        paymentMonths: String(months),
-                        paymentAmount: String(amount),
-                        receiptAmount: String(amount),
-                      }));
-                    }}
-                    style={{ width: '100%', padding: '12px', border: '1px solid #93c5fd', borderRadius: '8px', backgroundColor: '#fff', fontSize: '1rem', color: '#111827', outline: 'none' }}
-                  >
+                  <div role="radiogroup" aria-label="Payment coverage" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
                     {Array.from({ length: MAX_ADVANCE_MONTHS }, (_, index) => {
                       const months = index + 1;
                       const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
-                      return <option key={months} value={months}>{months} month{months === 1 ? '' : 's'} - ₱{amount.toLocaleString()}</option>;
+                      const selected = Number(formData.paymentMonths) === months;
+                      return (
+                        <button
+                          key={months}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            paymentMonths: String(months),
+                            paymentAmount: String(amount),
+                            receiptAmount: String(amount),
+                          }))}
+                          style={{ padding: '9px 4px', border: selected ? '2px solid #2563eb' : '1px solid #bfdbfe', borderRadius: '8px', background: selected ? '#dbeafe' : '#fff', color: '#1e3a8a', fontWeight: selected ? 700 : 500, cursor: 'pointer' }}
+                        >
+                          <span style={{ display: 'block', fontSize: '0.9rem' }}>{months} mo.</span>
+                          <span style={{ display: 'block', fontSize: '0.75rem' }}>₱{amount.toLocaleString()}</span>
+                        </button>
+                      );
                     })}
-                  </select>
+                  </div>
                   <p style={{ fontSize: '0.85rem', color: '#1e3a8a', margin: '12px 0 0' }}>
                     {outstandingBalance !== null && outstandingBalance > 0
-                      ? `Outstanding balance: ₱${outstandingBalance.toLocaleString()}. Starting with ${oldestUnpaidMonth ?? 'the oldest unpaid month'}.`
+                      ? `Outstanding balance: ₱${outstandingBalance.toLocaleString()}. Paid first: ${unpaidMonthLabels.slice(0, Number(formData.paymentMonths)).join(', ') || oldestUnpaidMonth || 'the oldest unpaid month'}.`
                       : 'Your selected amount will be applied to future months.'}
                   </p>
                 </div>
@@ -1004,7 +1007,7 @@ export default function SubmitPaymentPage() {
                   <div style={{ marginTop: '40px', animation: 'fadeIn 0.5s ease-in' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
-                      <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 3: Verify & Submit</span>
+                      <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 4: Verify & Submit</span>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
                     </div>
 
@@ -1096,6 +1099,11 @@ export default function SubmitPaymentPage() {
                               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                             />
                           </div>
+                          {formData.receiptAmount && Number(formData.receiptAmount) !== Number(formData.paymentAmount) && (
+                            <p style={{ margin: '6px 0 0', color: '#b45309', fontSize: '0.78rem', lineHeight: 1.35 }}>
+                              Receipt amount does not match your selected payment of ₱{Number(formData.paymentAmount).toLocaleString()}. Please correct it before submitting.
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
