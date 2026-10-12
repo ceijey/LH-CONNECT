@@ -295,7 +295,7 @@ export default function SubmitPaymentPage() {
     paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
     paymentMonths: '1',
     paymentDateTime: '',
-    receiptAmount: ESTABLISHED_PAYMENT_AMOUNT,
+    receiptAmount: '',
   });
   const [fileName, setFileName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -324,6 +324,16 @@ export default function SubmitPaymentPage() {
   });
 
   const targetDueMonthLabel = oldestUnpaidMonth ?? currentMonthLabel;
+  const selectedPaymentAmount = Number(formData.paymentAmount);
+  const receiptAmountValue = Number(formData.receiptAmount);
+  const hasMatchingReceiptAmount = Boolean(formData.receiptAmount.trim())
+    && Number.isFinite(receiptAmountValue)
+    && receiptAmountValue === selectedPaymentAmount;
+  const isReceiptReady = hasMatchingReceiptAmount
+    && Boolean(formData.referenceNumber.trim())
+    && Boolean(formData.paymentDateTime)
+    && Boolean(formData.file)
+    && !isOCRProcessing;
   const currentMonthSubmission = recentSubmissions.find((submission) => {
     const monthMatches = String(submission.month || '').toLowerCase() === targetDueMonthLabel.toLowerCase();
     const status = String(submission.status || '').toLowerCase();
@@ -632,7 +642,7 @@ export default function SubmitPaymentPage() {
       return;
     }
 
-    if (outstandingBalance !== null && outstandingBalance <= 0) {
+    if (outstandingBalance !== null && outstandingBalance <= 0 && Number(formData.paymentMonths) === 1) {
       setToast({ message: 'You have no outstanding dues. Payment submission is disabled.', type: 'info' });
       return;
     }
@@ -690,6 +700,14 @@ export default function SubmitPaymentPage() {
 
     if (!formData.referenceNumber.trim()) {
       setToast({ message: 'Please enter a reference number', type: 'error' });
+      return;
+    }
+
+    const duplicateCheck = await apiCall(
+      `/api/payment-submissions?checkReference=${encodeURIComponent(formData.referenceNumber.trim())}`,
+    ) as { duplicate?: boolean };
+    if (duplicateCheck.duplicate) {
+      setToast({ message: 'This reference number has already been used for another payment.', type: 'error' });
       return;
     }
 
@@ -966,7 +984,6 @@ export default function SubmitPaymentPage() {
                             ...prev,
                             paymentMonths: String(months),
                             paymentAmount: String(amount),
-                            receiptAmount: String(amount),
                           }))}
                           style={{ padding: '9px 4px', border: selected ? '2px solid #2563eb' : '1px solid #bfdbfe', borderRadius: '8px', background: selected ? '#dbeafe' : '#fff', color: '#1e3a8a', fontWeight: selected ? 700 : 500, cursor: 'pointer' }}
                         >
@@ -1085,7 +1102,8 @@ export default function SubmitPaymentPage() {
                             type="text"
                             name="referenceNumber"
                             value={formData.referenceNumber}
-                            onChange={handleInputChange}
+                            readOnly
+                            aria-readonly="true"
                             placeholder="e.g. 10002930"
                             style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
                             onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
@@ -1119,7 +1137,8 @@ export default function SubmitPaymentPage() {
                                   : ''
                             }
                             placeholder="dd/mm/yy --:-- --"
-                            onChange={handleInputChange}
+                            readOnly
+                            aria-readonly="true"
                             style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
                             onFocus={(e) => { setDateInputType('datetime-local'); e.target.style.borderColor = '#3b82f6'; }}
                             onBlur={(e) => { setDateInputType('text'); e.target.style.borderColor = '#e5e7eb'; }}
@@ -1136,7 +1155,8 @@ export default function SubmitPaymentPage() {
                               step="0.01"
                               name="receiptAmount"
                               value={formData.receiptAmount}
-                              onChange={handleInputChange}
+                              readOnly
+                              aria-readonly="true"
                               placeholder="0.00"
                               style={{ width: '100%', padding: '8px 0 8px 20px', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
                               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
@@ -1155,7 +1175,7 @@ export default function SubmitPaymentPage() {
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isSubmitting || isMonthlyPaymentLocked || (outstandingBalance === 0 && Number(formData.paymentMonths) === 1) || recentLoading}
+                      disabled={isSubmitting || isMonthlyPaymentLocked || !isReceiptReady || (outstandingBalance === 0 && Number(formData.paymentMonths) === 1) || recentLoading}
                       className={styles.submitBtn}
                       style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
                     >

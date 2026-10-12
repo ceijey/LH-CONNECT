@@ -182,6 +182,24 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('User not found', 404);
     }
 
+    const referenceToCheck = request.nextUrl.searchParams.get('checkReference')?.trim();
+    if (referenceToCheck) {
+      const [submissionSnapshot, paymentSnapshot] = await Promise.all([
+        adminDb.collection('payment_submissions')
+          .where('referenceNumber', '==', referenceToCheck)
+          .limit(1)
+          .get(),
+        adminDb.collection('payments')
+          .where('referenceNumber', '==', referenceToCheck)
+          .limit(1)
+          .get(),
+      ]);
+
+      return NextResponse.json({
+        duplicate: !submissionSnapshot.empty || !paymentSnapshot.empty,
+      });
+    }
+
     // If the user is an admin, return all submissions; otherwise return only the resident's submissions
     const isAdmin = (userData.role ?? '') === 'admin';
     const submissionsQuery = isAdmin
