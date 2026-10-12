@@ -20,7 +20,7 @@ declare global {
   interface Window {
     Tesseract?: {
       // eslint-disable-next-line
-      recognize: (...args: [File | Blob | string, string?]) => Promise<{ data: { text: string } }>;
+      recognize: (...args: [File | Blob | string, string?, Record<string, string | number | boolean>?]) => Promise<{ data: { text: string } }>;
     };
   }
 }
@@ -163,7 +163,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   };
 
   // 1. GCash Style: "January 25, 2026, 04:34 PM" or "Jan 25, 2026 4:34 PM"
-  const gcashRegex = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})\b,?\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
+  const gcashRegex = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})\b\s*(?:,|\||-)?\s*\b(\d{4})\b(?:\s*(?:,|at|on|T|\|)?\s*(\d{1,2})(?::|\.|\s+)(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
   let match = cleanText.match(gcashRegex);
   if (match) {
     const [, monthStr, dayStr, yearStr, hourStr, minuteStr, ampm] = match;
@@ -185,7 +185,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   }
 
   // 2. Maya/Other Style: "25 Jan 2026, 4:34 PM" or "25 January 2026 04:34 PM"
-  const mayaRegex = /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
+  const mayaRegex = /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*\b(?:,|\||-)?\s*(\d{4})\b(?:\s*(?:,|at|on|T|\|)?\s*(\d{1,2})(?::|\.|\s+)(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
   match = cleanText.match(mayaRegex);
   if (match) {
     const [, dayStr, monthStr, yearStr, hourStr, minuteStr, ampm] = match;
@@ -207,7 +207,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   }
 
   // 3. Generic Timestamp format: YYYY-MM-DD HH:mm or MM/DD/YYYY HH:mm
-  const standardRegex = /\b(\d{4}|\d{1,2})[-/](\d{1,2})[-/](\d{4}|\d{1,2})(?:\s+,?\s*(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?\b/i;
+  const standardRegex = /\b(\d{4}|\d{1,2})[-/|](\d{1,2})[-/|](\d{4}|\d{1,2})(?:(?:\s*(?:,|at|on|T|\|)\s*|\s+)(\d{1,2})(?::|\.|\s+)(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?\b/i;
   match = cleanText.match(standardRegex);
   if (match) {
     const [, part1, part2, part3, hourStr, minuteStr, ampm] = match;
@@ -243,6 +243,43 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   }
 
   return null;
+};
+
+const prepareReceiptForOCR = (file: File): Promise<File | Blob> => {
+  if (!file.type.startsWith('image/')) {
+    return Promise.resolve(file);
+  }
+
+  return new Promise((resolve) => {
+    const image = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const scale = Math.min(3, Math.max(1, 1800 / image.width));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+        return;
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.filter = 'grayscale(1) contrast(1.35)';
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+
+      canvas.toBlob((blob) => resolve(blob ?? file), 'image/jpeg', 0.92);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    image.src = objectUrl;
+  });
 };
 
 export default function SubmitPaymentPage() {
@@ -437,7 +474,13 @@ export default function SubmitPaymentPage() {
         throw new Error('Tesseract failed to load');
       }
 
-      const { data: { text } } = await tesseract.recognize(file, 'eng');
+      const ocrInput = await prepareReceiptForOCR(file);
+      const primaryResult = await tesseract.recognize(ocrInput, 'eng', { tessedit_pageseg_mode: 6 });
+      let text = primaryResult.data.text;
+      if (!parseAndFormatDateTime(text)) {
+        const alternateResult = await tesseract.recognize(ocrInput, 'eng', { tessedit_pageseg_mode: 11 });
+        text = `${text}\n${alternateResult.data.text}`;
+      }
 
       console.log('Extracted text:', text);
 
@@ -528,6 +571,7 @@ export default function SubmitPaymentPage() {
       if (foundRef) toastMsg += ` Ref: ${foundRef}`;
       if (foundAmount) toastMsg += ` | Amount: ${detectedAmountNice}`;
       if (detectedDate) toastMsg += ` | Date: ${detectedDateNice}`;
+      if (!detectedDate) toastMsg += ' | Date not detected - please enter it manually';
 
       if (foundRef || foundAmount || detectedDate) {
         setToast({ message: toastMsg, type: 'success' });
