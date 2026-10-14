@@ -71,7 +71,7 @@ export default function AdminReports() {
 
   const isDigitalPayment = (method?: string) => {
     const normalized = String(method ?? '').toLowerCase();
-    return normalized.includes('paymongo') || normalized.includes('gcash') || normalized.includes('maya');
+    return normalized.includes('gcash') || normalized.includes('maya');
   };
 
   const getReportPaymentMethod = (method?: string) => (
@@ -79,7 +79,7 @@ export default function AdminReports() {
   );
 
   const formatReferenceNumber = (referenceNumber?: string) => (
-    String(referenceNumber ?? '').replace(/^PAYMONGO-/i, '') || '—'
+    String(referenceNumber ?? '') || '—'
   );
 
   const getFormattedPeriod = () => {

@@ -73,16 +73,32 @@ export async function requireApprovedUser(request: NextRequest) {
       userData,
     };
   } catch (error: any) {
-    console.error('Approval check failed (likely quota exceeded), allowing passthrough:', error.message);
-    // When Firestore is unavailable (quota exceeded), allow the request through
-    // so individual route handlers can return their own graceful fallbacks
+    console.error('Approval check failed:', error.message);
     return {
-      error: null,
-      status: 200,
-      decoded: tokenVerification.decoded,
-      userData: { role: 'admin', approvalStatus: 'Approved' },
+      error: 'Unable to verify account approval',
+      status: 503,
+      decoded: null,
     };
   }
+}
+
+export async function requireAdmin(request: NextRequest) {
+  const tokenVerification = await requireApprovedUser(request);
+
+  if (tokenVerification.error || !tokenVerification.decoded) {
+    return tokenVerification;
+  }
+
+  const userData = (tokenVerification as { userData?: { role?: string } }).userData;
+  if (String(userData?.role ?? '').toLowerCase() !== 'admin') {
+    return {
+      error: 'Forbidden',
+      status: 403,
+      decoded: null,
+    };
+  }
+
+  return tokenVerification;
 }
 
 export function createErrorResponse(message: string, status: number) {

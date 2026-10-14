@@ -38,9 +38,26 @@ function getCookieValue(name: string) {
   return match ? decodeURIComponent(match.slice(name.length + 1)) : '';
 }
 
+type ApiCallOptions = {
+  method?: string;
+  headers?: Record<string, string> | Headers | undefined;
+  body?: string | FormData | Blob | ArrayBuffer | URLSearchParams | null;
+  credentials?: 'omit' | 'same-origin' | 'include';
+  signal?: AbortSignal;
+  cache?: 'default' | 'no-store' | 'reload' | 'no-cache' | 'force-cache' | 'only-if-cached';
+  mode?: 'navigate' | 'same-origin' | 'no-cors' | 'cors';
+  redirect?: 'follow' | 'error' | 'manual';
+  referrer?: string;
+  referrerPolicy?: ReferrerPolicy;
+  integrity?: string;
+  keepalive?: boolean;
+  priority?: 'high' | 'low' | 'auto';
+  [key: string]: unknown;
+};
+
 export async function apiCall(
   endpoint: string,
-  options: RequestInit & { method?: string } = {}
+  options: ApiCallOptions = {}
 ) {
   const headers = new Headers(options.headers);
 
@@ -86,9 +103,10 @@ export async function apiCall(
       headers,
       credentials: 'include',
     });
-  } catch (networkError: any) {
+  } catch (networkError: unknown) {
+    const message = networkError instanceof Error ? networkError.message : 'Failed to fetch';
     console.error(`[API Fetch Failed] ${endpoint}`, networkError);
-    throw new Error(`Network error while calling ${endpoint}: ${networkError.message || 'Failed to fetch'}`);
+    throw new Error(`Network error while calling ${endpoint}: ${message}`);
   }
 
   console.log(`[API] ${endpoint}: status=${response.status}, ok=${response.ok}`);
@@ -113,11 +131,35 @@ export async function apiCall(
       throw new Error('Security check failed (CSRF). Please refresh the page and try again.');
     }
 
-    console.error(`[API Error] Response text:`, errorText);
+    const isExpectedClientError = response.status >= 400 && response.status < 500;
+    if (isExpectedClientError) {
+      console.warn(`[API Warning] ${endpoint}:`, errorText);
+    } else {
+      console.error(`[API Error] ${endpoint}:`, errorText);
+    }
     throw new Error(errorMessage || `API error: ${response.statusText}`);
   }
 
   const jsonText = await response.text();
   console.log(`[API Response] ${endpoint}:`, jsonText);
   return JSON.parse(jsonText);
+}
+
+export async function apiBlob(endpoint: string): Promise<Blob> {
+  const headers = new Headers();
+  const bearerToken = await getBearerToken();
+  if (bearerToken) {
+    headers.set('Authorization', `Bearer ${bearerToken}`);
+  }
+
+  const response = await fetch(endpoint, {
+    headers,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Unable to load protected file (${response.status})`);
+  }
+
+  return response.blob();
 }

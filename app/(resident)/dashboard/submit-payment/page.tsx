@@ -21,7 +21,7 @@ declare global {
   interface Window {
     Tesseract?: {
       // eslint-disable-next-line
-      recognize: (...args: [File | Blob | string, string?]) => Promise<{ data: { text: string } }>;
+      recognize: (...args: [File | Blob | string, string?, Record<string, string | number | boolean>?]) => Promise<{ data: { text: string } }>;
     };
   }
 }
@@ -33,6 +33,7 @@ interface FormData {
   residentName: string;
   blockLot: string;
   paymentAmount: string;
+  paymentMonths: string;
   paymentDateTime: string;
   receiptAmount: string;
 }
@@ -108,6 +109,7 @@ function normalizeSubmission(submission: Partial<Submission> & { status?: string
 }
 
 const ESTABLISHED_PAYMENT_AMOUNT = '400';
+const MAX_ADVANCE_MONTHS = 12;
 
 const extractReceiptAmount = (ocrText: string): string => {
   const normalizedText = ocrText
@@ -162,7 +164,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   };
 
   // 1. GCash Style: "January 25, 2026, 04:34 PM" or "Jan 25, 2026 4:34 PM"
-  const gcashRegex = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})\b,?\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
+  const gcashRegex = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})\b\s*(?:,|\||-)?\s*\b(\d{4})\b(?:\s*(?:,|at|on|T|\|)?\s*(\d{1,2})(?::|\.|\s+)(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
   let match = cleanText.match(gcashRegex);
   if (match) {
     const [, monthStr, dayStr, yearStr, hourStr, minuteStr, ampm] = match;
@@ -184,7 +186,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   }
 
   // 2. Maya/Other Style: "25 Jan 2026, 4:34 PM" or "25 January 2026 04:34 PM"
-  const mayaRegex = /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\b(\d{4})\b(?:,?\s+(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
+  const mayaRegex = /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*\b(?:,|\||-)?\s*(\d{4})\b(?:\s*(?:,|at|on|T|\|)?\s*(\d{1,2})(?::|\.|\s+)(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?/i;
   match = cleanText.match(mayaRegex);
   if (match) {
     const [, dayStr, monthStr, yearStr, hourStr, minuteStr, ampm] = match;
@@ -206,7 +208,7 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   }
 
   // 3. Generic Timestamp format: YYYY-MM-DD HH:mm or MM/DD/YYYY HH:mm
-  const standardRegex = /\b(\d{4}|\d{1,2})[-/](\d{1,2})[-/](\d{4}|\d{1,2})(?:\s+,?\s*(\d{1,2}):(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?\b/i;
+  const standardRegex = /\b(\d{4}|\d{1,2})[-/|](\d{1,2})[-/|](\d{4}|\d{1,2})(?:(?:\s*(?:,|at|on|T|\|)\s*|\s+)(\d{1,2})(?::|\.|\s+)(\d{2})(?:\s*:[0-9]{2})?(?:\s*([APap][Mm]))?)?\b/i;
   match = cleanText.match(standardRegex);
   if (match) {
     const [, part1, part2, part3, hourStr, minuteStr, ampm] = match;
@@ -244,6 +246,43 @@ const parseAndFormatDateTime = (ocrText: string): string | null => {
   return null;
 };
 
+const prepareReceiptForOCR = (file: File): Promise<File | Blob> => {
+  if (!file.type.startsWith('image/')) {
+    return Promise.resolve(file);
+  }
+
+  return new Promise((resolve) => {
+    const image = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const scale = Math.min(3, Math.max(1, 1800 / image.width));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+        return;
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.filter = 'grayscale(1) contrast(1.35)';
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+
+      canvas.toBlob((blob) => resolve(blob ?? file), 'image/jpeg', 0.92);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    image.src = objectUrl;
+  });
+};
+
 export default function SubmitPaymentPage() {
   const router = useRouter();
   useAuthPageshow('resident');
@@ -255,6 +294,7 @@ export default function SubmitPaymentPage() {
     residentName: '',
     blockLot: '',
     paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
+    paymentMonths: '1',
     paymentDateTime: '',
     receiptAmount: '',
   });
@@ -263,16 +303,16 @@ export default function SubmitPaymentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOCRProcessing, setIsOCRProcessing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('paymongo');
-  const [selectedBank, setSelectedBank] = useState('BDO');
+  const [paymentMethod, setPaymentMethod] = useState('manual');
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [oldestUnpaidMonth, setOldestUnpaidMonth] = useState<string | null>(null);
+  const [unpaidMonthLabels, setUnpaidMonthLabels] = useState<string[]>([]);
   const [outstandingBalance, setOutstandingBalance] = useState<number | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [dateInputType, setDateInputType] = useState<'text' | 'datetime-local'>('text');
-  const isPayMongoCheckout = paymentMethod === 'paymongo';
+  const shouldShowReviewSection = Boolean(formData.file);
 
   const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; payment: ReceiptPayment }>({
     isOpen: false,
@@ -284,15 +324,24 @@ export default function SubmitPaymentPage() {
     title: '',
   });
 
+  const targetDueMonthLabel = oldestUnpaidMonth ?? currentMonthLabel;
+  const selectedPaymentAmount = Number(formData.paymentAmount);
+  const receiptAmountValue = Number(formData.receiptAmount);
+  const hasMatchingReceiptAmount = Boolean(formData.receiptAmount.trim())
+    && Number.isFinite(receiptAmountValue)
+    && receiptAmountValue === selectedPaymentAmount;
+  const isReceiptReady = hasMatchingReceiptAmount
+    && Boolean(formData.referenceNumber.trim())
+    && Boolean(formData.paymentDateTime)
+    && Boolean(formData.file)
+    && !isOCRProcessing;
   const currentMonthSubmission = recentSubmissions.find((submission) => {
-    const monthMatches = String(submission.month || '').toLowerCase() === currentMonthLabel.toLowerCase();
+    const monthMatches = String(submission.month || '').toLowerCase() === targetDueMonthLabel.toLowerCase();
     const status = String(submission.status || '').toLowerCase();
-    return monthMatches && (status === 'pending' || status === 'verified');
+    return monthMatches && status === 'pending';
   });
   const isMonthlyPaymentLocked = Boolean(currentMonthSubmission);
-  const monthlyLockMessage = currentMonthSubmission?.status === 'Verified'
-    ? `You already paid for ${currentMonthLabel}.`
-    : `You already have a pending submission for ${currentMonthLabel}. Please wait for HOA verification before submitting another payment.`;
+  const monthlyLockMessage = `You already have a pending submission for ${targetDueMonthLabel}. Please wait for HOA verification before submitting another payment.`;
 
   useEffect(() => {
     setIsMounted(true);
@@ -315,6 +364,7 @@ export default function SubmitPaymentPage() {
               ? `${userProfile.phase ? userProfile.phase + ' ' : ''}Blk ${userProfile.block} Lot ${userProfile.lot}`
               : '',
             paymentAmount: ESTABLISHED_PAYMENT_AMOUNT,
+            paymentMonths: '1',
             paymentDateTime: '',
             receiptAmount: '',
           }));
@@ -359,9 +409,11 @@ export default function SubmitPaymentPage() {
 
         const oldest = unpaidStatements[0];
         setOldestUnpaidMonth(oldest ? `${oldest.month} ${oldest.year}` : null);
+        setUnpaidMonthLabels(unpaidStatements.map((statement: { month?: string; year?: number }) => `${statement.month} ${statement.year}`));
       } catch (error) {
         console.error('Failed to determine oldest unpaid month:', error);
         setOldestUnpaidMonth(null);
+        setUnpaidMonthLabels([]);
       }
     };
 
@@ -433,7 +485,13 @@ export default function SubmitPaymentPage() {
         throw new Error('Tesseract failed to load');
       }
 
-      const { data: { text } } = await tesseract.recognize(file, 'eng');
+      const ocrInput = await prepareReceiptForOCR(file);
+      const primaryResult = await tesseract.recognize(ocrInput, 'eng', { tessedit_pageseg_mode: 6 });
+      let text = primaryResult.data.text;
+      if (!parseAndFormatDateTime(text)) {
+        const alternateResult = await tesseract.recognize(ocrInput, 'eng', { tessedit_pageseg_mode: 11 });
+        text = `${text}\n${alternateResult.data.text}`;
+      }
 
       console.log('Extracted text:', text);
 
@@ -521,7 +579,6 @@ export default function SubmitPaymentPage() {
         }
         if (foundAmount) {
           update.receiptAmount = foundAmount;
-          update.paymentAmount = foundAmount;
           detectedAmountNice = `₱${foundAmount}`;
         }
         if (detectedDate) {
@@ -538,17 +595,18 @@ export default function SubmitPaymentPage() {
       });
 
       if (lowerText.includes('gcash')) {
-        setPaymentMethod('gcash');
+        setPaymentMethod('manual');
       } else if (lowerText.includes('maya') || lowerText.includes('paymaya')) {
-        setPaymentMethod('maya');
+        setPaymentMethod('manual');
       } else if (['bdo', 'bpi', 'metrobank', 'unionbank', 'landbank', 'security bank'].some(bank => lowerText.includes(bank))) {
-        setPaymentMethod('bank');
+        setPaymentMethod('manual');
       }
 
       let toastMsg = 'Automatically detected:';
       if (foundRef) toastMsg += ` Ref: ${foundRef}`;
       if (foundAmount) toastMsg += ` | Amount: ${detectedAmountNice}`;
       if (detectedDate) toastMsg += ` | Date: ${detectedDateNice}`;
+      if (!detectedDate) toastMsg += ' | Date not detected - please enter it manually';
 
       if (foundRef || foundAmount || detectedDate) {
         setToast({ message: toastMsg, type: 'success' });
@@ -604,7 +662,12 @@ export default function SubmitPaymentPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (outstandingBalance !== null && outstandingBalance <= 0) {
+    if (recentLoading) {
+      setToast({ message: 'Loading your payment history. Please wait a moment and try again.', type: 'info' });
+      return;
+    }
+
+    if (outstandingBalance !== null && outstandingBalance <= 0 && Number(formData.paymentMonths) === 1) {
       setToast({ message: 'You have no outstanding dues. Payment submission is disabled.', type: 'info' });
       return;
     }
@@ -625,33 +688,55 @@ export default function SubmitPaymentPage() {
       return;
     }
 
+    const amountValue = (formData.receiptAmount || formData.paymentAmount).trim();
+
     if (!formData.paymentAmount.trim()) {
       setToast({ message: 'Please enter the payment amount', type: 'error' });
       return;
     }
 
-    if (!formData.receiptAmount.trim()) {
+    if (!amountValue) {
       setToast({ message: 'Please enter the receipt amount', type: 'error' });
       return;
     }
 
-    const amountValidation = validatePaymentAmount(formData.receiptAmount.trim());
+    const amountValidation = validatePaymentAmount(amountValue);
     if (!amountValidation.isValid) {
       setToast({ message: amountValidation.error ?? 'Payment amount is invalid', type: 'error' });
       return;
     }
 
-    if (!isPayMongoCheckout && !formData.file) {
+    const paymentMonths = Number(formData.paymentMonths);
+    const expectedPaymentAmount = Number(ESTABLISHED_PAYMENT_AMOUNT) * paymentMonths;
+    if (!Number.isInteger(paymentMonths) || paymentMonths < 1 || paymentMonths > MAX_ADVANCE_MONTHS) {
+      setToast({ message: 'Please select a payment duration between 1 and 12 months.', type: 'error' });
+      return;
+    }
+
+    if (Number(amountValue) !== expectedPaymentAmount) {
+      setToast({ message: `Receipt amount must be exactly ₱${expectedPaymentAmount} for ${paymentMonths} month${paymentMonths === 1 ? '' : 's'}.`, type: 'error' });
+      return;
+    }
+
+    if (!formData.file) {
       setToast({ message: 'Please upload a payment proof', type: 'error' });
       return;
     }
 
-    if (!isPayMongoCheckout && !formData.referenceNumber.trim()) {
+    if (!formData.referenceNumber.trim()) {
       setToast({ message: 'Please enter a reference number', type: 'error' });
       return;
     }
 
-    if (!isPayMongoCheckout && !formData.paymentDateTime) {
+    const duplicateCheck = await apiCall(
+      `/api/payment-submissions?checkReference=${encodeURIComponent(formData.referenceNumber.trim())}`,
+    ) as { duplicate?: boolean };
+    if (duplicateCheck.duplicate) {
+      setToast({ message: 'This reference number has already been used for another payment.', type: 'error' });
+      return;
+    }
+
+    if (!formData.paymentDateTime) {
       setToast({ message: 'Please enter the date and time of payment', type: 'error' });
       return;
     }
@@ -659,46 +744,6 @@ export default function SubmitPaymentPage() {
     setIsSubmitting(true);
 
     try {
-      if (isPayMongoCheckout) {
-        const response = await apiCall('/api/paymongo/checkout', {
-          method: 'POST',
-          body: JSON.stringify({
-            residentName: formData.residentName.trim(),
-            blockLot: formData.blockLot.trim(),
-            amount: Number(formData.receiptAmount.trim()),
-            notes: formData.notes.trim(),
-            paymentDateTime: formData.paymentDateTime,
-          }),
-        });
-
-        const submission = response.submission as Submission | undefined;
-
-        if (submission) {
-          setRecentSubmissions((current) => [
-            {
-              ...submission,
-              month: submission.month ?? new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' }),
-              paymentAmount: Number(submission.paymentAmount ?? (Number(formData.receiptAmount) || 0)),
-              status: submission.status ?? 'Pending',
-              submittedDate: submission.submittedDate ?? new Date().toLocaleString(),
-              residentName: formData.residentName,
-              blockLot: formData.blockLot,
-              paymentDateTime: formData.paymentDateTime || new Date().toISOString(),
-            },
-            ...current,
-          ]);
-        }
-
-        setToast({ message: 'Redirecting to PayMongo checkout...', type: 'info' });
-
-        if (response.checkoutUrl) {
-          window.location.href = response.checkoutUrl;
-          return;
-        }
-
-        throw new Error('PayMongo checkout URL was not returned');
-      }
-
       let fileBase64 = '';
 
       // If there's a file, compress it and convert to Base64
@@ -747,7 +792,8 @@ export default function SubmitPaymentPage() {
       payload.append('residentName', formData.residentName.trim());
       payload.append('blockLot', formData.blockLot.trim());
       payload.append('paymentAmount', formData.receiptAmount.trim());
-      payload.append('paymentMethod', paymentMethod === 'bank' ? `Bank Transfer (${selectedBank})` : paymentMethod);
+      payload.append('paymentMonths', String(paymentMonths));
+      payload.append('paymentMethod', 'Manual Payment');
       payload.append('referenceNumber', formData.referenceNumber.trim());
       payload.append('notes', formData.notes.trim());
       payload.append('paymentDateTime', formData.paymentDateTime);
@@ -851,7 +897,7 @@ export default function SubmitPaymentPage() {
         })
       });
 
-      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentDateTime: '', receiptAmount: '' });
+      setFormData({ referenceNumber: '', notes: '', file: null, residentName: formData.residentName, blockLot: formData.blockLot, paymentAmount: ESTABLISHED_PAYMENT_AMOUNT, paymentMonths: '1', paymentDateTime: '', receiptAmount: '' });
       setFileName('');
       setPreview(null);
     } catch (error: unknown) {
@@ -927,7 +973,7 @@ export default function SubmitPaymentPage() {
             <div className={styles.formCard}>
               <h2 className={styles.formTitle}>Submit Payment</h2>
               <p className={styles.formDescription}>
-                Upload your GCash, Maya, PayMongo, or Bank Transfer payment screenshot for instant verification
+                Scan the QR code to pay, then upload your receipt for manual verification.
               </p>
 
               {isMonthlyPaymentLocked && (
@@ -938,64 +984,116 @@ export default function SubmitPaymentPage() {
 
               {outstandingBalance !== null && outstandingBalance <= 0 && (
                 <div style={{ marginBottom: '1rem', padding: '12px 14px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #86efac', color: '#166534', fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.4 }}>
-                  Your account is fully paid. Payment submission is disabled until you have a new outstanding due.
+                  Your current dues are fully paid. You may still select an advance payment duration below.
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className={styles.form}>
-                {/* 1. Upload Payment Proof */}
-                <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
-                  <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>1. Upload Receipt (Scan & Auto-fill)</label>
-                  <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>
-                    {isPayMongoCheckout
-                      ? 'PayMongo opens a secure hosted checkout, so uploading a receipt is optional.'
-                      : 'Upload your receipt and we will automatically fill in the details below!'}
+                <div className={styles.formGroup} style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '12px', border: '1px solid #93c5fd' }}>
+                  <label className={styles.label} style={{ color: '#1e3a8a', fontSize: '1.1rem', marginBottom: '4px' }}>1. Choose Payment Coverage</label>
+                  <p style={{ fontSize: '0.85rem', color: '#1d4ed8', marginBottom: '12px' }}>
+                    Outstanding months are settled oldest-first before any remaining amount covers future months.
                   </p>
-                  <div className={styles.uploadBox}>
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleFileChange}
-                      className={styles.fileInput}
-                      id="fileInput"
-                    />
-                    <label htmlFor="fileInput" className={styles.uploadLabel}>
-                      <div className={styles.uploadIcon}>📁</div>
-                      {fileName ? (
-                        <div>
-                          <p className={styles.uploadText}>✓ {fileName}</p>
-                          <p className={styles.uploadSmall}>Click to change</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className={styles.uploadText}>Click to upload screenshot</p>
-                          <p className={styles.uploadSmall}>JPG or PNG images up to 10MB</p>
-                        </div>
-                      )}
-                    </label>
+                  <div role="radiogroup" aria-label="Payment coverage" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
+                    {Array.from({ length: MAX_ADVANCE_MONTHS }, (_, index) => {
+                      const months = index + 1;
+                      const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
+                      const selected = Number(formData.paymentMonths) === months;
+                      return (
+                        <button
+                          key={months}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            paymentMonths: String(months),
+                            paymentAmount: String(amount),
+                          }))}
+                          style={{ padding: '9px 4px', border: selected ? '2px solid #2563eb' : '1px solid #bfdbfe', borderRadius: '8px', background: selected ? '#dbeafe' : '#fff', color: '#1e3a8a', fontWeight: selected ? 700 : 500, cursor: 'pointer' }}
+                        >
+                          <span style={{ display: 'block', fontSize: '0.9rem' }}>{months} mo.</span>
+                          <span style={{ display: 'block', fontSize: '0.75rem' }}>₱{amount.toLocaleString()}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  {preview && (
-                    <div className={styles.previewContainer}>
-                      <Image
-                        src={preview}
-                        alt="Preview"
-                        className={styles.previewImage}
-                        width={800}
-                        height={260}
-                        onError={(e) => {
-                          console.error('Preview image failed to load:', e);
-                          setPreview(null);
-                        }}
-                      />
-                    </div>
-                  )}
+                  <p style={{ fontSize: '0.85rem', color: '#1e3a8a', margin: '12px 0 0' }}>
+                    {outstandingBalance !== null && outstandingBalance > 0
+                      ? `Outstanding balance: ₱${outstandingBalance.toLocaleString()}. Paid first: ${unpaidMonthLabels.slice(0, Number(formData.paymentMonths)).join(', ') || oldestUnpaidMonth || 'the oldest unpaid month'}.`
+                      : 'Your selected amount will be applied to future months.'}
+                  </p>
                 </div>
 
-                {formData.file && (
+                <div className={styles.formGroup} style={{ marginBottom: '32px', textAlign: 'center' }}>
+                  <label className={styles.label} style={{ display: 'block', marginBottom: '12px' }}>2. Scan to Pay</label>
+                  <Image
+                    src="/lhconnect_qrcode.jpg"
+                    alt="LH-Connect payment QR code"
+                    width={320}
+                    height={320}
+                    className={styles.qrCode}
+                    priority
+                  />
+                  <a
+                    href="/lhconnect_qrcode.jpg"
+                    download="lhconnect_qrcode.jpg"
+                    className={styles.downloadQrBtn}
+                  >
+                    Download QR Code
+                  </a>
+                </div>
+
+                <div className={styles.formGroup} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px dashed #22c55e' }}>
+                    <label className={styles.label} style={{ color: '#166534', fontSize: '1.1rem', marginBottom: '4px' }}>3. Upload Receipt (Scan & Auto-fill)</label>
+                    <p style={{ fontSize: '0.85rem', color: '#15803d', marginBottom: '12px' }}>
+                      Upload your receipt and we will automatically fill in the details below!
+                    </p>
+                    <div className={styles.uploadBox}>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={handleFileChange}
+                        className={styles.fileInput}
+                        id="fileInput"
+                      />
+                      <label htmlFor="fileInput" className={styles.uploadLabel}>
+                        <div className={styles.uploadIcon}>📁</div>
+                        {fileName ? (
+                          <div>
+                            <p className={styles.uploadText}>✓ {fileName}</p>
+                            <p className={styles.uploadSmall}>Click to change</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className={styles.uploadText}>Click to upload screenshot</p>
+                            <p className={styles.uploadSmall}>JPG or PNG images up to 5 MB</p>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                    {preview && (
+                      <div className={styles.previewContainer}>
+                        <Image
+                          src={preview}
+                          alt="Preview"
+                          className={styles.previewImage}
+                          width={800}
+                          height={260}
+                          onError={(e) => {
+                            console.error('Preview image failed to load:', e);
+                            setPreview(null);
+                          }}
+                        />
+                      </div>
+                    )}
+                </div>
+
+                {shouldShowReviewSection && (
                   <div style={{ marginTop: '40px', animation: 'fadeIn 0.5s ease-in' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
-                      <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 2: Verify & Submit</span>
+                      <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 4: Verify & Submit</span>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
                     </div>
 
@@ -1007,59 +1105,10 @@ export default function SubmitPaymentPage() {
                         <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{formData.blockLot || '—'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Amount Due</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Selected Payment</div>
                         <div style={{ fontSize: '1.6rem', color: '#059669', fontWeight: 700, letterSpacing: '-0.02em' }}>₱{formData.paymentAmount}</div>
                       </div>
                     </div>
-
-                    {/* Select Payment Method */}
-                    <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '12px' }}>Select Payment Method</label>
-                      <div className={styles.methodGrid}>
-                        <div
-                          className={`${styles.methodCard} ${paymentMethod === 'bank' ? styles.activeCard : ''}`}
-                          onClick={() => setPaymentMethod('bank')}
-                        >
-                          <div className={styles.methodIcon}>🏦</div>
-                          <div className={styles.methodName}>Bank</div>
-                        </div>
-                        <div
-                          className={`${styles.methodCard} ${paymentMethod === 'paymongo' ? styles.activeCard : ''}`}
-                          onClick={() => setPaymentMethod('paymongo')}
-                        >
-                          <div className={styles.methodIcon}>⬢</div>
-                          <div className={styles.methodName}>PayMongo</div>
-                        </div>
-                      </div>
-
-                      {isPayMongoCheckout && (
-                        <div className={styles.uploadSmall} style={{ marginTop: '12px' }}>
-                          Secure checkout will open in a PayMongo payment page after you submit.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bank Selection */}
-                    {paymentMethod === 'bank' && (
-                      <div className={styles.formGroup} style={{ marginBottom: '32px' }}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '8px' }}>Select Your Bank</label>
-                        <select
-                          className={styles.select}
-                          value={selectedBank}
-                          onChange={(e) => setSelectedBank(e.target.value)}
-                        >
-                          <option value="BDO">BDO (Banco de Oro)</option>
-                          <option value="BPI">BPI (Bank of the Philippine Islands)</option>
-                          <option value="Metrobank">Metrobank</option>
-                          <option value="UnionBank">UnionBank of the Philippines</option>
-                          <option value="Landbank">Landbank of the Philippines</option>
-                          <option value="Security Bank">Security Bank</option>
-                          <option value="PNB">PNB (Philippine National Bank)</option>
-                          <option value="Chinabank">Chinabank</option>
-                          <option value="RCBC">RCBC</option>
-                        </select>
-                      </div>
-                    )}
 
                     {/* Sleek Scanned Details */}
                     <div style={{ marginBottom: '40px' }}>
@@ -1078,7 +1127,8 @@ export default function SubmitPaymentPage() {
                             type="text"
                             name="referenceNumber"
                             value={formData.referenceNumber}
-                            onChange={handleInputChange}
+                            readOnly
+                            aria-readonly="true"
                             placeholder="e.g. 10002930"
                             style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
                             onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
@@ -1112,7 +1162,8 @@ export default function SubmitPaymentPage() {
                                   : ''
                             }
                             placeholder="dd/mm/yy --:-- --"
-                            onChange={handleInputChange}
+                            readOnly
+                            aria-readonly="true"
                             style={{ width: '100%', padding: '8px 0', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
                             onFocus={(e) => { setDateInputType('datetime-local'); e.target.style.borderColor = '#3b82f6'; }}
                             onBlur={(e) => { setDateInputType('text'); e.target.style.borderColor = '#e5e7eb'; }}
@@ -1129,13 +1180,19 @@ export default function SubmitPaymentPage() {
                               step="0.01"
                               name="receiptAmount"
                               value={formData.receiptAmount}
-                              onChange={handleInputChange}
+                              readOnly
+                              aria-readonly="true"
                               placeholder="0.00"
                               style={{ width: '100%', padding: '8px 0 8px 20px', border: 'none', borderBottom: '2px solid #e5e7eb', backgroundColor: 'transparent', fontSize: '1.15rem', color: '#111827', outline: 'none', transition: 'border-color 0.2s', letterSpacing: '0.02em' }}
                               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                             />
                           </div>
+                          {formData.receiptAmount && Number(formData.receiptAmount) !== Number(formData.paymentAmount) && (
+                            <p style={{ margin: '6px 0 0', color: '#b45309', fontSize: '0.78rem', lineHeight: 1.35 }}>
+                              Receipt amount does not match your selected payment of ₱{Number(formData.paymentAmount).toLocaleString()}. Please correct it before submitting.
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1143,17 +1200,17 @@ export default function SubmitPaymentPage() {
                     {/* Submit Button */}
                     <button
                       type="submit"
-                      disabled={isSubmitting || isMonthlyPaymentLocked || outstandingBalance === 0}
+                      disabled={isSubmitting || isMonthlyPaymentLocked || !isReceiptReady || (outstandingBalance === 0 && Number(formData.paymentMonths) === 1) || recentLoading}
                       className={styles.submitBtn}
                       style={{ width: '100%', padding: '16px', fontSize: '1.1rem', borderRadius: '12px', fontWeight: 600 }}
                     >
                       {isMonthlyPaymentLocked
                         ? 'Already submitted for this month'
-                        : outstandingBalance === 0
-                        ? 'Fully Paid'
+                        : outstandingBalance === 0 && Number(formData.paymentMonths) === 1
+                        ? 'Select advance duration'
                         : isSubmitting
-                        ? (isPayMongoCheckout ? 'Redirecting to PayMongo...' : 'Submitting...')
-                        : (isPayMongoCheckout ? 'Continue to PayMongo Checkout' : 'Submit Payment')}
+                        ? 'Submitting...'
+                        : 'Submit Payment'}
                     </button>
                   </div>
                 )}
@@ -1170,38 +1227,32 @@ export default function SubmitPaymentPage() {
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>1</span>
                   <div>
-                    <strong>Send Payment</strong>
-                    <p>Transfer your monthly dues via GCash, Maya, or Bank Transfer to the HOA account</p>
+                    <strong>Scan the payment QR code</strong>
+                    <p>Complete your payment using the LH-Connect QR code shown in the form.</p>
                   </div>
                 </li>
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>2</span>
                   <div>
-                    <strong>Take Screenshot</strong>
-                    <p>Capture the confirmation screen showing the transaction details</p>
+                    <strong>Upload your receipt</strong>
+                    <p>Capture the confirmation screen showing the transaction details.</p>
                   </div>
                 </li>
                 <li className={styles.instructionItem}>
                   <span className={styles.stepNumber}>3</span>
                   <div>
-                    <strong>Upload & Submit</strong>
-                    <p>Fill in the form and upload your screenshot for instant verification</p>
+                    <strong>Confirm details</strong>
+                    <p>Review the amount, reference number, date, and proof before submitting.</p>
                   </div>
                 </li>
               </ol>
 
-              {/* HOA Payment Details */}
+              {/* Payment Service Details */}
               <div className={styles.hoaDetails}>
-                <h4 className={styles.hoaTitle}>HOA Payment Details:</h4>
+                <h4 className={styles.hoaTitle}>Payment Options:</h4>
                 <ul className={styles.detailsList}>
                   <li>
-                    <strong>GCash:</strong> 0917-123-4567
-                  </li>
-                  <li>
-                    <strong>Maya:</strong> 0918-765-4321
-                  </li>
-                  <li>
-                    <strong>Bank Transfer:</strong> BDO Account 12345-6789
+                    <strong>Manual Payment:</strong> Scan the QR code and upload your receipt for verification
                   </li>
                   <li>
                     <strong>HOA Name:</strong> Lincoln Heights HOA
@@ -1303,9 +1354,12 @@ export default function SubmitPaymentPage() {
                             )}
                             {submission.hasProof && submission.proofUrl && (
                               <div style={{ marginTop: '12px' }}>
-                                <img
+                                <Image
                                   src={submission.proofUrl}
                                   alt="Submitted payment proof"
+                                  width={800}
+                                  height={180}
+                                  unoptimized
                                   style={{ display: 'block', width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer' }}
                                   onClick={() => setProofModal({
                                     isOpen: true,
