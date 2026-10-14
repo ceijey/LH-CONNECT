@@ -6,6 +6,7 @@ import { verifyCsrf } from '@/lib/csrf';
 import { getMonthlySubmissionId, getMonthlySubmissionMonth } from '@/lib/payment-submission';
 import { validatePaymentAmount } from '@/lib/payment-validation';
 import { calculateOutstandingBalance, statementTime } from '@/lib/payment-allocation';
+import { createReceiptFingerprint, normalizeReceiptDateTime } from '@/lib/receipt-identity';
 
 function isAlreadyExistsError(error: unknown): boolean {
   if (!error) return false;
@@ -264,6 +265,12 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Reference number is required', 400);
     }
 
+    if (!normalizeReceiptDateTime(paymentDateTime)) {
+      return createErrorResponse('A valid receipt date and time is required.', 400);
+    }
+
+    const receiptFingerprint = createReceiptFingerprint(referenceNumber, paymentDateTime);
+
     // Check for duplicate reference number in payment_submissions
     const duplicateSubmissionQuery = await adminDb
       .collection('payment_submissions')
@@ -284,6 +291,27 @@ export async function POST(request: NextRequest) {
 
     if (!duplicatePaymentQuery.empty) {
       return createErrorResponse('This reference number has already been approved for a payment.', 400);
+    }
+
+    // Reject the same receipt even if the resident changes the filename or
+    // uploads it again after the first submission is still under review.
+    const duplicateReceiptQuery = await adminDb
+      .collection('payment_submissions')
+      .where('receiptFingerprint', '==', receiptFingerprint)
+      .limit(1)
+      .get();
+
+    const duplicateApprovedReceiptQuery = await adminDb
+      .collection('payments')
+      .where('receiptFingerprint', '==', receiptFingerprint)
+      .limit(1)
+      .get();
+
+    if (!duplicateReceiptQuery.empty || !duplicateApprovedReceiptQuery.empty) {
+      return createErrorResponse(
+        'This receipt has already been submitted. The same reference number and date/time cannot be used again.',
+        400,
+      );
     }
 
     const submittedAt = new Date();
@@ -433,6 +461,7 @@ export async function POST(request: NextRequest) {
         createdAt: submittedAt,
         updatedAt: submittedAt,
         paymentDateTime,
+        receiptFingerprint,
         receiptAmount,
       });
     } catch (createError: unknown) {

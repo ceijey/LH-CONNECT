@@ -51,29 +51,32 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const amount = Number(paymentAmount);
+    const normalizedOrNumber = orNumber.trim();
+    const orNumberRef = adminDb.collection('payment_or_numbers').doc(normalizedOrNumber);
+    const submissionRef = adminDb.collection('payment_submissions').doc();
+    const paymentRef = adminDb.collection('payments').doc();
+    const notificationRef = adminDb.collection('notifications').doc();
 
-    // 1. Create payment_submissions record (Status: Verified)
-    const submissionRef = await adminDb.collection('payment_submissions').add({
-      residentId,
-      residentName,
-      blockLot,
-      paymentAmount: amount,
-      paymentMethod,
-      referenceNumber: orNumber.trim(),
-      notes: notes || 'Manual cash payment recorded by admin',
-      status: 'Verified',
-      month,
-      submittedDate: now.toLocaleString(),
-      submittedAt: now,
-      verifiedDate: now.toLocaleString(),
-      verifiedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // 2. Update resident balance and allocate payment across unpaid months
     await adminDb.runTransaction(async (transaction: Transaction) => {
+      const orNumberDoc = await transaction.get(orNumberRef as DocumentReference);
+      const duplicateSubmissionQuery = await transaction.get(
+        adminDb.collection('payment_submissions')
+          .where('referenceNumber', '==', normalizedOrNumber)
+          .limit(1),
+      );
+      const duplicatePaymentQuery = await transaction.get(
+        adminDb.collection('payments')
+          .where('referenceNumber', '==', normalizedOrNumber)
+          .limit(1),
+      );
       const freshResident = await transaction.get(residentRef as DocumentReference);
+
+      if (orNumberDoc.exists || !duplicateSubmissionQuery.empty || !duplicatePaymentQuery.empty) {
+        const duplicateError = new Error('This OR number has already been used. Please enter a different OR number.');
+        duplicateError.name = 'DuplicateOrNumberError';
+        throw duplicateError;
+      }
+
       if (!freshResident.exists) {
         throw new Error('Resident not found');
       }
@@ -84,40 +87,64 @@ export async function POST(request: NextRequest) {
         adminDb.collection('statements'),
         residentId,
         amount,
-        residentData.createdAt,
+        freshResident.data()?.createdAt,
       );
       transaction.update(residentRef, {
         balance: Math.max(0, currentBalance - amount),
         updatedAt: now.toISOString(),
       });
+
+      transaction.create(orNumberRef, {
+        orNumber: normalizedOrNumber,
+        residentId,
+        submissionId: submissionRef.id,
+        paymentId: paymentRef.id,
+        createdAt: now,
+      });
+
+      transaction.create(submissionRef, {
+        residentId,
+        residentName,
+        blockLot,
+        paymentAmount: amount,
+        paymentMethod,
+        referenceNumber: normalizedOrNumber,
+        notes: notes || 'Manual cash payment recorded by admin',
+        status: 'Verified',
+        month,
+        submittedDate: now.toLocaleString(),
+        submittedAt: now,
+        verifiedDate: now.toLocaleString(),
+        verifiedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      transaction.create(paymentRef, {
+        residentId,
+        residentName,
+        amount,
+        type: 'Payment',
+        description: `Manual Payment - ${month}`,
+        paymentMethod,
+        referenceNumber: normalizedOrNumber,
+        status: 'Paid',
+        createdAt: now,
+        date: now.toLocaleDateString(),
+      });
+
+      transaction.create(notificationRef, {
+        userId: residentId,
+        title: 'Payment Received',
+        message: `Your cash payment of ₱${amount.toLocaleString()} for ${month} has been recorded by the admin.`,
+        type: 'success',
+        read: false,
+        createdAt: now,
+        submissionId: submissionRef.id,
+      });
     });
 
-    // 3. Create official payment record
-    await adminDb.collection('payments').add({
-      residentId,
-      residentName,
-      amount: amount,
-      type: 'Payment',
-      description: `Manual Payment - ${month}`,
-      paymentMethod,
-      referenceNumber: orNumber.trim(),
-      status: 'Paid',
-      createdAt: now,
-      date: now.toLocaleDateString(),
-    });
-
-    // 4. Notify resident
-    await adminDb.collection('notifications').add({
-      userId: residentId,
-      title: 'Payment Received',
-      message: `Your cash payment of ₱${amount.toLocaleString()} for ${month} has been recorded by the admin.`,
-      type: 'success',
-      read: false,
-      createdAt: now,
-      submissionId: submissionRef.id
-    });
-
-    // 5. Send Email if possible
+    // Send Email if possible
     if (residentEmail) {
       try {
         await sendPaymentVerifiedEmail({
@@ -146,6 +173,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
+    if (error?.name === 'DuplicateOrNumberError') {
+      return createErrorResponse(error.message, 409);
+    }
     console.error('Error recording manual payment:', error.message);
     return createErrorResponse('Internal server error', 500);
   }

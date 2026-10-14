@@ -9,6 +9,7 @@ import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import { validatePaymentAmount } from '@/lib/payment-validation';
+import { createReceiptFingerprint } from '@/lib/receipt-identity';
 import Toast from '@/app/components/Toast';
 import LoadingScreen from '@/app/components/LoadingScreen';
 import ReceiptModal from '@/app/components/ReceiptModal';
@@ -486,6 +487,30 @@ export default function SubmitPaymentPage() {
       const foundAmount = extractReceiptAmount(text);
 
       const detectedDate = parseAndFormatDateTime(text);
+      const detectedFingerprint = createReceiptFingerprint(foundRef, detectedDate);
+      const duplicateDetectedReceipt = detectedFingerprint
+        ? recentSubmissions.some((submission) =>
+            createReceiptFingerprint(submission.referenceNumber, submission.paymentDateTime) === detectedFingerprint
+          )
+        : false;
+
+      if (duplicateDetectedReceipt) {
+        setToast({
+          message: 'This receipt was already submitted. The same reference number and date/time cannot be reused.',
+          type: 'error',
+        });
+        setFormData(prev => ({
+          ...prev,
+          file: null,
+          referenceNumber: '',
+          receiptAmount: '',
+          paymentDateTime: '',
+        }));
+        setFileName('');
+        setPreview(null);
+        return;
+      }
+
       let detectedDateNice = '';
       let detectedAmountNice = '';
 

@@ -79,12 +79,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updatePayload.verifiedAt = now;
       updatePayload.verifiedDate = now.toLocaleString();
       updatePayload.rejectionReason = null; // Clear any previous reason
-      updatePayload.referenceNumber = orNumber!.trim();
+      const normalizedOrNumber = orNumber!.trim();
+      updatePayload.referenceNumber = normalizedOrNumber;
 
       let verificationApplied = false;
 
       if (residentId) {
         const residentRef = adminDb.collection('users').doc(residentId);
+        const orNumberRef = adminDb.collection('payment_or_numbers').doc(normalizedOrNumber);
 
         verificationApplied = await adminDb.runTransaction(async (transaction: Transaction) => {
           const freshSubmission = await transaction.get(docRef as DocumentReference);
@@ -97,7 +99,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             return false;
           }
 
+          const orNumberDoc = await transaction.get(orNumberRef as DocumentReference);
+          const duplicateSubmissionQuery = await transaction.get(
+            adminDb.collection('payment_submissions')
+              .where('referenceNumber', '==', normalizedOrNumber)
+              .limit(1),
+          );
+          const duplicatePaymentQuery = await transaction.get(
+            adminDb.collection('payments')
+              .where('referenceNumber', '==', normalizedOrNumber)
+              .limit(1),
+          );
           const residentDoc = await transaction.get(residentRef as DocumentReference);
+
+          if (orNumberDoc.exists || !duplicateSubmissionQuery.empty || !duplicatePaymentQuery.empty) {
+            const duplicateError = new Error('This OR number has already been used. Please enter a different OR number.');
+            duplicateError.name = 'DuplicateOrNumberError';
+            throw duplicateError;
+          }
+
           if (!residentDoc.exists) {
             throw new Error('Resident not found');
           }
@@ -125,11 +145,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             description: `Monthly Dues - ${month}`,
             paymentMethod: submissionData.paymentMethod,
             referenceNumber: orNumber!.trim(),
+            receiptFingerprint: submissionData.receiptFingerprint || null,
             submissionId: id,
             fileUrl: submissionData.fileUrl || null,
             status: 'Paid',
             createdAt: now,
             date: now.toLocaleDateString(),
+          });
+
+          transaction.create(orNumberRef, {
+            orNumber: normalizedOrNumber,
+            residentId,
+            submissionId: id,
+            paymentId: paymentRef.id,
+            createdAt: now,
           });
 
           return true;
@@ -193,6 +222,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updated = (await docRef.get()).data();
     return NextResponse.json({ submission: { id, ...updated } });
   } catch (error: any) {
+    if (error?.name === 'DuplicateOrNumberError') {
+      return createErrorResponse(error.message, 409);
+    }
     console.error('Error updating submission status:', error?.message ?? error);
     return createErrorResponse('Internal server error', 500);
   }
