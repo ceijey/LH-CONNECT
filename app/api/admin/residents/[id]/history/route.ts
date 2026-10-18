@@ -19,6 +19,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return createErrorResponse('Forbidden', 403);
     }
 
+    const residentDoc = await adminDb.collection('users').doc(id).get();
+    if (!residentDoc.exists || residentDoc.data()?.role !== 'resident') {
+      return createErrorResponse('Resident not found', 404);
+    }
+    const residentData = residentDoc.data()!;
+
     // 2. Fetch resident's statements and submissions from Firestore
     let statements: any[] = [];
     let submissions: any[] = [];
@@ -66,7 +72,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     statements.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    return NextResponse.json({ statements });
+    return NextResponse.json({
+      statements,
+      resident: {
+        fullName: residentData.fullName || residentData.name || 'Resident',
+        phase: residentData.phase || '',
+        block: residentData.block || '',
+        lot: residentData.lot || '',
+      },
+    });
   } catch (error: any) {
     console.error('Error fetching resident history:', error.message);
     return NextResponse.json({ statements: [] });

@@ -36,6 +36,16 @@ export async function GET(request: NextRequest) {
       const day = String(rawDate.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
+    const getTimestamp = (value: unknown): number => {
+      if (!value) return Number.MAX_SAFE_INTEGER;
+
+      const date = typeof value === 'object' && value !== null && 'toDate' in value
+        ? (value as { toDate: () => Date }).toDate()
+        : new Date(String(value));
+
+      const timestamp = date.getTime();
+      return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp;
+    };
 
     // 1. Fetch all residents
     const residentsSnapshot = await adminDb
@@ -83,6 +93,12 @@ export async function GET(request: NextRequest) {
         );
         return submissionDate === dateStr;
       });
+      // Keep the first payer at the top of the report and Excel export.
+      submissions.sort((a: any, b: any) => getTimestamp(
+        a.submittedAt ?? a.createdAt ?? a.verifiedAt ?? a.submittedDate,
+      ) - getTimestamp(
+        b.submittedAt ?? b.createdAt ?? b.verifiedAt ?? b.submittedDate,
+      ));
     }
 
     // Perform in-memory filtering for Annual Report by checking if month ends with the selected year

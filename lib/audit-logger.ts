@@ -1,6 +1,6 @@
 import { adminDb } from './firebase-admin';
 
-export type AuditAction = 'Approve Resident' | 'Decline Resident' | 'Pending Resident' | 'Verify Payment' | 'Reject Payment' | 'Manual Payment' | 'Create Announcement' | 'Update Resident Details' | 'Delete Resident' | 'Delete Submission';
+export type AuditAction = 'Approve Resident' | 'Decline Resident' | 'Pending Resident' | 'Verify Payment' | 'Reject Payment' | 'Manual Payment' | 'Update OR Number' | 'Create Announcement' | 'Update Resident Details' | 'Delete Resident' | 'Delete Submission';
 
 export async function logAuditAction(
   adminId: string,

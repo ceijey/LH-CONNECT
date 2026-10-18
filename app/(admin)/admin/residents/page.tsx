@@ -444,6 +444,7 @@ export default function AdminResidents() {
                   <th style={{ padding: '12px 14px', background: '#f8fafc' }}>Block</th>
                   <th style={{ padding: '12px 14px', background: '#f8fafc' }}>Lot</th>
                   <th style={{ padding: '12px 14px', background: '#f8fafc' }}>Owner</th>
+                  <th style={{ padding: '12px 14px', background: '#f8fafc' }}>History</th>
                   <th style={{ padding: '12px 14px', background: '#f8fafc', cursor: 'pointer' }} onClick={() => handleSort('balance')}>
                     Past Due {sortConfig?.key === 'balance' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
                   </th>
@@ -466,7 +467,24 @@ export default function AdminResidents() {
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>{resident.phase}</td>
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>{resident.block}</td>
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>{resident.lot}</td>
-                      <td style={{ fontWeight: 500, color: '#334155' }}>{resident.name}</td>
+                      <td style={{ fontWeight: 500, color: '#334155' }}>
+                        <button
+                          type="button"
+                          className={styles.residentNameButton}
+                          onClick={() => handleViewDetails(resident)}
+                        >
+                          {resident.name}
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className={styles.historyButton}
+                          onClick={() => handleViewHistory(resident)}
+                        >
+                          View History
+                        </button>
+                      </td>
                       <td style={{
                         background: pastDue > 0 ? '#fee2e2' : '#dcfce7',
                         color: pastDue > 0 ? '#991b1b' : '#166534',

@@ -5,19 +5,6 @@ import { apiCall } from '@/lib/api-client';
 import Skeleton, { SkeletonText, SkeletonAvatar } from './Skeleton';
 import styles from './ResidentDetailModal.module.css';
 
-function formatResidentId(id: string): string {
-  if (!id) return '';
-  if (id.startsWith('R-')) return id;
-  
-  const numbers = id.replace(/[^0-9]/g, '');
-  const letters = id.replace(/[^a-zA-Z]/g, '');
-  
-  const numPart = (numbers.substring(0, 4) || '0000').padEnd(4, '0');
-  const letterPart = (letters.substring(0, 2) || 'XX').toUpperCase().padEnd(2, 'X');
-  
-  return `R-${numPart}-${letterPart}`;
-}
-
 interface Resident {
   id: string;
   fullName: string;
@@ -183,7 +170,6 @@ export default function ResidentDetailModal({
                       </div>
                     )}
                     <h3 className={styles.residentName}>{resident.fullName}</h3>
-                    <span className={styles.residentId}>ID: {formatResidentId(resident.id)}</span>
                   </div>
 
                   <div className={styles.datesInfo}>

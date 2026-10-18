@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api-client';
 import Toast from '@/app/components/Toast';
 import styles from '../residents/admin-page.module.css';
@@ -18,6 +17,7 @@ interface ReportData {
   balance: number;
   status: 'Paid' | 'Pending' | 'Delinquent' | 'Rejected';
   paymentMethod?: string;
+  referenceNumber?: string;
 }
 
 interface AnalyticsData {
@@ -36,7 +36,6 @@ type SortConfig = {
 } | null;
 
 export default function AdminReports() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     return new Date().toLocaleString('en-US', { month: 'long' });
@@ -61,6 +60,9 @@ export default function AdminReports() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
+  const [editingOrNumberId, setEditingOrNumberId] = useState<string | null>(null);
+  const [orNumberDraft, setOrNumberDraft] = useState('');
+  const [isSavingOrNumber, setIsSavingOrNumber] = useState(false);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June', 
@@ -164,6 +166,42 @@ export default function AdminReports() {
     setToastType(type);
     setIsToastVisible(true);
   };
+
+  const startEditingOrNumber = (row: ReportData) => {
+    setEditingOrNumberId(row.id);
+    setOrNumberDraft(row.referenceNumber ?? '');
+  };
+
+  const cancelEditingOrNumber = () => {
+    setEditingOrNumberId(null);
+    setOrNumberDraft('');
+  };
+
+  const saveOrNumber = async (row: ReportData) => {
+    const normalizedOrNumber = orNumberDraft.trim();
+    if (!/^\d+$/.test(normalizedOrNumber)) {
+      showToast('OR number must contain numbers only', 'error');
+      return;
+    }
+
+    setIsSavingOrNumber(true);
+    try {
+      await apiCall(`/api/reports/${row.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ orNumber: normalizedOrNumber }),
+      });
+      setFinancialData((current) => current.map((item) => (
+        item.id === row.id ? { ...item, referenceNumber: normalizedOrNumber } : item
+      )));
+      cancelEditingOrNumber();
+      showToast('OR number updated successfully', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to update OR number', 'error');
+    } finally {
+      setIsSavingOrNumber(false);
+    }
+  };
+
 
   const handleExportPDF = () => {
     const printWindow = window.open('', '_blank');
@@ -779,7 +817,40 @@ export default function AdminReports() {
                       <td>Blk {row.block} Lot {row.lot}</td>
                       <td>{row.resident}</td>
                       <td>
-                        {selectedReportType === 'Daily Report' ? formatReferenceNumber((row as any).referenceNumber) : `₱${row.monthlyDues.toLocaleString()}`}
+                        {selectedReportType === 'Daily Report' ? (
+                          editingOrNumberId === row.id ? (
+                            <div className={reportsStyles.orNumberEditor}>
+                              <input
+                                value={orNumberDraft}
+                                onChange={(event) => setOrNumberDraft(event.target.value)}
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                aria-label={`OR number for ${row.resident}`}
+                                disabled={isSavingOrNumber}
+                              />
+                              <button type="button" onClick={() => saveOrNumber(row)} disabled={isSavingOrNumber}>
+                                {isSavingOrNumber ? '...' : 'Save'}
+                              </button>
+                              <button type="button" onClick={cancelEditingOrNumber} disabled={isSavingOrNumber}>
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className={reportsStyles.orNumberCell}>
+                              <span>{formatReferenceNumber(row.referenceNumber)}</span>
+                              {row.status === 'Paid' && (
+                                <button
+                                  type="button"
+                                  className={reportsStyles.editOrNumberButton}
+                                  onClick={() => startEditingOrNumber(row)}
+                                  aria-label={`Edit OR number for ${row.resident}`}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                            </div>
+                          )
+                        ) : `₱${row.monthlyDues.toLocaleString()}`}
                       </td>
                       <td style={{ color: row.amountPaid > 0 ? '#16a34a' : '#64748b', fontWeight: 700 }}>
                         ₱{row.amountPaid.toLocaleString()}

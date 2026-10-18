@@ -408,6 +408,45 @@
   font-weight: 500;
 }
 
+.residentNameButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #1d4ed8;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+
+.residentNameButton:hover,
+.residentNameButton:focus-visible {
+  color: #1e3a8a;
+  text-decoration-color: currentColor;
+}
+
+.historyButton {
+  display: block;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.historyButton:hover,
+.historyButton:focus-visible {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
 .nameTd {
   font-weight: 600;
   color: var(--primary-navy, #0f172a);

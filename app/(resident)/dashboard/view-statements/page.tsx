@@ -8,6 +8,7 @@ import { logoutAndRedirect } from '@/lib/auth-session';
 import { apiCall } from '@/lib/api-client';
 import { useAuthPageshow } from '@/lib/useAuthPageshow';
 import Toast from '@/app/components/Toast';
+import MonthlyBillingModal from '@/app/components/MonthlyBillingModal';
 import LoadingScreen from '@/app/components/LoadingScreen';
 import styles from './view-statements.module.css';
 
@@ -51,6 +52,7 @@ export default function ViewStatementsPage() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [isToastVisible, setIsToastVisible] = useState(false);
+  const [selectedStatement, setSelectedStatement] = useState<Statement | null>(null);
 
   const availableYears = useMemo(() => 
     Array.from(new Set(statements.map((s) => s.year))).sort((a, b) => b - a),
@@ -485,7 +487,23 @@ export default function ViewStatementsPage() {
                           borderBottom: '1px solid #e2e8f0',
                           fontSize: '13px'
                         }}>
-                          ₱{Number(displayAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStatement(stmt)}
+                            style={{
+                              border: 0,
+                              background: 'transparent',
+                              color: 'inherit',
+                              cursor: 'pointer',
+                              font: 'inherit',
+                              fontWeight: 'inherit',
+                              textDecoration: 'underline',
+                              textUnderlineOffset: '3px',
+                            }}
+                            aria-label={`View ${month} ${filterYear} billing notice`}
+                          >
+                            ₱{Number(displayAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </button>
                         </td>
                       );
                     })}
@@ -513,6 +531,12 @@ export default function ViewStatementsPage() {
           <p>This is an official transaction log generated via LH-Connect Portal.</p>
         </div>
       </main>
+      <MonthlyBillingModal
+        isOpen={Boolean(selectedStatement)}
+        statement={selectedStatement}
+        profile={profile}
+        onClose={() => setSelectedStatement(null)}
+      />
     </div>
   );
 }
