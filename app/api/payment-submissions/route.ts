@@ -267,14 +267,9 @@ export async function POST(request: NextRequest) {
     const paymentMethod = String(formData.get('paymentMethod') ?? '').trim();
     const referenceNumber = String(formData.get('referenceNumber') ?? '').trim();
     const notes = String(formData.get('notes') ?? '').trim();
-    const monthlyDues = 400;
     const paymentMonths = Number(formData.get('paymentMonths') ?? 1);
     if (!Number.isInteger(paymentMonths) || paymentMonths < 1 || paymentMonths > 12) {
       return createErrorResponse('Payment duration must be between 1 and 12 months.', 400);
-    }
-    const expectedPaymentAmount = monthlyDues * paymentMonths;
-    if (paymentAmount !== expectedPaymentAmount) {
-      return createErrorResponse(`Payment amount must be exactly ₱${expectedPaymentAmount} for ${paymentMonths} month${paymentMonths === 1 ? '' : 's'}.`, 400);
     }
     const paymentDateTime = String(formData.get('paymentDateTime') ?? '').trim();
     const receiptAmount = String(formData.get('receiptAmount') ?? '').trim();

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   calculateOutstandingBalance,
   allocatePaymentToStatements,
+  allocatePaymentToSelectedStatements,
   statementTime,
 } from '../lib/payment-allocation';
 import { validatePaymentAmount } from '../lib/payment-validation';
@@ -71,6 +72,82 @@ describe('statement ledger calculations', () => {
     expect(updated).toHaveLength(0);
   });
 
+  test('applies a partial payment to the oldest unpaid statement', async () => {
+    const updated: Array<{ id: string; data: Record<string, unknown> }> = [];
+    const transaction = {
+      get: async () => ({
+        docs: [{
+          ref: { id: 'january' },
+          data: () => ({
+            month: 'January',
+            year: 2026,
+            totalDues: 400,
+            amountPaid: 0,
+          }),
+        }],
+      }),
+      create: () => undefined,
+      update: (ref: { id: string }, data: Record<string, unknown>) => updated.push({ id: ref.id, data }),
+    };
+    const statementsRef = {
+      where: () => ({}),
+      doc: () => ({ id: 'new-statement' }),
+    };
+
+    await allocatePaymentToStatements(
+      transaction as never,
+      statementsRef as never,
+      'resident-1',
+      250,
+      new Date(2026, 0, 1).toISOString(),
+    );
+
+    expect(updated).toEqual([{
+      id: 'january',
+      data: expect.objectContaining({
+        amountPaid: 250,
+        balance: 150,
+        status: 'Pending',
+      }),
+    }]);
+  });
+
+  test('uses a 4800 payment for twelve total months including arrears', async () => {
+    const updated: Array<{ id: string; data: Record<string, unknown> }> = [];
+    const existingDocs = [-3, -2, -1].map((offset) => {
+      const date = new Date(2026, 5 + offset, 1);
+      return {
+        ref: { id: `statement-${offset}` },
+        data: () => ({
+          month: date.toLocaleString('en-US', { month: 'long' }),
+          year: date.getFullYear(),
+          totalDues: 400,
+          amountPaid: 0,
+        }),
+      };
+    });
+    const transaction = {
+      get: async () => ({ docs: existingDocs }),
+      create: () => undefined,
+      update: (ref: { id: string }, data: Record<string, unknown>) => updated.push({ id: ref.id, data }),
+    };
+    const statementsRef = {
+      where: () => ({}),
+      doc: () => ({ id: 'future-statement' }),
+    };
+
+    await allocatePaymentToStatements(
+      transaction as never,
+      statementsRef as never,
+      'resident-1',
+      4800,
+      new Date(2026, 3, 1).toISOString(),
+    );
+
+    expect(updated).toHaveLength(3);
+    expect(updated.every(({ data }) => data.amountPaid === 400 && data.status === 'Paid')).toBe(true);
+  });
+
   test('pays older July-to-September balances before creating future advance statements', async () => {
     const now = new Date();
     const monthData = (offset: number, id: string) => {
@@ -112,5 +189,43 @@ describe('statement ledger calculations', () => {
 
     expect(updated.map((entry) => entry.id)).toEqual(['july', 'august', 'september']);
     expect(updated.every((entry) => entry.data.amountPaid === 400 && entry.data.status === 'Paid')).toBe(true);
+  });
+
+  test('pays explicitly selected non-consecutive months', async () => {
+    const created: Array<Record<string, unknown>> = [];
+    const updated: Array<{ id: string; data: Record<string, unknown> }> = [];
+    const existingDocs = [{
+      ref: { id: 'june' },
+      data: () => ({ month: 'June', year: 2026, totalDues: 400, amountPaid: 0 }),
+    }];
+    const transaction = {
+      get: async () => ({ docs: existingDocs }),
+      create: (_ref: unknown, data: Record<string, unknown>) => created.push(data),
+      update: (ref: { id: string }, data: Record<string, unknown>) => updated.push({ id: ref.id, data }),
+    };
+    const statementsRef = {
+      where: () => ({}),
+      doc: () => ({ id: 'september' }),
+    };
+
+    await allocatePaymentToSelectedStatements(
+      transaction as never,
+      statementsRef as never,
+      'resident-1',
+      800,
+      [
+        { month: 'June', year: 2026 },
+        { month: 'September', year: 2026 },
+      ],
+    );
+
+    expect(updated).toEqual([{ id: 'june', data: expect.objectContaining({ amountPaid: 400, status: 'Paid' }) }]);
+    expect(created).toHaveLength(1);
+    expect(created[0]).toEqual(expect.objectContaining({
+      month: 'September',
+      year: 2026,
+      amountPaid: 400,
+      status: 'Paid',
+    }));
   });
 });

@@ -15,6 +15,37 @@ interface Resident {
   balance?: number;
 }
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function parseSelectedMonths(value: string): Array<{ month: string; year: number }> {
+  const currentYear = new Date().getFullYear();
+  const selected = value.split(',').map((part) => part.trim()).filter(Boolean);
+  const parsed = selected.map((part) => {
+    const isoMatch = part.match(/^(\d{4})-(\d{1,2})$/);
+    if (isoMatch) {
+      const monthIndex = Number(isoMatch[2]) - 1;
+      return monthIndex >= 0 && monthIndex < 12
+        ? { month: MONTH_NAMES[monthIndex], year: Number(isoMatch[1]) }
+        : null;
+    }
+
+    const match = part.match(/^([A-Za-z]+)(?:\s+(\d{4}))?$/);
+    if (!match) return null;
+    const month = MONTH_NAMES.find((name) => name.toLowerCase() === match[1].toLowerCase());
+    return month ? { month, year: Number(match[2] || currentYear) } : null;
+  });
+
+  return parsed.filter((entry): entry is { month: string; year: number } => entry !== null);
+}
+
+function formatMonthLabel(value: string): string {
+  const selected = parseSelectedMonths(value);
+  return selected.map((entry) => `${entry.month} ${entry.year}`).join(', ');
+}
+
 export default function ManualPaymentPage() {
   const router = useRouter();
   const [residents, setResidents] = useState<Resident[]>([]);
@@ -33,7 +64,6 @@ export default function ManualPaymentPage() {
   const [lineItems, setLineItems] = useState([
     { natureOfService: 'Monthly Dues', particular: '', amount: '' }
   ]);
-  const [month, setMonth] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -50,14 +80,12 @@ export default function ManualPaymentPage() {
     };
     fetchResidents();
 
-    // Default month to current (format: YYYY-MM for input type="month") and date to today (format: YYYY-MM-DD)
+    // Default the sale date to today.
     const now = new Date();
     const year = now.getFullYear();
     const monthStr = String(now.getMonth() + 1).padStart(2, '0');
     const dayStr = String(now.getDate()).padStart(2, '0');
-    const currentMonth = `${year}-${monthStr}`;
     const today = `${year}-${monthStr}-${dayStr}`;
-    setMonth(currentMonth);
     setDateSoldTo(today);
   }, []);
 
@@ -107,16 +135,22 @@ export default function ManualPaymentPage() {
       return;
     }
 
-    if (!selectedResidentId || !month || saleAmount <= 0) {
-      setError('Please select a resident, billing period, and enter a valid amount.');
+    const selectedMonths = parseSelectedMonths(lineItems[0]?.particular || '');
+    const monthInputParts = lineItems[0]?.particular.split(',').map((part) => part.trim()).filter(Boolean) || [];
+    const hasDuplicateMonths = new Set(selectedMonths.map((entry) => `${entry.year}-${entry.month}`)).size !== selectedMonths.length;
+    if (!selectedResidentId || selectedMonths.length === 0 || selectedMonths.length !== monthInputParts.length || hasDuplicateMonths || saleAmount <= 0) {
+      setError('Please select a resident, enter one or more valid months, and enter a valid amount.');
       setIsSubmitting(false);
       return;
     }
 
-    // Format month for display/database (e.g. "May 2026")
-    const [year, monthNum] = month.split('-');
-    const dateObj = new Date(Number(year), Number(monthNum) - 1);
-    const formattedMonth = dateObj.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    if (selectedMonths.length * 400 !== saleAmount) {
+      setError(`Enter exactly ₱${(selectedMonths.length * 400).toLocaleString()} for the selected month${selectedMonths.length === 1 ? '' : 's'}.`);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const formattedMonth = selectedMonths.map((entry) => `${entry.month} ${entry.year}`).join(', ');
 
     try {
       await apiCall('/api/admin/manual-payment', {
@@ -126,6 +160,7 @@ export default function ManualPaymentPage() {
           paymentAmount: saleAmount,
           orNumber: orNumber.trim(),
           month: formattedMonth,
+          selectedMonths,
           notes,
           paymentMethod: 'Cash',
           cashSale: Number(cashSale),
@@ -181,7 +216,7 @@ export default function ManualPaymentPage() {
 
     const tableRowsHtml = activeItems.map(item => {
       const particular = item.particular
-        ? new Date(`${item.particular}-01T00:00:00`).toLocaleString(undefined, { month: 'long', year: 'numeric' })
+        ? formatMonthLabel(item.particular)
         : 'N/A';
       const amount = Number(item.amount || 0);
       return `
@@ -646,8 +681,9 @@ export default function ManualPaymentPage() {
                             </td>
                             <td>
                               <input
-                                type="month"
+                                type="text"
                                 className={styles.tableInput}
+                                placeholder="June, September"
                                 value={item.particular}
                                 onChange={(e) => handleLineItemChange(rowIndex, 'particular', e.target.value)}
                               />

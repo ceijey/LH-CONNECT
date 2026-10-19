@@ -307,7 +307,6 @@ export default function SubmitPaymentPage() {
   const [recentSubmissions, setRecentSubmissions] = useState<Submission[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [oldestUnpaidMonth, setOldestUnpaidMonth] = useState<string | null>(null);
-  const [unpaidMonthLabels, setUnpaidMonthLabels] = useState<string[]>([]);
   const [outstandingBalance, setOutstandingBalance] = useState<number | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -409,11 +408,9 @@ export default function SubmitPaymentPage() {
 
         const oldest = unpaidStatements[0];
         setOldestUnpaidMonth(oldest ? `${oldest.month} ${oldest.year}` : null);
-        setUnpaidMonthLabels(unpaidStatements.map((statement: { month?: string; year?: number }) => `${statement.month} ${statement.year}`));
       } catch (error) {
         console.error('Failed to determine oldest unpaid month:', error);
         setOldestUnpaidMonth(null);
-        setUnpaidMonthLabels([]);
       }
     };
 
@@ -652,13 +649,6 @@ export default function SubmitPaymentPage() {
     }
   };
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -707,14 +697,13 @@ export default function SubmitPaymentPage() {
     }
 
     const paymentMonths = Number(formData.paymentMonths);
-    const expectedPaymentAmount = Number(ESTABLISHED_PAYMENT_AMOUNT) * paymentMonths;
     if (!Number.isInteger(paymentMonths) || paymentMonths < 1 || paymentMonths > MAX_ADVANCE_MONTHS) {
       setToast({ message: 'Please select a payment duration between 1 and 12 months.', type: 'error' });
       return;
     }
 
-    if (Number(amountValue) !== expectedPaymentAmount) {
-      setToast({ message: `Receipt amount must be exactly ₱${expectedPaymentAmount} for ${paymentMonths} month${paymentMonths === 1 ? '' : 's'}.`, type: 'error' });
+    if (Number(amountValue) !== Number(formData.paymentAmount)) {
+      setToast({ message: `Receipt amount must match your payment amount of ₱${Number(formData.paymentAmount).toLocaleString()}.`, type: 'error' });
       return;
     }
 
@@ -992,7 +981,7 @@ export default function SubmitPaymentPage() {
                 <div className={styles.formGroup} style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '12px', border: '1px solid #93c5fd' }}>
                   <label className={styles.label} style={{ color: '#1e3a8a', fontSize: '1.1rem', marginBottom: '4px' }}>1. Choose Payment Coverage</label>
                   <p style={{ fontSize: '0.85rem', color: '#1d4ed8', marginBottom: '12px' }}>
-                    Outstanding months are settled oldest-first before any remaining amount covers future months.
+                    Choose the total number of months to cover. Arrears are settled oldest-first, then any remaining amount covers future months.
                   </p>
                   <div role="radiogroup" aria-label="Payment coverage" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
                     {Array.from({ length: MAX_ADVANCE_MONTHS }, (_, index) => {
@@ -1012,16 +1001,48 @@ export default function SubmitPaymentPage() {
                           }))}
                           style={{ padding: '9px 4px', border: selected ? '2px solid #2563eb' : '1px solid #bfdbfe', borderRadius: '8px', background: selected ? '#dbeafe' : '#fff', color: '#1e3a8a', fontWeight: selected ? 700 : 500, cursor: 'pointer' }}
                         >
-                          <span style={{ display: 'block', fontSize: '0.9rem' }}>{months} mo.</span>
+                          <span style={{ display: 'block', fontSize: '0.9rem' }}>{months} mo. total</span>
                           <span style={{ display: 'block', fontSize: '0.75rem' }}>₱{amount.toLocaleString()}</span>
                         </button>
                       );
                     })}
                   </div>
+                  <div style={{ marginTop: '14px' }}>
+                    <label htmlFor="paymentAmount" style={{ display: 'block', fontSize: '0.85rem', color: '#1e3a8a', fontWeight: 600, marginBottom: '5px' }}>
+                      Payment amount
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: '#1e3a8a', fontWeight: 700 }}>₱</span>
+                      <input
+                        id="paymentAmount"
+                        name="paymentAmount"
+                        type="number"
+                        min="0.01"
+                        max={Number(ESTABLISHED_PAYMENT_AMOUNT) * MAX_ADVANCE_MONTHS}
+                        step="0.01"
+                        value={formData.paymentAmount}
+                        onChange={(event) => {
+                          const amount = Number(event.target.value);
+                          const months = Number.isFinite(amount) && amount > 0
+                            ? Math.min(MAX_ADVANCE_MONTHS, Math.max(1, Math.ceil(amount / Number(ESTABLISHED_PAYMENT_AMOUNT))))
+                            : 1;
+                          setFormData(prev => ({
+                            ...prev,
+                            paymentAmount: event.target.value,
+                            paymentMonths: String(months),
+                          }));
+                        }}
+                        style={{ flex: 1, padding: '8px 10px', border: '1px solid #93c5fd', borderRadius: '7px', background: '#fff', color: '#1e3a8a', fontSize: '1rem' }}
+                      />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#1d4ed8', margin: '5px 0 0' }}>
+                      You may enter a partial amount such as ₱250. The amount is applied to the oldest unpaid balance first and counts toward your selected total coverage.
+                    </p>
+                  </div>
                   <p style={{ fontSize: '0.85rem', color: '#1e3a8a', margin: '12px 0 0' }}>
                     {outstandingBalance !== null && outstandingBalance > 0
-                      ? `Outstanding balance: ₱${outstandingBalance.toLocaleString()}. Paid first: ${unpaidMonthLabels.slice(0, Number(formData.paymentMonths)).join(', ') || oldestUnpaidMonth || 'the oldest unpaid month'}.`
-                      : 'Your selected amount will be applied to future months.'}
+                      ? `Outstanding balance: ₱${outstandingBalance.toLocaleString()}. Your ${formData.paymentMonths}-month total will pay arrears first, then cover future months.`
+                      : `Your ₱${Number(formData.paymentAmount || 0).toLocaleString()} payment will cover ${formData.paymentMonths} month${Number(formData.paymentMonths) === 1 ? '' : 's'} in advance.`}
                   </p>
                 </div>
 

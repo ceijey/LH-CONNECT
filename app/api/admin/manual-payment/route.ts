@@ -5,7 +5,11 @@ import { adminDb } from '@/lib/firebase-admin';
 import { sendPaymentVerifiedEmail } from '@/lib/mailer';
 import { verifyCsrf } from '@/lib/csrf';
 import { logAuditAction } from '@/lib/audit-logger';
-import { allocatePaymentToStatements } from '@/lib/payment-allocation';
+import {
+  allocatePaymentToSelectedStatements,
+  allocatePaymentToStatements,
+  type SelectedStatementMonth,
+} from '@/lib/payment-allocation';
 import { validatePaymentAmount } from '@/lib/payment-validation';
 
 export async function POST(request: NextRequest) {
@@ -30,9 +34,17 @@ export async function POST(request: NextRequest) {
     const adminName = adminData.fullName || adminData.name || 'Admin';
 
     const body = await request.json();
-    const { residentId, paymentAmount, paymentMethod = 'Cash', month, notes, orNumber } = body;
+    const {
+      residentId,
+      paymentAmount,
+      paymentMethod = 'Cash',
+      month,
+      selectedMonths,
+      notes,
+      orNumber,
+    } = body;
 
-    if (!residentId || paymentAmount === undefined || paymentAmount === null || !month || !orNumber?.trim()) {
+    if (!residentId || paymentAmount === undefined || paymentAmount === null || (!month && !Array.isArray(selectedMonths)) || !orNumber?.trim()) {
       return createErrorResponse('Missing required fields: residentId, paymentAmount, month, orNumber', 400);
     }
     if (!/^\d+$/.test(orNumber.trim())) {
@@ -59,6 +71,49 @@ export async function POST(request: NextRequest) {
     if (!amountValidation.isValid) {
       return createErrorResponse(amountValidation.error ?? 'Payment amount is invalid', 400);
     }
+
+    let normalizedSelectedMonths: SelectedStatementMonth[] = [];
+    if (Array.isArray(selectedMonths)) {
+      try {
+        normalizedSelectedMonths = selectedMonths.map((entry: unknown) => {
+          if (!entry || typeof entry !== 'object') {
+            throw new Error('Each selected month must include a month and year');
+          }
+          const candidate = entry as { month?: unknown; year?: unknown };
+          const normalizedMonth = String(candidate.month ?? '').trim();
+          const normalizedYear = Number(candidate.year);
+          const parsedMonth = new Date(`${normalizedMonth} 1, 2020`).getMonth();
+          if (!/^[A-Za-z]+$/.test(normalizedMonth) || Number.isNaN(parsedMonth) || !Number.isInteger(normalizedYear) || normalizedYear < 2000 || normalizedYear > 2100) {
+            throw new Error('Each selected month must include a valid month and year');
+          }
+          return {
+            month: normalizedMonth.charAt(0).toUpperCase() + normalizedMonth.slice(1).toLowerCase(),
+            year: normalizedYear,
+          };
+        });
+      } catch (error) {
+        return createErrorResponse(error instanceof Error ? error.message : 'Selected months are invalid', 400);
+      }
+    }
+
+    if (normalizedSelectedMonths.length > 0) {
+      if (normalizedSelectedMonths.length > 12) {
+        return createErrorResponse('You can select up to 12 billing months per payment.', 400);
+      }
+      const uniqueMonths = new Set(normalizedSelectedMonths.map((entry) => `${entry.year}-${entry.month.toLowerCase()}`));
+      if (uniqueMonths.size !== normalizedSelectedMonths.length) {
+        return createErrorResponse('The same billing month cannot be selected more than once.', 400);
+      }
+      if (amount !== normalizedSelectedMonths.length * 400) {
+        return createErrorResponse(`Payment amount must be exactly ₱${normalizedSelectedMonths.length * 400} for the selected month${normalizedSelectedMonths.length === 1 ? '' : 's'}.`, 400);
+      }
+    } else if (Array.isArray(selectedMonths) && !month) {
+      return createErrorResponse('At least one billing month is required.', 400);
+    }
+
+    const paymentMonthLabel = normalizedSelectedMonths.length > 0
+      ? normalizedSelectedMonths.map((entry) => `${entry.month} ${entry.year}`).join(', ')
+      : String(month);
 
     const normalizedOrNumber = orNumber.trim();
     const orNumberRef = adminDb.collection('payment_or_numbers').doc(normalizedOrNumber);
@@ -91,13 +146,23 @@ export async function POST(request: NextRequest) {
       }
 
       const currentBalance = Number(freshResident.data()?.balance ?? 0);
-      await allocatePaymentToStatements(
-        transaction,
-        adminDb.collection('statements'),
-        residentId,
-        amount,
-        freshResident.data()?.createdAt,
-      );
+      if (normalizedSelectedMonths.length > 0) {
+        await allocatePaymentToSelectedStatements(
+          transaction,
+          adminDb.collection('statements'),
+          residentId,
+          amount,
+          normalizedSelectedMonths,
+        );
+      } else {
+        await allocatePaymentToStatements(
+          transaction,
+          adminDb.collection('statements'),
+          residentId,
+          amount,
+          freshResident.data()?.createdAt,
+        );
+      }
       transaction.update(residentRef, {
         balance: Math.max(0, currentBalance - amount),
         updatedAt: now.toISOString(),
@@ -120,7 +185,8 @@ export async function POST(request: NextRequest) {
         referenceNumber: normalizedOrNumber,
         notes: notes || 'Manual cash payment recorded by admin',
         status: 'Verified',
-        month,
+        month: paymentMonthLabel,
+        selectedMonths: normalizedSelectedMonths,
         submittedDate: now.toLocaleString(),
         submittedAt: now,
         verifiedDate: now.toLocaleString(),
@@ -134,7 +200,7 @@ export async function POST(request: NextRequest) {
         residentName,
         amount,
         type: 'Payment',
-        description: `Manual Payment - ${month}`,
+        description: `Manual Payment - ${paymentMonthLabel}`,
         paymentMethod,
         referenceNumber: normalizedOrNumber,
         status: 'Paid',
@@ -145,7 +211,7 @@ export async function POST(request: NextRequest) {
       transaction.create(notificationRef, {
         userId: residentId,
         title: 'Payment Received',
-        message: `Your cash payment of ₱${amount.toLocaleString()} for ${month} has been recorded by the admin.`,
+        message: `Your cash payment of ₱${amount.toLocaleString()} for ${paymentMonthLabel} has been recorded by the admin.`,
         type: 'success',
         read: false,
         createdAt: now,
@@ -160,7 +226,7 @@ export async function POST(request: NextRequest) {
           toEmail: residentEmail,
           residentName,
           amount: amount,
-          month: month
+          month: paymentMonthLabel
         });
       } catch (emailErr: any) {
         console.error('[ManualPayment] Failed to send email:', emailErr.message);
@@ -171,7 +237,7 @@ export async function POST(request: NextRequest) {
       adminId,
       adminName,
       'Manual Payment',
-      `Recorded manual ${paymentMethod} payment of ₱${amount} for ${residentName} (${month})`,
+      `Recorded manual ${paymentMethod} payment of ₱${amount} for ${residentName} (${paymentMonthLabel})`,
       submissionRef.id
     );
 

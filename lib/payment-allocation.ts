@@ -1,5 +1,6 @@
 import type {
   CollectionReference,
+  DocumentReference,
   Transaction,
 } from 'firebase-admin/firestore';
 
@@ -18,6 +19,11 @@ const MONTH_NAMES = [
   'november',
   'december',
 ];
+
+export interface SelectedStatementMonth {
+  month: string;
+  year: number;
+}
 
 export function statementTime(data: Record<string, unknown>): number {
   const monthText = String(data.month ?? '').toLowerCase();
@@ -200,5 +206,76 @@ export async function allocatePaymentToStatements(
     }
 
     remaining -= appliedAmount;
+  }
+}
+
+export async function allocatePaymentToSelectedStatements(
+  transaction: Transaction,
+  statementsRef: CollectionReference,
+  residentId: string,
+  paymentAmount: number,
+  selectedMonths: SelectedStatementMonth[],
+): Promise<void> {
+  if (paymentAmount <= 0 || selectedMonths.length === 0) return;
+
+  const statementSnapshot = await transaction.get(
+    statementsRef.where('residentId', '==', residentId),
+  );
+  const nowIso = new Date().toISOString();
+  const statementsByKey = new Map<string, { ref: DocumentReference; data: Record<string, unknown>; isNew: boolean }>();
+
+  for (const doc of statementSnapshot.docs) {
+    const data = doc.data();
+    const monthIndex = MONTH_NAMES.findIndex((name) => String(data.month ?? '').toLowerCase().includes(name));
+    const year = Number(data.year);
+    if (monthIndex >= 0 && Number.isInteger(year)) {
+      statementsByKey.set(getMonthIdentifier(new Date(year, monthIndex, 1)), {
+        ref: doc.ref,
+        data,
+        isNew: false,
+      });
+    }
+  }
+
+  for (const selectedMonth of selectedMonths) {
+    const monthIndex = MONTH_NAMES.indexOf(selectedMonth.month.toLowerCase());
+    const key = getMonthIdentifier(new Date(selectedMonth.year, monthIndex, 1));
+    let statement = statementsByKey.get(key);
+
+    if (!statement) {
+      const dueDate = new Date(selectedMonth.year, monthIndex, 15, 23, 59, 59);
+      statement = {
+        ref: statementsRef.doc(),
+        data: {
+          residentId,
+          month: selectedMonth.month,
+          year: selectedMonth.year,
+          date: new Date(selectedMonth.year, monthIndex, 1).toISOString(),
+          dueDate: dueDate.toISOString(),
+          totalDues: MONTHLY_DUES,
+          amountPaid: 0,
+          balance: MONTHLY_DUES,
+          status: 'Pending',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        },
+        isNew: true,
+      };
+      statementsByKey.set(key, statement);
+    }
+
+    const totalDues = Math.max(0, Number(statement.data.totalDues ?? MONTHLY_DUES));
+    const updatedData = {
+      amountPaid: totalDues,
+      balance: 0,
+      status: 'Paid',
+      updatedAt: nowIso,
+    };
+
+    if (statement.isNew) {
+      transaction.create(statement.ref, { ...statement.data, ...updatedData });
+    } else {
+      transaction.update(statement.ref, updatedData);
+    }
   }
 }
