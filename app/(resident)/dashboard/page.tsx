@@ -271,6 +271,7 @@ export default function DashboardPage() {
                 className={`${styles.iconBtn} ${unreadCount > 0 ? styles.hasUnread : ''}`}
                 onClick={() => setShowNotifications(!showNotifications)}
                 title="Notifications"
+                aria-label="Notifications"
               >
                 🔔 {unreadCount > 0 && <span className={styles.badge}>{unreadCount}</span>}
               </button>
@@ -312,14 +313,17 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-            <Link href="/dashboard/announcements" className={styles.accountBtn}>
-              📢 Announcements
+            <Link href="/dashboard/announcements" className={styles.accountBtn} aria-label="Announcements">
+              <span aria-hidden="true">📢</span>
+              <span>Announcements</span>
             </Link>
-            <Link href="/dashboard/account" className={styles.accountBtn}>
-              👤 My Account
+            <Link href="/dashboard/account" className={styles.accountBtn} aria-label="My Account">
+              <span aria-hidden="true">👤</span>
+              <span>My Account</span>
             </Link>
-            <button className={styles.logoutBtn} onClick={handleLogout}>
-              ⬅ Logout
+            <button className={styles.logoutBtn} onClick={handleLogout} aria-label="Logout">
+              <span aria-hidden="true">⬅</span>
+              <span>Logout</span>
             </button>
           </div>
         </div>

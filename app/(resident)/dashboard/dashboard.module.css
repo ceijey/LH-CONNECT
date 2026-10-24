@@ -26,12 +26,14 @@
   max-width: 1280px;
   margin: 0 auto;
   width: 100%;
+  min-width: 0;
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .logoIcon {
@@ -45,6 +47,7 @@
   color: #1B2A4A;
   margin: 0;
   letter-spacing: -0.3px;
+  white-space: nowrap;
 }
 
 .logoSubtext {
@@ -60,6 +63,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .notificationWrapper {
@@ -733,20 +737,67 @@
     gap: 6px;
   }
 
-  .accountBtn span:first-child {
-    display: none;
+  .notificationDropdown {
+    position: fixed;
+    top: 76px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
   }
+
 }
 
 @media (max-width: 480px) {
-  .accountBtn {
-    padding: 7px 10px;
-    font-size: 0.8rem;
+  .header {
+    padding: 0 0.5rem;
   }
 
+  .headerContent {
+    height: 60px;
+  }
+
+  .logo {
+    gap: 6px;
+  }
+
+  .logoIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .logoText {
+    font-size: 0.95rem;
+  }
+
+  .logoSubtext {
+    font-size: 0.6rem;
+  }
+
+  .headerActions {
+    gap: 4px;
+  }
+
+  .notificationDropdown {
+    top: 68px;
+  }
+
+  .accountBtn,
   .logoutBtn {
-    padding: 7px 10px;
-    font-size: 0.8rem;
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    padding: 0;
+    font-size: 1rem;
+  }
+
+  .accountBtn > span:last-child,
+  .logoutBtn > span:last-child {
+    display: none;
+  }
+
+  .accountBtn {
+    gap: 0;
   }
 
   .announcementBanner {

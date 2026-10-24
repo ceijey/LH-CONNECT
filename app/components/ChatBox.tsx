@@ -41,6 +41,8 @@ interface ChatBoxProps {
   composerPlaceholder?: string;
   selectedImage?: File | null;
   onImageSelect?: (file: File | null) => void;
+  mobileSelectionMode?: boolean;
+  onMobileBack?: () => void;
 }
 
 export default function ChatBox({
@@ -62,6 +64,8 @@ export default function ChatBox({
   composerPlaceholder = 'Write a message...',
   selectedImage,
   onImageSelect,
+  mobileSelectionMode = false,
+  onMobileBack,
 }: ChatBoxProps) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -93,7 +97,10 @@ export default function ChatBox({
   };
 
   return (
-    <section className={styles.shell} aria-label={title}>
+    <section
+      className={`${styles.shell} ${mobileSelectionMode ? styles.mobileSelectionMode : ''} ${selectedThreadId ? styles.mobileThreadActive : ''}`}
+      aria-label={title}
+    >
       {/* ===== Lightbox Overlay ===== */}
       {lightboxSrc && (
         <div className={styles.lightboxOverlay} onClick={() => setLightboxSrc(null)}>
@@ -155,6 +162,11 @@ export default function ChatBox({
 
       <div className={styles.conversationPane}>
         <div className={styles.conversationHeader}>
+          {mobileSelectionMode && onMobileBack ? (
+            <button type="button" className={styles.mobileBackButton} onClick={onMobileBack}>
+              ← Messages
+            </button>
+          ) : null}
           <div>
             <h3 className={styles.conversationTitle}>{selectedThread?.title ?? 'Select a conversation'}</h3>
             {selectedThread?.meta ? <p className={styles.conversationMeta}>{selectedThread.meta}</p> : null}
@@ -254,4 +266,3 @@ export default function ChatBox({
     </section>
   );
 }
-

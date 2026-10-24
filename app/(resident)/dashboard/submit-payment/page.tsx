@@ -926,7 +926,8 @@ export default function SubmitPaymentPage() {
         <div className={styles.headerContent}>
           <div className={styles.headerLefty}>
             <Link href="/dashboard" className={styles.backBtn}>
-              ← Back
+              <span aria-hidden="true">←</span>
+              <span>Back</span>
             </Link>
             <div className={styles.headerBrand}>
               <Image
@@ -949,7 +950,8 @@ export default function SubmitPaymentPage() {
               await logoutAndRedirect(router, '/login');
             }}
           >
-            ⬅ Logout
+            <span aria-hidden="true">⬅</span>
+            <span>Logout</span>
           </button>
         </div>
       </header>
@@ -983,7 +985,7 @@ export default function SubmitPaymentPage() {
                   <p style={{ fontSize: '0.85rem', color: '#1d4ed8', marginBottom: '12px' }}>
                     Choose the total number of months to cover. Arrears are settled oldest-first, then any remaining amount covers future months.
                   </p>
-                  <div role="radiogroup" aria-label="Payment coverage" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
+                  <div className={styles.coverageGrid} role="radiogroup" aria-label="Payment coverage" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
                     {Array.from({ length: MAX_ADVANCE_MONTHS }, (_, index) => {
                       const months = index + 1;
                       const amount = Number(ESTABLISHED_PAYMENT_AMOUNT) * months;
@@ -1112,14 +1114,14 @@ export default function SubmitPaymentPage() {
 
                 {shouldShowReviewSection && (
                   <div style={{ marginTop: '40px', animation: 'fadeIn 0.5s ease-in' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
+                    <div className={styles.reviewDivider} style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
                       <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 4: Verify & Submit</span>
                       <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }}></div>
                     </div>
 
                     {/* Minimal Resident Summary */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                    <div className={styles.reviewSummary} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                       <div>
                         <div style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', fontWeight: 600 }}>Resident</div>
                         <div style={{ fontSize: '1.15rem', color: '#111827', fontWeight: 600 }}>{formData.residentName || '—'}</div>
@@ -1140,7 +1142,7 @@ export default function SubmitPaymentPage() {
                         </h4>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px' }}>
+                      <div className={styles.receiptGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px' }}>
                         {/* Reference Number */}
                         <div>
                           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Reference Number</label>

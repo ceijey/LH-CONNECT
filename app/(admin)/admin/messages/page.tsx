@@ -71,11 +71,6 @@ export default function AdminMessages() {
   }, [messages, readMessageIds]);
 
   useEffect(() => {
-    if (!selectedThreadId && displayMessages.length > 0) {
-      setSelectedThreadId(displayMessages[0].id);
-      return;
-    }
-
     if (selectedThreadId && !displayMessages.some((message) => message.id === selectedThreadId) && displayMessages.length > 0) {
       setSelectedThreadId(displayMessages[0].id);
     }
@@ -216,6 +211,8 @@ export default function AdminMessages() {
           composerPlaceholder="Type a reply to the resident..."
           selectedImage={selectedImage}
           onImageSelect={setSelectedImage}
+          mobileSelectionMode
+          onMobileBack={() => setSelectedThreadId(null)}
         />
       </div>
     </>

@@ -26,12 +26,14 @@
   margin: 0 auto;
   width: 100%;
   padding: 0 2rem;
+  min-width: 0;
 }
 
 .headerLefty {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .backBtn {
@@ -59,6 +61,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+.headerIcon {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .headerTitle {
@@ -67,6 +76,7 @@
   color: #1B2A4A;
   margin: 0;
   letter-spacing: -0.3px;
+  white-space: nowrap;
 }
 
 .headerSubtitle {
@@ -91,6 +101,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .logoutBtn:hover {
@@ -120,6 +131,7 @@
   padding: 2rem;
   box-shadow: 0 4px 20px rgba(0,0,0,0.05);
   border: 1px solid #e2e8f0;
+  min-width: 0;
 }
 
 .formTitle {
@@ -141,6 +153,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  min-width: 0;
 }
 
 .formGroup {
@@ -257,6 +270,8 @@
   color: #1B2A4A;
   font-weight: 550;
   outline: none;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .input:focus,
@@ -293,6 +308,7 @@
   padding: 2rem 1.5rem;
   cursor: pointer;
   text-align: center;
+  min-width: 0;
 }
 
 .uploadIcon {
@@ -304,6 +320,7 @@
   color: #1B2A4A;
   font-weight: 700;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .uploadSmall {
@@ -480,6 +497,7 @@
   border-radius: 8px;
   border-left: 3px solid #718096;
   transition: all 0.2s;
+  min-width: 0;
 }
 
 .submissionItem:hover {
@@ -688,6 +706,21 @@
   color: #1B2A4A;
   font-size: 0.8rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.coverageGrid,
+.receiptGrid {
+  min-width: 0;
+}
+
+.coverageGrid button {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reviewSummary > * {
+  min-width: 0;
 }
 
 .statusMessage {
@@ -761,13 +794,109 @@
   .formSection {
     padding: 1.5rem;
   }
+
+  .contentWrapper {
+    min-width: 0;
+  }
+
+  .receiptGrid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
 }
 
 @media (max-width: 480px) {
+  .header {
+    padding: 0 0.5rem;
+  }
+
+  .headerContent {
+    height: 60px;
+  }
+
+  .headerLefty {
+    gap: 6px;
+  }
+
+  .headerBrand {
+    gap: 6px;
+  }
+
+  .headerIcon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .headerTitle {
+    font-size: 0.95rem;
+    white-space: normal;
+    line-height: 1.1;
+    max-width: 82px;
+  }
+
+  .backBtn,
+  .logoutBtn {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .backBtn > span:last-child,
+  .logoutBtn > span:last-child {
+    display: none;
+  }
+
+  .backBtn > span:first-child,
+  .logoutBtn > span:first-child {
+    font-size: 1.1rem;
+  }
+
   .formSection {
     padding: 1.25rem;
     border-radius: 12px;
   }
+
+  .formTitle {
+    font-size: 1.35rem;
+  }
+
+  .formDescription {
+    font-size: 0.82rem;
+  }
+
+  .coverageGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .coverageGrid button {
+    min-height: 64px;
+  }
+
+  .reviewDivider {
+    margin-bottom: 20px !important;
+  }
+
+  .reviewDivider span {
+    padding: 0 8px !important;
+    text-align: center;
+  }
+
+  .reviewSummary {
+    align-items: flex-start !important;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px !important;
+  }
+
+  .reviewSummary > :last-child {
+    text-align: left !important;
+  }
+
+  .receiptGrid {
+    grid-template-columns: 1fr !important;
+  }
+
   .card {
     padding: 1.25rem;
     border-radius: 12px;

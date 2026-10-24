@@ -161,7 +161,8 @@ export default function ContactHOAPage() {
         <div className={styles.headerContent}>
           <div className={styles.headerLefty}>
             <Link href="/dashboard" className={styles.backBtn}>
-              ← Back
+              <span aria-hidden="true">←</span>
+              <span>Back</span>
             </Link>
             <div className={styles.headerBrand}>
               <Image
@@ -184,7 +185,8 @@ export default function ContactHOAPage() {
               await logoutAndRedirect(router, '/login');
             }}
           >
-            ⬅ Logout
+            <span aria-hidden="true">⬅</span>
+            <span>Logout</span>
           </button>
         </div>
       </header>

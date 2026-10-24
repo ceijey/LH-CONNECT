@@ -26,12 +26,14 @@
   margin: 0 auto;
   width: 100%;
   padding: 0 2rem;
+  min-width: 0;
 }
 
 .headerLefty {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .backBtn {
@@ -59,6 +61,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+.headerIcon {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .headerTitle {
@@ -67,6 +76,7 @@
   color: #1B2A4A;
   margin: 0;
   letter-spacing: -0.3px;
+  white-space: nowrap;
 }
 
 .headerSubtitle {
@@ -91,6 +101,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .logoutBtn:hover {
@@ -105,6 +116,7 @@
   margin: 0 auto;
   padding: 2rem;
   width: 100%;
+  min-width: 0;
 }
 
 .contentWrapper {
@@ -466,6 +478,61 @@
 }
 
 @media (max-width: 480px) {
+  .header {
+    padding: 0;
+  }
+
+  .headerContent {
+    height: 56px;
+    position: relative;
+    padding: 0;
+  }
+
+  .headerLefty {
+    width: 100%;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .headerBrand {
+    gap: 8px;
+  }
+
+  .headerIcon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .headerTitle {
+    font-size: 0.95rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .backBtn {
+    position: absolute;
+    left: 0.6rem;
+    top: 8px;
+    gap: 4px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  .logoutBtn {
+    position: absolute;
+    right: 0.6rem;
+    top: 8px;
+    gap: 4px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  .headerSubtitle {
+    display: none;
+  }
+
   .conversationSection {
     padding: 1.25rem;
     border-radius: 12px;

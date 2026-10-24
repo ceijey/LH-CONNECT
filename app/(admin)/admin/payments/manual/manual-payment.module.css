@@ -2,6 +2,7 @@
   max-width: 920px;
   margin: 0 auto;
   padding: 2rem 1rem 3rem;
+  min-width: 0;
 }
 
 .header {
@@ -68,12 +69,14 @@
   border: 1px solid #e2e8f0;
   padding: 2rem;
   margin-bottom: 2rem;
+  min-width: 0;
 }
 
 .cardBody {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 1.75rem;
+  min-width: 0;
 }
 
 .leftColumn,
@@ -228,6 +231,7 @@
   border-radius: 24px;
   padding: 1.75rem;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+  min-width: 0;
 }
 
 .invoiceHeader {
@@ -240,6 +244,7 @@
 
 .invoiceBrand {
   max-width: 65%;
+  min-width: 0;
 }
 
 .invoiceTitle {
@@ -255,6 +260,7 @@
   font-size: 0.9rem;
   color: #475569;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .invoiceLabel {
@@ -361,12 +367,14 @@
   border-radius: 16px;
   border: 1px solid #e2e8f0;
   overflow: hidden;
+  min-width: 0;
 }
 
 .invoiceTable {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  min-width: 0;
 }
 
 .invoiceTable th,
@@ -420,6 +428,8 @@
   background: #f8fafc;
   color: #0f172a;
   font-size: 0.95rem;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .tableInput:disabled {
@@ -763,15 +773,31 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: 1.5rem 1rem 2.5rem;
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .headerTop {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.6rem;
   }
 
   .headerMain {
-    padding: 1.25rem 1rem;
+    padding: 1.1rem 1rem;
+  }
+
+  .title {
+    font-size: 1.65rem;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+    line-height: 1.5;
   }
 
   .card {
-    padding: 1.5rem;
+    padding: 1rem;
+    border-radius: 16px;
   }
 
   .sectionHeader {
@@ -781,6 +807,7 @@
 
   .invoiceHeader {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .invoiceBrand {
@@ -792,8 +819,109 @@
     margin-top: 0.5rem;
   }
 
+  .invoiceLabelTitle {
+    font-size: 1.7rem;
+  }
+
+  .invoiceMetaRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .invoiceCheckboxGroup {
+    gap: 0.75rem;
+  }
+
+  .invoiceFieldRow {
+    min-width: 0;
+  }
+
+  .soldToGrid {
+    grid-template-columns: 1fr;
+  }
+
   .invoiceTableWrapper {
-    overflow-x: auto;
+    overflow: visible;
+    border: 0;
+  }
+
+  .invoiceTable,
+  .invoiceTable thead,
+  .invoiceTable tbody,
+  .invoiceTable tr,
+  .invoiceTable th,
+  .invoiceTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .invoiceTable thead {
+    display: none;
+  }
+
+  .invoiceTable tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .invoiceTable tr {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .invoiceTable td {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem;
+    border: 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .invoiceTable td:last-child {
+    border-bottom: 0;
+  }
+
+  .invoiceTable td::before {
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.25;
+  }
+
+  .invoiceTable td:nth-child(1)::before {
+    content: 'Nature of service';
+  }
+
+  .invoiceTable td:nth-child(2)::before {
+    content: 'Particular';
+  }
+
+  .invoiceTable td:nth-child(3)::before {
+    content: 'Amount';
+  }
+
+  .invoiceTable .tableInput,
+  .invoiceTable .staticCell,
+  .invoiceTable .totalCell {
+    min-height: 2.7rem;
+    padding: 0.65rem 0.7rem;
+  }
+
+  .summaryRow,
+  .summaryRowTotal {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0.8rem;
+  }
+
+  .invoiceTableWrapper {
+    overflow-x: visible;
   }
 
   .actions {
@@ -808,5 +936,52 @@
 
   .cancelBtn {
     width: 100%;
+  }
+
+  .error {
+    align-items: flex-start;
+    padding: 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .residentSummary {
+    align-items: flex-start;
+  }
+
+  .summaryName,
+  .summaryAddr {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 380px) {
+  .container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .invoicePaper {
+    padding: 1rem 0.75rem;
+    border-radius: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 1.05rem;
+  }
+
+  .invoiceTable td {
+    grid-template-columns: 6.25rem minmax(0, 1fr);
+    gap: 0.4rem;
+    padding: 0.6rem;
+  }
+
+  .invoiceTable td::before {
+    font-size: 0.65rem;
+  }
+
+  .tableInput {
+    font-size: 0.88rem;
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
   }
 }

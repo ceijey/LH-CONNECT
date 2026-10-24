@@ -82,10 +82,11 @@ export default function ResidentAnnouncementsPage() {
         <div className={styles.headerContent}>
           <div className={styles.headerLefty}>
             <Link href="/dashboard" className={styles.backBtn}>
-              ← Back
+              <span aria-hidden="true">←</span>
+              <span>Back</span>
             </Link>
             <div className={styles.headerBrand}>
-              <Image src="/lhhoa-logo.png" alt="Logo" width={40} height={40} />
+              <Image src="/lhhoa-logo.png" alt="Logo" width={40} height={40} className={styles.headerIcon} />
               <div>
                 <h1 className={styles.headerTitle}>LH-Connect</h1>
                 <p className={styles.headerSubtitle}>Community Announcements</p>
@@ -93,7 +94,8 @@ export default function ResidentAnnouncementsPage() {
             </div>
           </div>
           <button className={styles.logoutBtn} onClick={() => logoutAndRedirect(router, '/login')}>
-            ⬅ Logout
+            <span aria-hidden="true">⬅</span>
+            <span>Logout</span>
           </button>
         </div>
       </header>
